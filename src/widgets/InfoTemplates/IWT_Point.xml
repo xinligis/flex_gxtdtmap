@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<configuration>
+	<mappoint>
+	    <route includeIn="true">
+	    	<titlefield>NAME</titlefield>
+	    	<expression>NAME Like '[value]%'</expression>
+	    	<queryURL>http://www.tianditucq.com/RemoteRest/services/CQ_POI/MapServer/0</queryURL>
+	    	<label>驾车路线查询</label>
+	   		<widget>widgets/NetworkAnalyst/NetworkAnalystWidget.swf</widget>
+	   		<buswidget>widgets/BusTransfer/BusTransferWidget.swf</buswidget>
+	    </route>
+    </mappoint>
+    <polyline>
+    	<postprocessor>
+	    	<label>周边设施</label>
+	    	<widget>widgets/Buffer/BufferWidget.swf</widget>
+	    </postprocessor>
+    </polyline>
+    <polygon>
+    	<postprocessor>
+	    	<label>周边设施</label>
+	    	<widget>widgets/Buffer/BufferWidget.swf</widget>
+	    </postprocessor>    
+    </polygon>
+    <zoom>36112</zoom>
+</configuration>

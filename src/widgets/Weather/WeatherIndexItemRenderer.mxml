@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+				width="100%" height="50" dataChange="itemrenderer_dataChangeHandler(event)"
+				autoDrawBackground="false" contentBackgroundColor="0xf5f5f5"
+			    fontFamily="宋体" fontSize="12">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import spark.utils.TextFlowUtil;
+			
+			private var weatherIndex:WeatherIndex;
+			
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				weatherIndex = data as WeatherIndex;
+				if(!weatherIndex)
+				{
+					return;
+				}
+
+				nameLabel.text = weatherIndex.name;
+				indexLabel.text = "【" + weatherIndex.value + "】";
+				if(weatherIndex.description)
+				{
+					descriptionLabel.visible = true;
+					descriptionLabel.includeInLayout = true;
+					descriptionLabel.text = weatherIndex.description;
+				}
+				else
+				{
+					descriptionLabel.visible = false;
+					descriptionLabel.includeInLayout = false;
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<s:layout>
+		<s:HorizontalLayout gap="8" verticalAlign="middle"/>
+	</s:layout>
+	<s:Label id="nameLabel" width="50" fontWeight="bold" color="0x205e90" textAlign="center"/>
+	<s:Line top="0" height="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="0xdddddd"/>
+		</s:stroke>
+	</s:Line>
+<!--	<s:Label id="indexLabel" fontWeight="bold" color="0xcf6100"/>-->
+	<s:VGroup width="100%" gap="1" verticalAlign="middle">
+		<s:Label id="indexLabel" fontWeight="bold" color="0xcf6100"/>
+		<s:Label id="descriptionLabel" width="225" color="0x000000" lineBreak="toFit" maxDisplayedLines="2"/>
+	</s:VGroup>
+
+</s:ItemRenderer>

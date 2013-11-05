@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////
+公交线路的站点信息，即公交站牌显示
+/////////////////////////////////////
+!-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 fontFamily="宋体"
+		 width="100%" height="100%" 
+		 maxWidth="400" maxHeight="350"
+		 xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
+		 creationComplete="group_creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			/**
+			 * {stopName,routeName,routeStops:Array}
+			 */
+			private var _data:Object;
+			public function set data(value:Object):void
+			{
+				_data = value;
+				initUI();
+			}
+			private var _currentStops:ArrayCollection = null;
+			private function initUI():void
+			{
+				if(!_data)
+				{
+					return;
+				}
+				if(titleLabel)
+				{
+					titleLabel.text = _data.stopName;
+				}
+				if(routeNameLabel)
+				{
+//					var routName = _data.routeName;
+					routeNameLabel.text = _data.routeName;
+				}
+				if(stopList)
+				{
+					if(COUNT >= _data.routeStops.length)
+					{
+						_currentStops = _data.routeStops
+					}
+					else
+					{
+						//尽量把当前选中的项放在列表中间
+						var startIndex:int;
+						var endIndex:int;
+						var ac:ArrayCollection = _data.routeStops as ArrayCollection;
+						if(_data.index < COUNT/2)
+						{
+							startIndex = 0;
+							endIndex = COUNT;
+						}
+						else if(_data.index > (ac.length - COUNT/2))
+						{
+							endIndex = ac.length;
+							startIndex = ac.length - COUNT;
+						}
+						else
+						{
+							startIndex = _data.index - COUNT/2;
+							endIndex = _data.index + COUNT/2;
+						}
+						_currentStops = new ArrayCollection(ac.source.slice(startIndex,endIndex));
+					}
+					stopList.dataProvider = _currentStops;
+				}
+			}
+			private const STEP:int = 2;
+			private const COUNT:int = 8;
+			protected function previouseButton_clickHandler(event:MouseEvent):void
+			{
+				var startItem:Object = _currentStops.getItemAt(0);
+				var ac:ArrayCollection = _data.routeStops as ArrayCollection;
+				var startIndex:int = ac.getItemIndex(startItem);
+				if(startIndex == 0)
+				{
+					return;
+				}
+				startIndex = startIndex - STEP;
+				var endIndex:int;
+				if(startIndex < 0)
+				{
+					startIndex = 0;
+				}
+				endIndex = startIndex + COUNT;
+				_currentStops = new ArrayCollection(ac.source.slice(startIndex,endIndex));
+				stopList.dataProvider = _currentStops;
+			}
+			
+			protected function nextButton_clickHandler(event:MouseEvent):void
+			{
+				var endItem:Object = _currentStops.getItemAt(_currentStops.length - 1);
+				var ac:ArrayCollection = _data.routeStops as ArrayCollection;
+				var endIndex:int = ac.getItemIndex(endItem);
+				if(endIndex == ac.length)
+				{
+					return;
+				}
+				endIndex = endIndex + STEP + 1;
+				var startIndex:int;
+				if(endIndex > ac.length)
+				{
+					endIndex = ac.length;
+				}
+				startIndex = endIndex - COUNT;
+				_currentStops = new ArrayCollection(ac.source.slice(startIndex,endIndex));
+				stopList.dataProvider = _currentStops;
+			}
+			
+			protected function group_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				initUI();
+			}
+			
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:layout>
+		<s:VerticalLayout gap="10" paddingLeft="10" paddingRight="5" paddingTop="10" paddingBottom="10"/>
+	</s:layout>
+	<s:Label id="titleLabel" color="0x4061ad" fontSize="14" fontFamily="微软雅黑" fontWeight="bold"/>
+	<s:BorderContainer width="310" borderColor="0xf7f7f7" backgroundColor="0xfdfdfd">
+		<s:layout>
+			<s:VerticalLayout gap="5" paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5"/>
+		</s:layout>
+		<s:Group width="100%" height="100%" >
+			<s:Group width="55" height="100%" left="0">
+				<s:Rect width="100%" height="100%" topRightRadiusX="5" topRightRadiusY="5">
+					<s:fill>
+						<s:SolidColor color="#CA0000"/>
+					</s:fill>
+				</s:Rect>
+				<s:Label id="routeNameLabel" verticalCenter="0" horizontalCenter="0" fontSize="14" fontWeight="bold" color="0xffffff"/>
+			</s:Group>
+			<customskinbutton:ClickButton id="previouseButton" buttonType="towImage" left="65" verticalCenter="0" 
+										  normalImage="@Embed('assets/images/transfer/left_normal.png')" 
+										  overImage="@Embed('assets/images/transfer/left_over.png')"
+										  click="previouseButton_clickHandler(event)"/>
+				<s:DataGroup id="stopList" height="100%" left="80" right="20" clipAndEnableScrolling="true"
+							 itemRenderer="widgets.BusTransfer.BusStop.RouteStopInfoItemRenderer"
+							 fontFamily="宋体" color="0x000000">
+					<s:layout>
+						<s:HorizontalLayout gap="0" paddingLeft="5" paddingRight="5"/>
+					</s:layout>
+				</s:DataGroup> 
+			<customskinbutton:ClickButton id="nextButton" buttonType="towImage" right="10" verticalCenter="0"
+										  normalImage="@Embed('assets/images/transfer/right_normal.png')" 
+										  overImage="@Embed('assets/images/transfer/right_over.png')"
+										  click="nextButton_clickHandler(event)"/>
+		</s:Group>
+		<s:Group width="100%">
+			<s:Line left="0" right="20" bottom="0">
+				<s:stroke>
+					<s:SolidColorStroke color="#CA0000" weight="2.5"/>
+				</s:stroke>
+			</s:Line>
+			<s:Image source="@Embed('assets/images/transfer/arrow.png')" bottom="0" right="0"/>
+		</s:Group>
+	</s:BorderContainer>
+</s:Group>

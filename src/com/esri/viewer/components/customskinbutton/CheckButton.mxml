@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 自定义的三种状态按钮
+// 温杨彪，2012-3-26
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" currentState="normal"
+		 click="group2_clickHandler(event)" buttonMode="true"
+		 mouseOver="group2_mouseOverHandler(event)"
+		 mouseOut="group2_mouseOutHandler(event)">
+	<fx:Metadata>
+		[Event(name="checkChange",type="flash.events.Event")]
+		[Style(name="normalImage", inherit="no", type="Class")]
+		[Style(name="overImage", inherit="no", type="Class")]
+		[Style(name="selectedImage", inherit="no", type="Class")]
+	</fx:Metadata>
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="over"/>
+		<s:State name="checked"/>
+	</s:states>
+	<fx:Script>
+		<![CDATA[
+			private var _tag:Object;
+			
+			/**
+			 * 按钮的保留标记，可存储与该按钮相关的信息
+			 **/
+			public function set tag(value:Object):void
+			{
+				_tag = value;
+			}
+			
+			/**
+			 * 按钮的保留标记，可存储与该按钮相关的信息
+			 **/
+			public function get tag():Object
+			{
+				return _tag;
+			}
+			
+			private var _checked:Boolean = false;
+			public function get checked():Boolean
+			{
+				return _checked;
+			}
+			
+			public function set checked(value:Boolean):void
+			{
+				if(value == _checked)
+					return;
+				_checked = value;
+				//根据状态更改图片
+				if(_checked)
+				{
+					currentState = "checked";
+				}
+				else
+				{
+					currentState = "normal";
+				}
+			}
+			
+			protected function group2_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				checked = !checked;
+				dispatchEvent(new Event("checkChange"));
+			}
+			
+			protected function group2_mouseOverHandler(event:MouseEvent):void
+			{
+				if(!_checked)
+				{
+					currentState = "over";
+				}
+			}
+			
+			protected function group2_mouseOutHandler(event:MouseEvent):void
+			{
+				//根据状态更改图片
+				if(_checked)
+				{
+					currentState = "checked";
+				}
+				else
+				{
+					currentState = "normal";
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Image source="{getStyle('normalImage')}" visible="true"
+			 visible.checked="false"
+			 visible.over="false"/>
+	<s:Image source="{getStyle('overImage')}" visible="false"
+			 visible.over="true"/>
+	<s:Image source="{getStyle('selectedImage')}" visible="false"
+			 visible.checked="true"/>
+</s:Group>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ////////////////////////////////////////////////////////////////////////////////
+     //
+     // Copyright (c) 2010 ESRI
+     //
+     // All rights reserved under the copyright laws of the United States.
+     // You may freely redistribute and use this software, with or
+     // without modification, provided you include the original copyright
+     // and use restrictions.  See use restrictions in the file:
+     // <install location>/License.txt
+     //
+     ////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:onemap="com.esrichina.om.componet.*"
+                   xmlns:Bookmark="widgets.Bookmark.*"
+				   width="100%" height="100%"
+                   widgetConfigLoaded="init()" xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+
+    <viewer:states>
+
+    </viewer:states>
+
+    <viewer:transitions>
+
+    </viewer:transitions>
+
+    <fx:Script>
+        <![CDATA[
+            import com.esri.ags.geometry.Extent;
+
+            import mx.collections.ArrayList;
+            import mx.controls.Alert;
+            import mx.events.EffectEvent;
+
+            import spark.components.supportClasses.ItemRenderer;
+            import spark.core.NavigationUnit;
+
+            private const BOOKMARKS:String = "bookmarks";
+
+            private const ICON_URL:String = "assets/images/";
+
+            //labels
+            private var bookmarksLabel:String;
+            private var addbookmarksLabel:String;
+            [Bindable]
+            private var addLabel:String;
+            [Bindable]
+            private var submitLabel:String;
+            private var errorLabel:String;
+
+            [Bindable]
+            private var bookmarkAL:ArrayList; // used by BookmarkDataGroup
+            private var bookmarkSO:SharedObject;
+            private var bookmarkSOAL:ArrayList; // stored in bookmarkSO
+
+            private var selectedindex:int = 0;
+
+            private function init():void
+            {
+                if (configXML)
+                {
+                    //labels
+					bookmarksLabel = nlsString("bookmarksLabel");
+					addbookmarksLabel = nlsString("addbookmarksLabel");
+					addLabel = nlsString("addLabel");
+					submitLabel = nlsString("submitLabel");
+					errorLabel = nlsString("errorLabel");
+					
+//                    bookmarksLabel = configXML.labels.bookmarkslabel || "Bookmarks";
+//                    addbookmarksLabel = configXML.labels.addbookmarkslabel || "Add Bookmark";
+//                    addLabel = configXML.labels.addlabel || "Add current extent as a bookmark named:";
+//                    submitLabel = configXML.labels.submitlabel || "Add Bookmark";
+//                    errorLabel = configXML.labels.errorlabel || "Please enter a name for the bookmark.";
+                }
+
+
+
+                bookmarkAL = new ArrayList();
+                try
+                {
+                    bookmarkSO = SharedObject.getLocal(BOOKMARKS);
+                }
+                catch (err:Error)
+                {
+                    trace(err);
+                }
+                loadBookmarks();
+            }
+
+            private function loadBookmarks():void
+            {
+                if (configXML)
+                {
+                    var bookmarkList:XMLList = configXML..bookmark;
+                    for (var i:int = 0; i < bookmarkList.length(); i++)
+                    {
+                        var name:String = bookmarkList[i].@name;
+                        var icon:String = bookmarkList[i].@icon;
+                        var extent:String = bookmarkList[i];
+                        var extArray:Array = extent.split(" ");
+                        var bookmark:Bookmark = new Bookmark();
+                        bookmark.name = name;
+                        bookmark.icon = icon;
+                        bookmark.xmin = Number(extArray[0]);
+                        bookmark.ymin = Number(extArray[1]);
+                        bookmark.xmax = Number(extArray[2]);
+                        bookmark.ymax = Number(extArray[3]);
+                        bookmarkAL.addItem(bookmark);
+                    }
+                }
+                if (bookmarkSO)
+                {
+                    bookmarkSOAL = bookmarkSO.data[BOOKMARKS] as ArrayList;
+                    if (!bookmarkSOAL)
+                    {
+                        bookmarkSOAL = new ArrayList();
+                        bookmarkSO.data[BOOKMARKS] = bookmarkSOAL;
+                    }
+                    else
+                    {
+                        bookmarkAL.addAll(bookmarkSOAL);
+                    }
+                }
+            }
+
+            private function addBookmark():void
+            {
+                var name:String = txtName.text;
+                if (name)
+                {
+                    var ext:Extent = map.extent;
+                    var bookmark:Bookmark = new Bookmark();
+                    bookmark.name = name;
+                    bookmark.userCreated = true;
+                    bookmark.xmin = Number(ext.xmin.toFixed(4));
+                    bookmark.ymin = Number(ext.ymin.toFixed(4));
+                    bookmark.xmax = Number(ext.xmax.toFixed(4));
+                    bookmark.ymax = Number(ext.ymax.toFixed(4));
+                    bookmarkAL.addItem(bookmark);
+                    bookmarkSOAL.addItem(bookmark);
+                    saveBookmarks();
+                    txtName.text = "";
+                }
+                else
+                {
+                    Alert.show(errorLabel, wTemplate.widgetTitle);
+                }
+            }
+
+            private function bkmList_effectEndHandler(event:EffectEvent):void
+            {
+                // scroll to the bottom
+                bookmarkDG.verticalScrollPosition += bookmarkDG.layout.getVerticalScrollPositionDelta(NavigationUnit.END);
+            }
+
+            private function removeBookmark(event:Event):void
+            {
+                var bookmark:Bookmark = ItemRenderer(event.target).data as Bookmark;
+                bookmarkAL.removeItem(bookmark);
+                bookmarkSOAL.removeItem(bookmark);
+                saveBookmarks();
+            }
+
+            private function saveBookmarks():void
+            {
+                if (bookmarkSO)
+                {
+                    try
+                    {
+                        bookmarkSO.flush();
+                    }
+                    catch (err:Error)
+                    {
+                        trace(err);
+                    }
+                }
+            }
+
+            private function showBookmark(event:Event):void
+            {
+                var bookmark:Bookmark = ItemRenderer(event.target).data as Bookmark;
+                var ext:Extent = new Extent(bookmark.xmin, bookmark.ymin, bookmark.xmax, bookmark.ymax);
+                map.extent = ext;
+            }
+			
+			private function nlsString(nlsToken:String):String
+			{
+				return resourceManager.getString("ViewerStrings", nlsToken);
+			}
+        ]]>
+    </fx:Script>
+
+	<fx:Declarations>
+
+	</fx:Declarations>
+    <viewer:SplitWidgetTemplate id="wTemplate" width="100%" top="0" bottom="0" fontFamily="宋体">
+		<viewer:layout>
+			<s:VerticalLayout gap="10" paddingLeft="10" paddingRight="10" paddingBottom="10"/>
+		</viewer:layout>
+		<s:Label text="为所添加的书签命名" fontFamily="宋体" fontSize="12" fontWeight="bold" color="0x4a535f"/>
+		<s:TextInput id="txtName" width="100%" contentBackgroundColor="0xffffff" borderVisible="false"
+					 prompt="点击输入书签名称" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+		<s:HGroup width="100%" horizontalAlign="center">
+			<customskinbutton:ClickButton buttonType="circleRadius" click="addBookmark()" label="确 定" width="60"/>
+		</s:HGroup>
+		<onemap:DottedLine width="100%"/>
+		<s:Label id="bookmarkLabel" text="我的书签" fontSize="12" fontFamily="宋体"
+					 fontWeight="bold" color="#4061ad"/>
+		<s:Scroller width="100%" height="100%">
+			<Bookmark:BookmarkDataGroup id="bookmarkDG" width="100%" height="100%"
+										bookmarkClick="showBookmark(event)"
+										bookmarkDelete="removeBookmark(event)"
+										dataProvider="{bookmarkAL}" rollOverColor="0xf9f9f9">
+				<Bookmark:layout>
+					<s:VerticalLayout gap="5" paddingTop="10" paddingBottom="10"
+									  horizontalAlign="justify"
+									  useVirtualLayout="true"/>
+				</Bookmark:layout>
+			</Bookmark:BookmarkDataGroup>
+		</s:Scroller>
+    </viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2012-2013 Esri China. All Rights Reserved.
+// 左侧地图主视图、右侧对比地图的统一容器
+// 王红亮，易智睿中国科技有限公司
+// 2012-01-04
+///////////////////////////////////////////////////////////////////////////
+-->
+<mx:HDividedBox xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				xmlns:viewer="com.esri.viewer.managers.*"
+				xmlns:container="widgets.CoverWidgetContainer.*"
+				width="100%" height="100%"
+			    creationComplete="this_creationCompleteHandler()"
+			    clipContent="true">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ConfigData;
+			import com.esri.viewer.IWidgetContainer;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.core.IVisualElement;
+			import mx.core.IVisualElementContainer;
+			import mx.events.FlexEvent;
+			import mx.modules.IModuleInfo;
+			import mx.utils.object_proxy;
+			private var _configData:ConfigData;
+			private function this_creationCompleteHandler():void
+			{
+				AppEvent.addListener(AppEvent.CONFIG_LOADED, configLoadedHandler);
+				AppEvent.addListener(AppEvent.WIDGET_CONTAINER_LOADED, widgetContainerLoadedHandler);
+				AppEvent.addListener(AppEvent.WIDGET_CONTAINER_CHECK, widgetContainerCheckHandler);
+				AppEvent.addListener(AppEvent.WIDGET_CONTAINER_VISIBLE, widgetContainerVisibleHandler);
+			}
+			private function configLoadedHandler(event:AppEvent):void
+			{
+				_configData = event.data as ConfigData;
+			}
+			private function widgetContainerShowHandler(event:AppEvent):void
+			{
+				var container:Object = event.data;
+				var moduleInfo:IModuleInfo = _containerModuleTable.find(container.url);
+				var widgetContainer:IWidgetContainer = moduleInfo.data.obj;
+				var index:int = parseInt(container.index); //dock的位置序号，左->右，上->下，基数0
+				if(index > this.numElements - 1)
+				{
+					this.addElement(widgetContainer as IVisualElement);
+				}
+				else
+				{
+					this.addElementAt(widgetContainer as IVisualElement, index);
+				}
+			}
+			private function widgetContainerCheckHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+
+				if(data.type == "replyBorrow")
+				{
+					var widgetContainer:IWidgetContainer = data.container as IWidgetContainer;
+					if(widgetContainer.isSplitLayout() == false)
+					{
+						return;
+					}
+					var index:int = data.index;
+					if(index > this.numElements - 1)
+					{
+						this.addElement(data.container as IVisualElement);
+					}
+					else
+					{
+						this.addElementAt(data.container as IVisualElement, index);
+					}
+					//平分各个子窗口，王红亮，2012-4-21
+					for(index = 0; index < this.numElements - 1; ++index)
+					{
+						this.getElementAt(index).width = this.width / this.numElements;
+					}
+					
+				}
+			}
+			private function widgetContainerVisibleHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				if(data.type == "show")
+				{
+					var msgData:Object = {type:"borrow", index:data.index, container:data.container};
+					AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_CHECK, msgData, null);
+				}
+				else if(data.type == "hide")
+				{
+					if(containWidgetContainer(data.container as IVisualElement) < 0)
+					{
+						return;
+					}
+					this.removeElement(data.container as IVisualElement);
+					msgData = {type:"payBack", index:data.index, container:data.container};
+					AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_CHECK, msgData, null);
+				}
+			}
+				
+			private var _containerModuleTable:Hashtable;
+			/**
+			 * 把split布局的widgetContainer作为自身的子要素进行显示
+			 */
+			private function widgetContainerLoadedHandler(event:AppEvent):void
+			{
+				_containerModuleTable = event.data as Hashtable;
+				var containers:Array = _configData.widgetContainers;
+				if (containers == null)
+				{
+					return;
+				}
+				for (var i:int = 0; i < containers.length; i++)
+				{
+					var container:Object = containers[i].container;
+					var moduleInfo:IModuleInfo = _containerModuleTable.find(container.url);
+					var widgetContainer:IWidgetContainer = moduleInfo.data.obj;
+					if(widgetContainer.isSplitLayout() == false)
+					{
+						continue;
+					}
+					if(container.layout == "cover")
+					{
+						mapGroup.addElement(widgetContainer as IVisualElement);
+					}
+				}
+			}
+		
+			/**
+			 * 在当前的布局中添加一个WidgetContainer
+			 * @param containerElement 可视化的widgetContainer
+			 * @param index 该container在此布局中的索引位置
+			 */
+			private function addWidgetContainer(containerElement:IVisualElement, index:int):void
+			{
+				var containers:Array = _configData.widgetContainers;
+				if (containers == null)
+				{
+					return;
+				}
+				for (var i:int = 0; i < containers.length; i++)
+				{
+					var container:Object = containers[i].container;
+					var moduleInfo:IModuleInfo = _containerModuleTable.find(container.url);
+					var widgetContainer:IWidgetContainer = moduleInfo.data.obj;
+					if(widgetContainer.isSplitLayout() == false)
+					{
+						continue;
+					}
+					if(index >= parseInt(container.index))
+					{
+						continue;
+					}
+					var position:int = containWidgetContainer(widgetContainer as IVisualElement);
+					if(position > -1)
+					{
+						//position为widgetContainer的实际索引位置
+						this.addElementAt(containerElement, position);
+						return;
+					}
+				}
+				//之前未加载过任何序号大于自身的container则追加在末尾
+				this.addElement(containerElement);
+			}
+			
+			/**
+			 * 查找目标widgetcontainer的索引值，无-1
+			 * @param widgetElement 待查找的目标对象
+			 * @return 目标对象所在的索引位置，不存在，则为-1
+			 */
+			private function containWidgetContainer(containerElement:IVisualElement):int
+			{
+				for(var index:int = 0; index < this.numElements; ++index)
+				{
+					var item:IVisualElement = this.getElementAt(index);
+					if(item == containerElement)
+					{
+						return index;
+					}
+					else if(mapGroup.numElements > 1 && mapGroup.getElementAt(1) == containerElement)
+					{
+						return index;
+					}
+				}
+				
+				return -1;
+			}
+		]]>
+	</fx:Script>
+	<s:Group id="mapGroup" width="100%" height="100%">
+		<viewer:MapManager id="mapManager"/>
+	</s:Group>
+
+</mx:HDividedBox>

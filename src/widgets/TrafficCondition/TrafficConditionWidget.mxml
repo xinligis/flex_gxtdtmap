@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 交通实况模块
+* @author hugy
+* @ver 1.0
+* @created 02-27-2012 14:00:46
+*/
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:esri="http://www.esri.com/2008/ags"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:viewer="com.esri.viewer.*" 
+					xmlns:components="com.esri.viewer.components.*"
+					xmlns:sho="com.esri.viewer.components.sho.ui.*"
+					widgetConfigLoaded="onWidgetConfigLoaded()">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.LayerEvent;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.viewer.AppEvent;
+			
+			import flash.events.TimerEvent;
+			
+			import mx.events.FlexEvent;
+			import mx.rpc.Fault;
+			import mx.rpc.events.FaultEvent;
+			
+			private var isTurnOn:Boolean = false;
+			
+			private var trafficConditionLayer:ArcGISDynamicMapServiceLayer = new ArcGISDynamicMapServiceLayer();
+			
+			private var trafficConditionUrl:String;
+			
+			//
+			private var timer:Timer = new Timer(120000,0);
+			
+			//刷新频率
+			private var refreshTime:Number;
+			
+			/**
+			 * 是否加载错误
+			 **/
+			private var _isError:Boolean = false;
+			
+			//默认2分钟
+			private function onWidgetConfigLoaded():void
+			{
+				if (configXML)
+				{
+					trafficConditionUrl = configXML.trafficConditionURL;
+					
+					refreshTime = Number(configXML.refreshTime);
+					
+					onTrafficCondition();
+					
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widget_stateChangeHandler);
+					
+					trafficConditionLayer.url = trafficConditionUrl;
+					trafficConditionLayer.disableClientCaching = true;
+					trafficConditionLayer.requestTimeout = 30;
+					trafficConditionLayer.addEventListener(LayerEvent.LOAD_ERROR,layer_loadError);
+					trafficConditionLayer.addEventListener(FaultEvent.FAULT,layer_faultHandler);
+					
+					var displayLabelString:String = String(configXML.label);
+					if(displayLabelString != "")
+					{
+						displayLabel.includeInLayout = true;
+						displayLabel.visible = true;
+						displayLabel.text = displayLabelString;
+					}
+				}
+				
+				timer = new Timer(refreshTime,0);
+			}
+			
+			private function layer_loadError(event:LayerEvent):void
+			{
+				loader.hide();
+				errLabel.visible = true;
+				errLabel.includeInLayout = true;
+				errLabel.text = "路况加载失败，message：" + event.fault.faultDetail;
+				_isError = true;
+//				trafficConditionLayer.removeEventListener(LayerEvent.LOAD_ERROR,layer_loadError);
+//				
+//				trafficConditionLayer = new ArcGISDynamicMapServiceLayer();
+//				trafficConditionLayer.url = trafficConditionUrl;
+//				trafficConditionLayer.disableClientCaching = true;
+//				trafficConditionLayer.requestTimeout = 30;
+//				trafficConditionLayer.addEventListener(LayerEvent.LOAD_ERROR,layer_loadError);
+//				trafficConditionLayer.addEventListener(FaultEvent.FAULT,layer_faultHandler);
+			}
+			
+			private function layer_faultHandler(event:FaultEvent):void
+			{
+				loader.hide();
+				errLabel.visible = true;
+				errLabel.includeInLayout = true;
+				errLabel.text = "路况加载失败，message：" + event.fault.faultDetail;
+				_isError = true;
+//				trafficConditionLayer.removeEventListener(FaultEvent.FAULT,layer_faultHandler);
+//				
+//				trafficConditionLayer = new ArcGISDynamicMapServiceLayer();
+//				trafficConditionLayer.url = trafficConditionUrl;
+//				trafficConditionLayer.disableClientCaching = true;
+//				trafficConditionLayer.requestTimeout = 30;
+//				trafficConditionLayer.addEventListener(LayerEvent.LOAD_ERROR,layer_loadError);
+//				trafficConditionLayer.addEventListener(FaultEvent.FAULT,layer_faultHandler);
+			}
+			
+			private function widget_stateChangeHandler(event:AppEvent):void
+			{
+				if(event.data.id == widgetId)
+				{
+//					trace(event.data.state);
+					onTrafficCondition();
+				}
+			}
+			
+			/**交通路况开关
+			 */
+			private function onTrafficCondition():void
+			{
+				var bLoaded:Boolean = isTurnOn == false ? false:true;
+				
+				if(bLoaded == false)
+				{
+					if(!_isError)
+					{
+						loader.show();
+						errLabel.includeInLayout = false;
+						errLabel.visible = false;
+						trafficConditionLayer.addEventListener(LayerEvent.UPDATE_END,layer_updateEndHandler);
+						map.addLayer(trafficConditionLayer); 
+						trafficConditionLayer.refresh();
+						
+						timer.addEventListener(TimerEvent.TIMER,refreshTrafficConditionLayer);
+						
+						timer.start();
+					}
+					isTurnOn = true;
+				}
+				else
+				{
+					map.removeLayer(trafficConditionLayer);
+					
+					timer.removeEventListener(TimerEvent.TIMER,refreshTrafficConditionLayer);
+					
+					timer.stop();
+					
+					isTurnOn = false;
+				}
+				
+			}
+			
+			private function layer_updateEndHandler(event:LayerEvent):void
+			{
+				loader.hide();
+				trafficConditionLayer.removeEventListener(LayerEvent.UPDATE_END,layer_updateEndHandler);
+				//定位到指定位置
+				map.scale = Number(configXML.zoomscale);
+				var centerPoint:MapPoint = new MapPoint(Number(configXML.centerpoint.@x),Number(configXML.centerpoint.@y),map.spatialReference);
+				map.centerAt(centerPoint);
+			}
+			
+			
+			/**刷新路况图层
+			 */
+			private function refreshTrafficConditionLayer(event:TimerEvent):void
+			{
+				trafficConditionLayer.refresh();
+			}
+			
+			protected function widgettemplate1_openHandler(event:Event):void
+			{
+				onTrafficCondition();
+			}
+			
+			protected function widgettemplate1_closeHandler(event:Event):void
+			{
+				onTrafficCondition();
+			}
+			
+			protected function basewidget1_showHandler(event:FlexEvent):void
+			{
+				trace("basewidget1_showHandler");
+				
+			}
+			
+			protected function basewidget1_hideHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("basewidget1_hideHandler");
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group >
+		<s:Rect top="0" bottom="0" left="0" right="0">
+			<s:fill>
+				<s:SolidColor color="0xf7f7f7"/>
+			</s:fill>
+		</s:Rect>
+		<s:VGroup horizontalAlign="center" verticalAlign="middle" top="5" bottom="5" left="5" right="5">
+			<s:Image source="assets/images/roadlegend.png"/>
+			<components:ViewerLoader loadingText="正在加载..."
+									 color="0x0000ff" id="loader"
+									 backGroundColor="0xff0000" backGroundAlpha="0"/>
+			<s:TextArea width="100%" height="60" contentBackgroundAlpha="0" borderVisible="false" id="errLabel"/>
+			<s:Label fontFamily="宋体" id="displayLabel" includeInLayout="false" visible="false"/>
+		</s:VGroup>
+	</s:Group>
+	
+</viewer:BaseWidget>

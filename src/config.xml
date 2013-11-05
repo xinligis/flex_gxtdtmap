@@ -1,0 +1,102 @@
+<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Read more about ArcGIS Viewer for Flex - http://links.esri.com/flexviewer
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+    <title>ArcGIS Viewer for Flex</title>
+    <subtitle>a configurable web mapping application</subtitle>
+    <logo>assets/images/logo.png</logo>
+    <style>
+        <colors>0x01588f,0xFFFFFF,0xf9f9f9,0xA6B3C4,0x01588f</colors>
+        <alpha>0.8</alpha>
+    </style>
+    <!-- 自定义BlazeDS对象访问代理 -->
+    <amfchannel uri="digitalMap-amf.endpoint"/>
+    <!-- 比例尺上的坐标值 -->
+	<widget left="353" bottom="5" 
+			config="widgets/Coordinate/CoordinateWidget.xml" 
+			url="widgets/Coordinate/CoordinateWidget.swf" />
+	<!-- 版权信息 -->
+	<widget left="560" bottom="5" 
+			config="widgets/Copyright/CopyrightWidget.xml" 
+			url="widgets/Copyright/CopyrightWidget.swf" />
+	<!-- 主工具栏背景 -->
+	<widget label="主工具栏"  preload="open" top="110" left="350"
+			url="widgets/CenterFloor/CenterFloorWidget.swf" 
+	 		config="widgets/CenterFloor/CenterFloorWidget.xml"/>
+	<!-- 工具栏上的IP定位 -->
+	<widget label="IP定位" preload="open" left="360" top="112" 
+			config="widgets/IPLocation/IPLocationWidget.xml" 
+			url="widgets/IPLocation/IPLoacationWidget.swf"/>
+	<!-- 工具栏上的工具列 -->
+	<widget label="水平开关代理" preload="open" right="120" top="112"  
+			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
+			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
+	<!-- 工具栏上的地图切换 -->
+    <widget label="地图切换" preload="open" right="10" top="112" 
+    		config="widgets/MapSwitch/MapSwitcherWidget.xml" 
+    		url="widgets/MapSwitch/MapSwitcherWidget.swf"/>	
+   	<!-- 主菜单 -->		
+	<widget left="0" top="0" preload="close"
+			config="widgets/HeaderController/HeaderControllerWidget.xml" 
+			url="widgets/HeaderController/HeaderControllerWidget.swf" />
+	<!-- 鹰眼图 -->
+	<widget right="-2" bottom="-2" 
+			config="widgets/OverviewMap/OverviewMapWidget.xml" 
+			url="widgets/OverviewMap/OverviewMapWidget.swf"/>
+	<!-- 地图搜索 -->
+	<widget label="快捷搜索工具条" preload="open" left="470" top="40" 
+			url="widgets/POISearchTool/POISearchToolWidget.swf" 
+			config="widgets/POISearchTool/POISearchToolWidget.xml"/>
+	<widget label="用户登录框" preload="open" right="5" top="10"
+				url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
+	 			config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
+	<widget label="导航条" preload="open" left="370" top="165" 
+    		config="widgets/Navigation/NavigationWidget.xml" 
+    		url="widgets/Navigation/NavigationWidget.swf"/>	
+	<widget label="打印" showicon="false"
+			url="widgets/Print/PrintWidget.swf" 
+			config="widgets/Print/PrintWidget.xml" 
+			preload="close" top="0" left="0"/>		
+	<!-- 105.587 28.424 109.412 30.976 -->
+    <map top="0" left="350" initialextent="105.5960373813381 28.96475267063883 107.9253009471935 30.399705176876623" esrilogovisible="false">
+         <basemaps group="矢量地图" visible="true" selectedIcon="assets/images/mapswitch/map_down.png" unselectedIcon="assets/images/mapswitch/map_up.png">
+ 	 		<layer label="天地图地图" type="wmts" visible="true" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+ 	 			wmtslayer="vec" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/vec_c/wmts"/>
+ 	 		<layer label="天地图地图注记" type="wmts" visible="true" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+ 	 			wmtslayer="cva" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/cva_c/wmts"/>
+        </basemaps>
+        <basemaps group="影像" visible="false" selectedIcon="assets/images/mapswitch/image_down.png" unselectedIcon="assets/images/mapswitch/image_up.png">
+         	<layer label="天地图影像" type="wmts" visible="false" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+ 	 			style="default" wmtslayer="img" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/img_c/wmts"/>
+         	<layer label="天地图影像注记" type="wmts" visible="false" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
+ 	 			style="default" wmtslayer="cia" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/cia_c/wmts"/> 	 			
+        </basemaps>
+    </map>
+    
+    <!-- 左侧功能面板测试 -->
+    <widgetcontainer url="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf"
+    	layout="cover" left="0" top="110" index="0" bottom="0" width="350" visible="true">
+    	<widget label="地图搜索" preload="open" showicon="true" icon="assets/images/headermenu/map_search.png"
+                config="widgets/Search/SearchWidget_POI.xml"
+                url="widgets/Search/SearchWidget.swf" />
+        <widget label="快速搜索结果" preload="close"
+                icon="assets/images/headermenu/map_search.png" showicon="false"
+                config="widgets/PlaceNameAddress/PlaceNameAddressWidget.xml"
+                url="widgets/PlaceNameAddress/PlaceNameAddressWidget.swf" />
+    	<widget label="周边查询" showicon="false" preload="close" icon="assets/images/headermenu/buffer.png"
+                config="widgets/Buffer/BufferWidget.xml"
+                url="widgets/Buffer/BufferWidget.swf"/>
+        <widget label="天气预报" showicon="false"
+        		preload="close"
+				config="widgets/Weather/WeatherWidget.xml" 
+				url="widgets/Weather/WeatherWidget.swf"/>
+        <widget label="地图纠错" showicon="false" preload="close" icon="assets/images/headermenu/mapcorrection.png"
+		    	config="widgets/MapCorrection/MapCorrectionWidget.xml" 
+		    	url="widgets/MapCorrection/MapCorrectionWidget.swf" />
+    </widgetcontainer>
+</configuration>

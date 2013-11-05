@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   width="100%" height="100%"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   layout="horizontal"
+				   initialize="this_creationCompleteHandler(event);"
+				   widgetConfigLoaded="basewidget_widgetConfigLoadedHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.ExtentEvent;
+			import com.esri.viewer.AppEvent;
+			
+			import mx.events.FlexEvent;
+			private function this_creationCompleteHandler(event:Event):void
+			{
+				map.addEventListener(ExtentEvent.EXTENT_CHANGE, map_extentChangeHandler);
+				attachedMap.addEventListener(ExtentEvent.EXTENT_CHANGE, attachedMap_intextentChangeHandler);
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widgetState_changeHandler);
+				AppEvent.addListener(AppEvent.POST_PROCESS, onPostProcess);
+
+			}
+			
+			
+			private function widgetState_changeHandler(event:AppEvent):void
+			{
+				trace("widgetState_changeHandler");
+			}
+			
+			private function onPostProcess(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				if(data.postprocessor != this.widgetId)
+				{
+					return;
+				}
+				if(data.name == "addLayer" && data.layer != null)
+				{
+					attachedMap.addLayer(data.layer);
+				}
+				else if(data.name == "removeLayer" && data.layer != null)
+				{
+					attachedMap.removeLayer(data.layer);
+				}
+			}
+			protected function basewidget_widgetConfigLoadedHandler(event:Event):void
+			{
+
+			}
+			private function attachedMap_intextentChangeHandler(event:ExtentEvent):void
+			{
+				attachedMap.removeEventListener(ExtentEvent.EXTENT_CHANGE, attachedMap_intextentChangeHandler);
+				attachedMap.addEventListener(ExtentEvent.EXTENT_CHANGE, attachedMap_extentChangeHandler);
+			}
+			private var _whoseExtentChange:String = ""; //地图范围变化的驱动因素，map主地图主动变化，attachedMap附属地图即本对象
+			private function map_extentChangeHandler(event:ExtentEvent):void
+			{
+				if(_whoseExtentChange == "attachedMap")
+				{
+					_whoseExtentChange = "";
+					return;
+				}
+				else if(_whoseExtentChange == "")
+				{
+					_whoseExtentChange = "map";
+					attachedMap.extent = map.extent;
+				}
+			}
+			private function attachedMap_extentChangeHandler(event:ExtentEvent):void
+			{
+				if(_whoseExtentChange == "map")
+				{
+					_whoseExtentChange = "";
+					return;
+				}
+				else if(_whoseExtentChange == "")
+				{
+					_whoseExtentChange = "attachedMap";
+					map.extent = attachedMap.extent;
+				}
+			}
+		]]>
+	</fx:Script>
+	<esri:Map id="attachedMap"
+			  left="0" top="0"
+			  width="100%" height="100%"
+			  clickRecenterEnabled="false"
+			  doubleClickZoomEnabled="false"
+			  keyboardNavigationEnabled="false"
+			  logoVisible="false"
+			  panArrowsVisible="false"
+			  panEnabled="true"
+			  rubberbandZoomEnabled="false"
+			  scaleBarVisible="true"
+			  scrollWheelZoomEnabled="true"
+			  wrapAround180="{map.wrapAround180}"
+			  zoomSliderVisible="false" initialExtent="{map.extent}">
+	</esri:Map>
+</viewer:BaseWidget>

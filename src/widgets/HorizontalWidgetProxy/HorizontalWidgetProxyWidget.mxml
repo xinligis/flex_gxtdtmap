@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 水平布局的Widget代理类，其中的各个子项可以直接激发对应的功能Widget
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:viewer="com.esri.viewer.*"
+					xmlns:HorizontalWidgetProxy="widgets.HorizontalWidgetProxy.*"
+					widgetConfigLoaded="onWidgetConfigLoaded()" 
+					xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
+					horizontalAlign="right">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.MapEvent;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.components.customskinbutton.CheckButton2;
+			import com.esri.viewer.components.customskinbutton.ClickButton2;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			import spark.components.Image;
+			import spark.components.supportClasses.ItemRenderer;
+			
+			import widgets.ToolBar.PostProcessEvent;
+			import widgets.ToolBar.RunWidegtEvent;
+			import widgets.ToolBar.Tools.ITool;
+			import widgets.ToolBar.Tools.Marker.MarkerTool;
+			import widgets.ToolBar.Tools.Measure.LineTool;
+			import widgets.ToolBar.Tools.Measure.PolygonTool;
+			import widgets.ToolBar.Tools.Screenshot.ScreenshotTool;
+
+			private var toolIndex:int = 0;           //工具栏上工具的序号
+			private var mainToolWidgets:Array = [];  //记录所有工具栏上的工具
+			private var urlOperationWidget:String = "";  //来自URL上的操作
+			
+			[Bindable]
+			private var subToolWidgetArrCol:ArrayCollection;  //子工具项
+			
+			//常用工具
+			private var _graphicslayer:GraphicsLayer = new GraphicsLayer();
+			private var _currentTool:ITool;
+			private var _configXML:XML;
+			private var _currentToolType:String;
+			private static const BASETOOL_MEASURELINE:String = "量距离";
+			private static const BASETOOL_MEASUREPOLY:String = "量面积";
+			private static const BASETOOL_MARKER:String = "标记";
+			private static const BASETOOL_SNAPSHOT:String = "截图";
+			private static const BASETOOL_PRINT:String = "打印";
+			
+			[Bindable]
+			private var widgetListContainerX:Number = 0;
+			
+			//初始化
+			private function onWidgetConfigLoaded():void
+			{
+				if(this.configXML)
+				{
+					//解析来自url的操作
+					
+					//解析xml文件
+					initConfigLoaded();
+					for each(var proxy:WidgetItem in mainToolWidgets)
+					{
+						if(proxy.iconOn){
+							var checkBtn:CheckButton2 = new CheckButton2();
+							checkBtn.id = proxy.id.toString();
+							checkBtn.toolTip = proxy.name?proxy.name:"未知";
+							checkBtn.setStyle("normalImage",proxy.iconOff);
+							checkBtn.setStyle("selectedImage",proxy.iconOn);
+							checkBtn.setStyle("overImage",proxy.iconOver);
+							checkBtn.addEventListener("checkChange",btn_checkChangeHandler);
+							
+							widgetProxyGroup.addElement(checkBtn);
+						}else{
+							var clickBtn:ClickButton2 = new ClickButton2();
+							clickBtn.id = proxy.id.toString();
+							clickBtn.toolTip = proxy.name?proxy.name:"未知";
+							clickBtn.setStyle("normalImage",proxy.iconOff);
+							clickBtn.setStyle("overImage",proxy.iconOver);
+							clickBtn.addEventListener(MouseEvent.CLICK,btn_clickHandler);
+							
+							widgetProxyGroup.addElement(clickBtn);
+						}
+					}
+					
+				}
+				
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widget_stateChangeHandler);
+				
+				//处理常用工具
+				addGraphicsLayer();
+				AppEvent.addListener(AppEvent.POST_PROCESS,post_processHandler);
+			}
+			
+			//加载graphicslayer，供所有常用工具使用
+			private function addGraphicsLayer():void
+			{
+				if(map.loaded == false)
+				{
+					map.addEventListener(MapEvent.LOAD,map_loadEvent);
+				}else{
+					map.addLayer(_graphicslayer);
+				}
+			}
+			
+			private function map_loadEvent(event:MapEvent):void
+			{
+				map.addLayer(_graphicslayer);
+				map.removeEventListener(MapEvent.LOAD,map_loadEvent);
+			}
+			
+			protected function post_processHandler(event:AppEvent):void
+			{
+				if(event.data != null && event.data.data != null && String(event.data.data) == "releaseTool")
+				{
+					if(_currentTool !=null && _currentTool.activated)
+					{
+						_currentTool.deactivate();
+						_currentTool = null;
+					}
+				}
+			}
+			
+			//读取配置文件
+			private function initConfigLoaded():void
+			{
+				if(this.configXML)
+				{
+					var toolWidgets:XMLList = configXML.toolwidgets;
+					for (var i:int = 0; i < toolWidgets.children().length(); i++)
+					{
+						var xmlObj:XML = toolWidgets.children()[i];
+						if(xmlObj.name()=="proxygroup"){
+							var widgetItem:WidgetItem = new WidgetItem();
+							widgetItem.id = toolIndex;
+							widgetItem.isGroup = true;
+							widgetItem.name = xmlObj.@name;
+							widgetItem.iconOn = xmlObj.@icon_on;
+							widgetItem.iconOff = xmlObj.@icon_off;
+							widgetItem.iconOver = xmlObj.@icon_over;
+							widgetItem.checked = false;
+							var toolGroupList:XMLList = XMLList(xmlObj);
+							toolIndex++;
+							widgetItem.widgets = createProxyWidget(toolGroupList.proxy,true);
+							
+							mainToolWidgets.push(widgetItem);
+						}else{
+							var toolWidget:XMLList = XMLList(xmlObj);
+							var item:Array = createProxyWidget(toolWidget,false);
+							
+							mainToolWidgets.push(item[0]);
+						}
+					}
+				}
+			}
+			
+			//解析配置文件内容
+			private function createProxyWidget(widgetList:XMLList, grouped:Boolean):Array
+			{
+				var widgetItems:Array = [];
+				var widgetItem:WidgetItem;
+				for (var p:int = 0; p < widgetList.length(); p++)
+				{
+					widgetItem = new WidgetItem();
+					widgetItem.id = toolIndex;
+					widgetItem.isGroup = grouped;
+					widgetItem.name = widgetList[p].@name;
+					widgetItem.iconOn = widgetList[p].@icon_on;
+					widgetItem.iconOff = widgetList[p].@icon_off;
+					widgetItem.iconOver = widgetList[p].@icon_over;
+					widgetItem.url = widgetList[p].@widget;
+					widgetItem.checked = false;
+					
+					toolIndex++;
+					widgetItems.push(widgetItem);
+				}
+				
+				return widgetItems;
+			}
+			
+			//地图对比
+			private function widget_stateChangeHandler(data:AppEvent):void
+			{
+				var tmpid:int = super.siblingWidgetId("widgets/MapContrast/MapContrastWidget.swf");
+				if(data.data.id == tmpid)
+				{
+					if(data.data.state == "open")
+					{
+						//隐藏相关的widget
+						AppEvent.dispatch(AppEvent.POST_PROCESS,{type:"AttachedMapStateChange",state:"open"})
+						tmpid = super.siblingWidgetId("widgets/ToolBar/ToolBarWidget.swf");
+						AppEvent.dispatch(AppEvent.WIDGET_CLOSE, tmpid);
+					}
+					else
+					{
+						AppEvent.dispatch(AppEvent.POST_PROCESS,{type:"AttachedMapStateChange",state:"close"});
+					}
+				}
+			}
+			
+			//主工具栏事件
+			private function btn_checkChangeHandler(event:Event):void
+			{
+				var checkBtn:CheckButton2 = event.currentTarget as CheckButton2;
+				var item:WidgetItem;
+				for each(var proxy:WidgetItem in mainToolWidgets)
+				{
+					if(proxy.id.toString() == checkBtn.id){
+						item = proxy;
+						break;
+					}
+				}
+				
+				//查找widget
+				if(item.url){
+					var id:int = super.siblingWidgetId(item.url);
+					if(checkBtn.checked){
+						AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+					}else{
+						AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+					}
+				}
+			}
+			
+			//主工具栏事件
+			private function btn_clickHandler(event:MouseEvent):void
+			{
+				var clickBtn:ClickButton2 = event.currentTarget as ClickButton2;
+				var item:WidgetItem;
+				for each(var proxy:WidgetItem in mainToolWidgets)
+				{
+					if(proxy.id.toString() == clickBtn.id){
+						item = proxy;
+						break;
+					}
+				}
+				
+				//子菜单
+				if(item.isGroup){
+					subToolWidgetArrCol = new ArrayCollection();
+					for each (var subItem:WidgetItem in item.widgets)
+					{
+						subToolWidgetArrCol.addItem(subItem);
+					}
+					
+					widgetListContainerX= clickBtn.x + clickBtn.width/2 - widgetListContainer.width/2;
+					widgetListContainer.visible = true;
+				}else{
+					//查找widget
+					if(item.url){
+						var id:int = super.siblingWidgetId(item.url);
+						
+						//打印
+						if(item.url == "widgets/Print/PrintWidget.swf"){
+							AppEvent.dispatch(AppEvent.WIDGET_RUN,{widgetId:id,state:"open"});
+						}else{
+							AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+						}		
+					}else{
+						//全屏
+						if(item.name == "全屏"){
+							map.stage.displayState = StageDisplayState.FULL_SCREEN;
+						}
+					}
+				}
+			}
+			
+			//子菜单事件处理
+			private function widgetList_rollOutHandler(event:MouseEvent):void
+			{
+				widgetListContainer.visible = false;
+			}
+			
+			//子菜单点击事件处理
+			private function widgetList_widgetItemClickHandler(event:Event):void
+			{
+				var widgetItem:WidgetItem = ItemRenderer(event.target).data as WidgetItem;
+
+				switch(widgetItem.name)
+				{
+					case HorizontalWidgetProxyWidget.BASETOOL_MEASURELINE:
+					{
+						//量距离
+						_currentToolType = HorizontalWidgetProxyWidget.BASETOOL_MEASURELINE;
+						readToolConfig("widgets/ToolBar/Tools/Measure/measure.xml");
+						break;
+					}
+					case HorizontalWidgetProxyWidget.BASETOOL_MEASUREPOLY:
+					{
+						//量面积
+						_currentToolType = HorizontalWidgetProxyWidget.BASETOOL_MEASUREPOLY;
+						readToolConfig("widgets/ToolBar/Tools/Measure/measure.xml");
+						break;
+					}
+					case HorizontalWidgetProxyWidget.BASETOOL_MARKER:
+					{
+						//标记
+						_currentToolType = HorizontalWidgetProxyWidget.BASETOOL_MARKER;
+						readToolConfig("widgets/ToolBar/Tools/Marker/MarkerTool.xml");
+						break;
+					}
+					case HorizontalWidgetProxyWidget.BASETOOL_SNAPSHOT:
+					{
+						//截图
+						_currentToolType = HorizontalWidgetProxyWidget.BASETOOL_SNAPSHOT;
+						readToolConfig("widgets/ToolBar/Tools/Screenshot/ScreenshotTool.xml");
+						break;
+					}
+					case HorizontalWidgetProxyWidget.BASETOOL_PRINT:
+					{
+						//打印
+						var id:int = super.siblingWidgetId(widgetItem.url);
+						AppEvent.dispatch(AppEvent.WIDGET_CHANGE_STATE,{widgetId:id,state:"open"});
+					}
+					default:
+					{
+						//其他
+						var id:int = super.siblingWidgetId(widgetItem.url);
+						AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+					}
+				}
+			}
+
+			//读取常用工具所需的配置文件
+			private function readToolConfig(configPath:String):void
+			{
+				//读取工具的配置信息
+				var configService:HTTPService = new HTTPService();
+				configService.url = configPath;
+				configService.useProxy=false;
+				configService.resultFormat = "e4x";
+				
+				configService.addEventListener(ResultEvent.RESULT, configResult);
+				configService.addEventListener(FaultEvent.FAULT, configFault);
+				configService.send();
+			}
+			
+			//调用常用工具
+			private function configResult(event:ResultEvent):void
+			{
+				_configXML = event.result as XML;
+				
+				initBaseTools();
+			}
+			
+			private function configFault(event:FaultEvent):void
+			{
+				trace("toolbar:"+event.fault.toString());
+			}
+			
+			//处理工具栏上的常用工具
+			private function initBaseTools():void
+			{
+				switch(_currentToolType)
+				{
+					case HorizontalWidgetProxyWidget.BASETOOL_MEASURELINE:
+						_currentTool = new LineTool() as ITool;
+						break;
+					case HorizontalWidgetProxyWidget.BASETOOL_MEASUREPOLY:
+						_currentTool = new PolygonTool() as ITool;
+						break;
+					case HorizontalWidgetProxyWidget.BASETOOL_MARKER:
+						_currentTool = new MarkerTool() as ITool;
+						break;
+					case HorizontalWidgetProxyWidget.BASETOOL_SNAPSHOT:
+						_currentTool = new ScreenshotTool() as ITool;
+						break;
+				}
+
+				_currentTool.map=map;
+				_currentTool.graphicsLayer=_graphicslayer;
+				_currentTool.activateHandler=tool_activateHandler;
+				_currentTool.deactivateHandler=tool_deactivateHandler;
+				_currentTool.runWidgetHandler=tool_runWidgetHandler;
+				_currentTool.postProcessHandler=postProcessHandler;
+				_currentTool.configData = configData;
+				_currentTool.configXML = _configXML;
+				
+				//激活工具
+				_currentTool.activate();
+			}
+			
+			//激活处理方法
+			private function tool_activateHandler(tool:ITool):void
+			{
+				AppEvent.dispatch(AppEvent.POST_PROCESS,{data:"toolActive"});
+			}
+			private function tool_deactivateHandler(tool:ITool):void
+			{
+				_currentTool = null;
+			}
+			private function tool_runWidgetHandler(tool:ITool,url:String,data:Object = null,callback:Function=null):void
+			{
+				for each(var widget:Object in configData.widgets)
+				{
+					if(widget.url == url)
+					{
+						AppEvent.dispatch(AppEvent.WIDGET_CHANGE_STATE,{widgetId:widget.id,state:"open",data:data});
+						break;
+					}
+				}
+			}
+			private function postProcessHandler(type:String,data:Object):void
+			{
+				dispatchEvent(new PostProcessEvent(type,data));
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group id="headerGroup" top="0" width="130" height="27">
+		<s:HGroup id="widgetProxyGroup" width="100%" height="100%" gap="15"/>
+		<s:BorderContainer id="widgetListContainer"
+						   y="{headerGroup.height+8}" 
+						   x="{widgetListContainerX}"
+						   width="{widgetListDG.width + 4}" height="{widgetListDG.height + 2}"
+						   backgroundColor="#f6f6f6"
+						   backgroundAlpha="0.95"
+						   borderColor="#bbbbbb"
+						   borderVisible="true"
+						   cornerRadius="5"
+						   rollOut="widgetList_rollOutHandler(event)"
+						   visible="false">
+			<s:Image top="-6" source="@Embed('assets/images/headermenu/uparrow.png')" horizontalCenter="0"/>
+			<HorizontalWidgetProxy:WidgetListDataGroup id="widgetListDG"
+													   width="100"
+													   dataProvider="{subToolWidgetArrCol}"
+													   visible="{widgetListContainer.visible}"
+													   widgetListItemClick="widgetList_widgetItemClickHandler(event)">
+				<HorizontalWidgetProxy:layout>
+					<s:VerticalLayout paddingTop="6"
+									  useVirtualLayout="true"
+									  verticalAlign="middle"/>
+				</HorizontalWidgetProxy:layout>
+			</HorizontalWidgetProxy:WidgetListDataGroup>
+		</s:BorderContainer>
+	</s:Group>
+</viewer:BaseWidget>

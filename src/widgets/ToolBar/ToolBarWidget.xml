@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<item type="tool" icon="assets/images/toolbar/zoomin.png" label="放大" classpath="widgets.ToolBar.Tools.navigation.ZoomIn" 
+		spacer="false" tooltip="拉框放大地图"/>
+	<item type="tool" icon="assets/images/toolbar/zoomout.png" label="缩小" classpath="widgets.ToolBar.Tools.navigation.ZoomOut" 
+		spacer="false" tooltip="拉框缩小地图"/>
+	<item type="tool" icon="assets/images/toolbar/pan.png" label="平移" classpath="widgets.ToolBar.Tools.navigation.Pan" 
+		spacer="false" tooltip="平移地图"/>
+
+		
+	<item type="tool" icon="assets/images/toolbar/measure.png" label="量距"  spacer="true"
+			config="widgets/ToolBar/Tools/Measure/measure.xml" 
+			classpath="widgets.ToolBar.Tools.Measure.LineTool" tooltip="测量距离"/>
+	<item type="tool" icon="assets/images/toolbar/measure_polygon.png" label="量面积"  spacer="false"
+			config="widgets/ToolBar/Tools/Measure/measure.xml" tooltip="测量面积"
+			classpath="widgets.ToolBar.Tools.Measure.PolygonTool"/>
+<!-- 	<item type="command" icon="assets/images/toolbar/fullscreen.png" label="全屏" tooltip="全屏显示应用程序" -->
+<!-- 		url="widgets/ToolBar/Tools/FullScreen/FullScreen.swf" spacer="true"/> -->
+	<item type="tool" icon="assets/images/toolbar/snapshot.png" label="截图" classpath="widgets.ToolBar.Tools.Screenshot.ScreenshotTool" 
+		config="widgets/ToolBar/Tools/Screenshot/ScreenshotTool.xml" spacer="true" tooltip="截图"/>
+	<item type="tool" icon="assets/images/toolbar/markertool.png" label="标记" classpath="widgets.ToolBar.Tools.Marker.MarkerTool" 
+		config="widgets/ToolBar/Tools/Marker/MarkerTool.xml" spacer="true" tooltip="标记"/>
+	<item type="command" icon="assets/images/toolbar/clean.png" label="清除" tooltip="清除图形"
+		classpath="widgets.ToolBar.Tools.Clean.Clean" spacer="true"/>
+</configuration>

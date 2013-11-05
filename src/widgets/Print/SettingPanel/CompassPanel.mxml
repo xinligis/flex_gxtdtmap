@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SettingPanel1:SettingPanel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+		 xmlns:SettingPanel="widgets.Print.SettingPanel.*" creationComplete="settingpanel1_creationCompleteHandler(event)" xmlns:SettingPanel1="widgets.Print.SettingPanel.*">
+	<SettingPanel:layout>
+		<s:VerticalLayout gap="0"/>
+	</SettingPanel:layout>
+	<fx:Metadata>
+		[Event(name="addPrintElement",type="widgets.Print.SettingPanel.AddPrintElementEvent")]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			
+			import spark.components.BorderContainer;
+			
+			import widgets.Print.element.CompassElement;
+			
+			
+			private var _currentElement:CompassElement=null;
+			
+			private var _printContent:BorderContainer=null;
+			
+			private var _currentCompassItem:CompassItemRenderer=null;
+			
+			public function set printContent(value:BorderContainer):void
+			{
+				_printContent=value;
+				var lst:ArrayCollection=new ArrayCollection();
+				lst.addItem({img:"assets/images/print/1.png"});
+				lst.addItem({img:"assets/images/print/2.png"});
+				lst.addItem({img:"assets/images/print/3.png"});
+				lst.addItem({img:"assets/images/print/4.png"});
+				compassGrp.dataProvider=lst;
+			}
+			
+			
+//			[Bindable]
+//			[Embed('assets/images/print/1.png')]
+//			private var compass1:Class;
+//			
+//			[Bindable]
+//			[Embed('assets/images/print/2.png')]
+//			private var compass2:Class;
+//			
+//			[Bindable]
+//			[Embed('assets/images/print/3.png')]
+//			private var compass3:Class;
+//			
+//			[Bindable]
+//			[Embed('assets/images/print/4.png')]
+//			private var compass4:Class;
+
+			protected function compassdatagroup1_compassItemClickHandler(event:Event):void
+			{
+				if(_currentCompassItem!=null)
+				{
+					_currentCompassItem.selected=false;
+				}
+				_currentCompassItem = event.target as CompassItemRenderer;
+				_currentCompassItem.selected=true
+			}
+			
+			protected function button_clickHandler(event:MouseEvent):void
+			{
+				if(_printContent==null)
+				{
+					return;
+				}
+				if(_currentCompassItem==null)
+				{
+					Alert.show("请选择指北针的样式");
+					return;
+				}
+				var ele:CompassElement=new CompassElement(_printContent);
+				ele.source=_currentCompassItem.data.img;
+				_printContent.addElement(ele);
+				_currentElement=ele;
+				
+				dispatchEvent(new AddPrintElementEvent(_currentElement));
+			}
+
+			protected function settingpanel1_creationCompleteHandler(event:FlexEvent):void
+			{
+				content.addElement(vgroup);
+				panelLabel.text="指北针设置";
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:VGroup id="vgroup" horizontalAlign="center">
+			<s:Scroller width="180">
+				<SettingPanel1:CompassDataGroup compassItemClick="compassdatagroup1_compassItemClickHandler(event)" id="compassGrp">
+					<SettingPanel:layout>
+						<s:HorizontalLayout />
+					</SettingPanel:layout>
+				</SettingPanel1:CompassDataGroup>
+			</s:Scroller>
+			<s:Button label="+创建指北针" click="button_clickHandler(event)"/>
+		</s:VGroup>
+	</fx:Declarations>
+</SettingPanel1:SettingPanel>

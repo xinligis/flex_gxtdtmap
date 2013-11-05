@@ -1,0 +1,912 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2010-2011 Esri. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+///////////////////////////////////////////////////////////////////////////
+-->
+<!---
+    Class used to configure and handle Flex Viewer widgets.
+-->
+<s:SkinnableContainer xmlns:fx="http://ns.adobe.com/mxml/2009"
+                      xmlns:s="library://ns.adobe.com/flex/spark"
+                      xmlns:mx="library://ns.adobe.com/flex/mx"
+                      width="100%" height="100%"
+                      creationComplete="creationCompleteHandler()">
+
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.Map;
+			import com.esri.ags.layers.supportClasses.LayerInfoWindowRenderer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.BaseWidget;
+			import com.esri.viewer.ConfigData;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.IInfowindowTemplate;
+			import com.esri.viewer.IWidgetContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.core.IVisualElement;
+			import mx.core.UIComponent;
+			import mx.events.ModuleEvent;
+			import mx.managers.HistoryManager;
+			import mx.managers.IFocusManagerComponent;
+			import mx.modules.IModuleInfo;
+			import mx.modules.ModuleManager;
+			import mx.utils.StringUtil;
+			
+			import spark.components.Group;
+
+            private const WIDGET_MANAGER:String = "WidgetManager";
+
+            private var hist:HistoryManager;
+
+            private var configData:ConfigData;
+
+            private var map:Map;
+
+            private var moduleTable:Hashtable = new Hashtable();
+
+            private var widgetTable:Hashtable = new Hashtable();
+
+            private var controlTable:Hashtable = new Hashtable();
+
+            private var containerTable:Hashtable = new Hashtable();
+
+            private var infowidgetTable:Hashtable = new Hashtable();
+
+            private var wgtInfo:IModuleInfo;
+
+            private var ctlInfo:IModuleInfo;
+
+            private var ctnInfo:IModuleInfo;
+
+            private var isDraggable:Boolean = true;
+
+            private var preloadArray:Array = [];
+
+            private var _refX:Number = 0;
+
+            private var _refY:Number = 0;
+
+            private var controlContainer:Group;
+
+            /**
+             * Gets the widget by the widget ID.
+             * Returns the widget by ID if the widget has been loaded.
+             * Returns null if the widget has not been loaded, and at the same time, triggers the loading of the widget.
+             *
+             * @param widgetId The widget ID.
+             * @param openWidgetIfNot Indicates whether to open the widget if it is not already in the open state.
+             *
+             * @return The widget for the ID, null if the widget has not been loaded.
+             *
+             * @throws ArgumentError The widget ID does not exist.
+             *
+             */
+            public function getWidget(widgetId:Number, openWidgetIfNot:Boolean = false):IBaseWidget
+            {
+                var idx:Object = configData.widgetIndex[widgetId];
+
+                if (idx == null)
+                {
+                    throw new ArgumentError("Invalid widgetId: " + widgetId);
+                }
+
+                var widget:IBaseWidget = null;
+                var wgt:Object = configData.widgetContainers[idx.container].widgets[idx.widget];
+                var wgtContainer:IWidgetContainer = configData.widgetContainers[idx.container].container.obj;
+
+                if (widgetTable.containsKey(widgetId))
+                {
+                    widget = widgetTable.find(widgetId) as IBaseWidget;
+
+                    if (openWidgetIfNot && widget.getState() == WidgetStates.WIDGET_CLOSED)
+                    {
+                        openWidget(widget);
+                    }
+                }
+                else
+                {
+                    if (moduleTable.containsKey(wgt.url))
+                    {
+                        widget = createWidget(widgetId);
+                        if (openWidgetIfNot && widget.getState() == WidgetStates.WIDGET_CLOSED)
+                        {
+                            openWidget(widget);
+                        }
+                    }
+                    else
+                    {
+                        loadWidget(widgetId);
+                    }
+                }
+                return widget;
+            }
+
+            /**
+             * @return Returns an array of the widget IDs that have already been loaded.
+             *
+             */
+            public function getAllLoadedWidgetIds():Array
+            {
+                return widgetTable.getKeySet();
+            }
+
+            /**
+             * @return Returns the total number of widgets.
+             *
+             */
+            public function getNumWidgets():Number
+            {
+                return configData.widgetIndex.length;
+            }
+
+            /**
+             * @return Returns the widget ID for a specific widget based on the widget label.
+             *
+             */
+            public function getWidgetId(widgetLabel:String):Number
+            {
+                var id:Number = Number.NaN;
+                for (var i:Number = 0; i < configData.widgets.length; i++)
+                {
+                    if (configData.widgets[i].label == widgetLabel)
+                    {
+                        id = configData.widgets[i].id;
+                    }
+                }
+                return id;
+            }
+
+            private function creationCompleteHandler():void
+            {
+                AppEvent.addListener(AppEvent.CONFIG_LOADED, configLoadedHandler);
+                AppEvent.addListener(AppEvent.MAP_LOADED, mapLoadedHandler);
+                AppEvent.addListener(AppEvent.WIDGET_RUN, onRunWidget);
+                AppEvent.addListener(AppEvent.WIDGET_ADDED, widgetAddedHandler);
+                AppEvent.addListener(AppEvent.DATA_CREATE_INFOWIDGET, onInfowidgetRequest);
+                AppEvent.addListener(AppEvent.WIDGET_FOCUS, focusWidgetHandler);
+                AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, widgetClosedHandler);
+                AppEvent.addListener(AppEvent.WIDGET_CLOSE, widgetCloseHandler);
+
+                //TODO: no real time change layout for V2.0
+                //AppEvent.addListener(AppEvent.CHANGE_LAYOUT, changeLayoutHandler);
+
+                //TODO: no real time resizing for V2.0
+                //AppEvent.addListener(AppEvent.WIDGET_MGR_RESIZE, resizeManagerView);
+				//对WidgetContainer的借用偿还进行响应, 王红亮，2012-01-12
+				AppEvent.addListener(AppEvent.WIDGET_CONTAINER_CHECK, widgetContainerCheckHandler);
+            }
+
+			/**对WidgetContainer的借用偿还进行响应, 王红亮，2012-01-12
+			 */
+			private function widgetContainerCheckHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				var container:IVisualElement = data.container as IVisualElement;
+				if(container == null)
+				{
+					return;
+				}
+				if(data.type == "borrow")
+				{
+					if(this.getElementIndex(container) > -1)
+					{
+						this.removeElement(container);
+						var msgData:Object = {type:"replyBorrow", index:data.index, container:container};
+						AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_CHECK, msgData);
+					}
+				}
+				else if(data.type == "payBack")
+				{
+					container.visible = false;
+					this.addElement(container);
+
+				}
+			}
+            private function configLoadedHandler(event:AppEvent):void
+            {
+                configData = event.data as ConfigData;
+
+                startLoadWidgetContainers();
+            }
+
+            private function mapLoadedHandler(event:AppEvent):void
+            {
+                map = event.data as Map;
+            }
+
+            //=====================================================================
+            // Load widget containers
+            //=====================================================================
+            private var containerList:Array = new Array();
+
+            private function startLoadWidgetContainers():void
+            {
+                var containers:Array = configData.widgetContainers;
+                if (containers)
+                {
+                    for (var i:int = 0; i < containers.length; i++)
+                    {
+                        containerList.push(containers[i].container);
+                    }
+                    loadNextContainer();
+                }
+            }
+
+            private function loadNextContainer():void
+            {
+                if (containerList.length)
+                {
+                    var ctn:Object = containerList[0];
+                    containerList.splice(0, 1);
+                    loadContainer(ctn);
+                }
+                else
+                {
+					//通知其他模块，特别是SplitManager，所有的WidgetContainer已成功加载，王红亮，2012-01-04
+					AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_LOADED, this.containerTable, null);
+                    startLoadControls();
+                }
+            }
+
+            private function loadContainer(ctn:Object):void
+            {
+                ctnInfo = ModuleManager.getModule(ctn.url);
+                ctnInfo.data = ctn;
+                ctnInfo.addEventListener(ModuleEvent.READY, onContainerReady);
+                ctnInfo.addEventListener(ModuleEvent.ERROR, moduleErrorHandler);
+                ctnInfo.load(null, null, null, moduleFactory);
+            }
+
+            private function onContainerReady(event:ModuleEvent):void
+            {
+                var moduleInfo:IModuleInfo = event.module;
+                var moduleData:Object = moduleInfo.data;
+                containerTable.add(moduleData.url, moduleInfo);
+
+                var widgetContainer:IWidgetContainer = moduleInfo.factory.create() as IWidgetContainer;
+
+                moduleData.obj = widgetContainer;
+                widgetContainer.configParams = moduleData;
+				var visualElement:IVisualElement = widgetContainer as IVisualElement;
+
+                if (visualElement)
+                {
+					//设置WidgetContainer初始的显示状态，王红亮，2012-3-11
+					visualElement.visible = moduleData.visible == "true" ? true : false;
+					visualElement.left = moduleData.left;
+					visualElement.top = moduleData.top;
+					visualElement.bottom = moduleData.bottom;
+					if(moduleData.width)
+					{
+						visualElement.width = moduleData.width;
+					}
+                    this.addElement(visualElement);
+                }
+                loadNextContainer();
+            }
+
+
+            //=====================================================================
+            // Load controllers
+            //=====================================================================
+            private var controllerList:Array = [];
+
+            private function startLoadControls():void
+            {
+                controlContainer = new Group();
+                controlContainer.percentHeight = 100;
+                controlContainer.percentWidth = 100;
+
+                this.addElementAt(controlContainer, 0);
+
+                var controls:Array = configData.controls;
+                if (controls)
+                {
+                    for (var i:uint = 0; i < controls.length; i++)
+                    {
+                        controllerList.push(controls[i]);
+                    }
+                }
+                this.cursorManager.setBusyCursor();
+                loadNextControl();
+            }
+
+            private function loadNextControl():void
+            {
+                if (controllerList.length)
+                {
+                    var ctl:Object = controllerList[0];
+                    controllerList.splice(0, 1);
+                    loadControl(ctl);
+                }
+                else
+                {
+                    //load pre load widget after controllers are loaded
+                    this.cursorManager.removeBusyCursor();
+					//主要的功能控件已加载完成，通知mapManager开始加载底图
+					AppEvent.dispatch(AppEvent.START_LOAD_BASEMAPS);
+                    preloadWidgets();
+                }
+            }
+
+            private function loadControl(ctl:Object):void
+            {
+                ctlInfo = ModuleManager.getModule(ctl.url);
+				trace("loadControl:" + ctl.url);
+                ctlInfo.data = ctl;
+                ctlInfo.addEventListener(ModuleEvent.READY, moduleReadyHandler);
+                ctlInfo.addEventListener(ModuleEvent.ERROR, moduleErrorHandler);
+                ctlInfo.load(null, null, null, moduleFactory);
+            }
+
+            private function moduleReadyHandler(event:ModuleEvent):void
+            {
+                var moduleInfo:IModuleInfo = event.module;
+                var moduleData:Object = moduleInfo.data;
+                controlTable.add(moduleData.url, moduleInfo);
+
+                var config:String = moduleData.config as String; // config URL
+
+                var baseWidget:IBaseWidget = moduleInfo.factory.create() as IBaseWidget;
+
+                baseWidget.widgetId = moduleData.id as Number;
+                baseWidget.widgetTitle = moduleData.label;
+                baseWidget.widgetIcon = moduleData.icon;
+                baseWidget.config = config; // config URL
+                baseWidget.configXML = moduleData.configXML; // embedded config XML - if any
+                baseWidget.configData = configData;
+                baseWidget.map = map;
+                baseWidget.setRelativePosition(moduleData.left, moduleData.right, moduleData.top, moduleData.bottom);
+                baseWidget.horizontalCenter = moduleData.horizontalCenter
+                baseWidget.verticalCenter = moduleData.verticalCenter;
+                baseWidget.run();
+
+                var visualElement:IVisualElement = baseWidget as IVisualElement;
+                if (visualElement)
+                {
+                    controlContainer.addElement(visualElement);
+                }
+                loadNextControl();
+            }
+
+            //=====================================================================
+            // Load preload widgets
+            //=====================================================================
+            private function preloadWidgets():void
+            {
+				//打开从url传过来的widget，温杨彪；2012-4-20
+				var operationUrl:String;
+				if(configData.urlParam.hasOwnProperty("operation"))
+				{
+					operationUrl = configData.urlOperation.find(configData.urlParam.operation);
+					operationUrl = StringUtil.trim(operationUrl);
+				}
+				for (var i:Number = 0; i < configData.widgets.length; i++)
+                {
+                    var id:Number = configData.widgets[i].id;
+                    var preload:String = configData.widgets[i].preload;
+                    if (preload == "open" || preload == "minimized" || configData.widgets[i].url == operationUrl)
+                    {
+                        if(configData.widgets[i].url == operationUrl)
+						{
+							configData.urlParam.widgetId = configData.widgets[i].id;
+						}
+						preloadArray.push(configData.widgets[i]);
+                    }
+                }
+                preloadNextWidget();
+            }
+
+            private function preloadNextWidget():void
+            {
+                if (preloadArray.length > 0)
+                {
+                    var id:Number = preloadArray[0].id;
+                    preloadArray.splice(0, 1);
+                    AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+                }
+            }
+
+            //=====================================================================
+            // Load widgets
+            //=====================================================================
+
+            private var widgetAdded:Boolean = false;
+
+            private function createWidget(widgetId:Number):IBaseWidget
+            {
+                var widgetIndex:Object = configData.widgetIndex[widgetId];
+
+                var widgetObject:Object = configData.widgetContainers[widgetIndex.container].widgets[widgetIndex.widget];
+
+                var preload:String = widgetObject.preload;
+                var label:String = widgetObject.label;
+                var icon:String = widgetObject.icon;
+                var config:String = widgetObject.config;
+                var configXML:XML = widgetObject.configXML;
+                var url:String = widgetObject.url;
+
+                var wWidth:Number = Number(widgetObject.width);
+                var wHeight:Number = Number(widgetObject.height);
+                var wx:Number = Number(widgetObject.x);
+                var wy:Number = Number(widgetObject.y);
+                var wleft:String = widgetObject.left;
+                var wtop:String = widgetObject.top;
+                var wright:String = widgetObject.right;
+                var wbottom:String = widgetObject.bottom;
+                var wHorizontalCenter:String = widgetObject.horizontalCenter;
+                var wVerticalCenter:String = widgetObject.verticalCenter;
+				var wClosable:Boolean = widgetObject.closable != "false" ? true : false;
+
+                var modInfo:IModuleInfo = moduleTable.find(url) as IModuleInfo;
+                var widget:IBaseWidget;
+                widget = modInfo.factory.create() as IBaseWidget;
+                widget.widgetId = widgetId;
+                widget.widgetTitle = label;
+                widget.widgetIcon = icon;
+                widget.config = config;
+                widget.configXML = configXML;
+                widget.configData = configData;
+                widget.map = map;
+                widget.isDraggable = this.isDraggable;
+
+                widget.setPreload(preload);
+
+                widget.initialHeight = wHeight;
+                widget.initialWidth = wWidth;
+
+                widget.horizontalCenter = wHorizontalCenter;
+                widget.verticalCenter = wVerticalCenter;
+
+                // if no X and Y both configured, use system X/Y for positioning
+                if (wleft || wtop || wright || wbottom)
+                {
+                    widget.setRelativePosition(wleft, wright, wtop, wbottom);
+                }
+                else if (wx && wy)
+                {
+                    widget.setXYPosition(wx, wy);
+                }
+                else
+                {
+                    setAutoXY();
+                    wx = _refX;
+                    wy = _refY
+                    widget.setXYPosition(wx, wy);
+                }
+				//widget是否允许被关闭，王红亮，2012-02-20
+				widget.closable = wClosable;
+                widgetTable.add(widgetId, widget);
+
+                return widget;
+            }
+
+            private function openWidget(widget:IBaseWidget):void
+            {
+                var idx:Object = configData.widgetIndex[widget.widgetId];
+                var wgtContainer:IWidgetContainer = configData.widgetContainers[idx.container].container.obj;
+				wgtContainer.addWidget(widget);
+                widget.setState(WidgetStates.WIDGET_OPENED);
+                widget.addEventListener(MouseEvent.MOUSE_DOWN, onWidgetMouseDown);
+                //wgtContainer.addWidget(widget);
+				toRunWidget();
+            }
+
+            private function runWidget(widgetId:Number):void
+            {
+                var widget:IBaseWidget = createWidget(widgetId);
+                openWidget(widget);
+            }
+
+			
+			private var _runWidgets:Array = [];
+            private function onRunWidget(event:AppEvent):void
+            {
+				var id:Number = event.data as Number;
+				_runWidgets.push(id);
+                if (!widgetAdded)
+                {
+                    widgetAdded = true;
+					toRunWidget();
+                }
+            }
+			
+			private function toRunWidget():void
+			{
+				if (_runWidgets.length)
+				{
+					var id:Number = _runWidgets[0];
+					_runWidgets.splice(0, 1);
+					var idx:Object = configData.widgetIndex[id];
+					var wgtContainer:IWidgetContainer = configData.widgetContainers[idx.container].container.obj;
+					var wgt:Object = configData.widgetContainers[idx.container].widgets[idx.widget];
+					var widget:IBaseWidget;
+					if (widgetTable.containsKey(id))
+					{
+						widget = widgetTable.find(id) as IBaseWidget;
+						wgtContainer.addWidget(widget);
+						//add back the container if exists
+						widget.setState(WidgetStates.WIDGET_OPENED);
+						toRunWidget();
+					}
+					else
+					{
+						//module loaded
+						if (moduleTable.containsKey(wgt.url))
+						{
+							runWidget(id);
+						}
+						else
+						{
+							loadWidget(id);
+						}
+					}
+					
+				}
+				else
+				{
+					this.cursorManager.removeBusyCursor();
+					widgetAdded = false;
+				}
+			}
+
+            private function loadWidget(id:Number):void
+            {
+                var idx:Object = configData.widgetIndex[id];
+                var wgt:Object = configData.widgetContainers[idx.container].widgets[idx.widget];
+                var preload:String = wgt.preload;
+                var url:String = wgt.url;
+
+                wgtInfo = ModuleManager.getModule(url);
+                wgtInfo.data =
+                    {
+                        id: id,
+                        preload: preload
+                    };
+                wgtInfo.addEventListener(ModuleEvent.READY, widgetReadyHandler);
+                wgtInfo.addEventListener(ModuleEvent.ERROR, moduleErrorHandler);
+                wgtInfo.load(null, null, null, moduleFactory);
+                this.cursorManager.setBusyCursor();
+            }
+
+            private function widgetReadyHandler(event:ModuleEvent):void
+            {
+                this.cursorManager.removeBusyCursor();
+
+                var moduleInfo:IModuleInfo = event.module;
+                moduleTable.add(moduleInfo.url, moduleInfo);
+
+                var id:Number = moduleInfo.data.id;
+                runWidget(id);
+            }
+
+            private function setAutoXY():void
+            {
+                var widgetWidget:Number = 300;
+
+                var siftUnit:Number = 20;
+
+                if (_refX == 0)
+                {
+                    _refX = siftUnit;
+                }
+                else
+                {
+                    _refX = _refX + widgetWidget + 20;
+                }
+
+                if (_refY == 0)
+                {
+                    _refY = Math.round(widgetWidget / 2);
+                }
+
+                if (((_refX + widgetWidget) > this.width))
+                {
+                    _refX = siftUnit
+                    _refY = _refY + Math.round(widgetWidget + siftUnit) / 2;
+                }
+                else if ((_refY + widgetWidget) > this.height)
+                {
+                    _refX = siftUnit;
+                    _refY = Math.round(widgetWidget / 2);
+                }
+            }
+
+            private function onWidgetMouseDown(event:MouseEvent):void
+            {
+                var currentWidget:IBaseWidget = event.currentTarget as IBaseWidget;
+
+                if (currentWidget == null)
+                {
+                    return;
+                }
+
+                var wgtContainer:IWidgetContainer = getWidgetContainer(currentWidget.widgetId);
+                if (wgtContainer != null && wgtContainer.isBasicLayout())
+                {
+                    wgtContainer.focusWidget(currentWidget.widgetId);
+                }
+
+                if ((currentWidget is UIComponent)
+                    && !isFocusInWidget(currentWidget))
+                {
+                    (currentWidget as UIComponent).setFocus();
+                }
+            }
+
+            private function getWidgetContainer(widgetId:Number):IWidgetContainer
+            {
+                var idx:Object = configData.widgetIndex[widgetId];
+                var wgtContainer:IWidgetContainer = null;
+
+                if (idx)
+                {
+                    wgtContainer = configData.widgetContainers[idx.container].container.obj;
+                }
+
+                return wgtContainer;
+            }
+
+            private function isFocusInWidget(widget:IBaseWidget):Boolean
+            {
+                var currentFocusedObj:IFocusManagerComponent = focusManager.getFocus();
+                if (currentFocusedObj == null)
+                {
+                    return false;
+                }
+
+                var temp:DisplayObject = currentFocusedObj as DisplayObject;
+                while (temp != null && temp != widget)
+                {
+                    temp = temp.parent;
+                }
+
+                return temp != null;
+            }
+
+            /* --------------------------------------------------------------------
+               Load Infowidnow Template Widgets
+             * -------------------------------------------------------------------- */
+            private var m_infoWidgetInfo:IModuleInfo;
+
+            private var m_infoWidgetCallback:Function;
+
+			private var _infowidgetRequestArray:Array = []; //[event]，构造消息队列，正确响应同时对infoCreate的请求
+            private function onInfowidgetRequest(event:AppEvent):void
+            {
+				_infowidgetRequestArray.push(event);
+				if(_infowidgetRequestArray.length > 1)
+				{
+					return;
+				}
+				infowidgetRequest();
+//				m_infoWidgetCallback = event.callback;
+//                var url:String = event.data.url as String;
+//                var id:String = event.data.id as String;
+//                var config:String = event.data.config as String;
+//                var isOptLayer:Boolean = event.data.isOptLayer as Boolean;
+//                var layerInfoWindowRenderer:LayerInfoWindowRenderer = event.data.layerInfoWindowRenderer as LayerInfoWindowRenderer;
+//
+//                if (infowidgetTable.containsKey(url))
+//                {
+//                    m_infoWidgetInfo = infowidgetTable.find(url) as IModuleInfo;
+//                    m_infoWidgetInfo.data.id = id;
+//                    m_infoWidgetInfo.data.config = config;
+//                    m_infoWidgetInfo.data.isOptLayer = isOptLayer;
+//                    m_infoWidgetInfo.data.layerInfoWindowRenderer = layerInfoWindowRenderer;
+//                    createInfoTemplate(m_infoWidgetInfo);
+//                }
+//                else
+//                {
+//                    loadInfoWidget(url, id, config, isOptLayer, layerInfoWindowRenderer);
+//                }
+            }
+			
+			private function infowidgetRequest():void
+			{
+				if(_infowidgetRequestArray.length < 1)
+					return;
+				var event:AppEvent = _infowidgetRequestArray[0] as AppEvent;
+                m_infoWidgetCallback = event.callback;
+                var url:String = event.data.url as String;
+                var id:String = event.data.id as String;
+                var config:String = event.data.config as String;
+
+                if (infowidgetTable.containsKey(url))
+                {
+                    m_infoWidgetInfo = infowidgetTable.find(url) as IModuleInfo;
+                    m_infoWidgetInfo.data.id = id;
+                    m_infoWidgetInfo.data.config = config;
+                    createInfoTemplate(m_infoWidgetInfo);
+                }
+                else
+                {
+					loadInfoWidget(url, id, config,false,null);
+                }
+            }
+
+            private function createInfoTemplate(moduleInfo:IModuleInfo):void
+            {
+                var infoWidget:IInfowindowTemplate = moduleInfo.factory.create() as IInfowindowTemplate;
+                var url:String = moduleInfo.data.url as String;
+                var id:String = moduleInfo.data.id as String;
+                var config:String = moduleInfo.data.config as String;
+                var configXML:XML = moduleInfo.data.configXML;
+                var isOptLayer:Boolean = moduleInfo.data.isOptLayer as Boolean;
+				
+                var layerInfoWindowRenderer:LayerInfoWindowRenderer = moduleInfo.data.layerInfoWindowRenderer as LayerInfoWindowRenderer;
+
+				if (infoWidget)
+				{
+					_infoData =
+						{
+							url: url,
+							id: id,
+							config: config,
+							configXML: configXML,
+							infoWidget: infoWidget,
+							isOptLayer: isOptLayer,
+							layerInfoWindowRenderer: layerInfoWindowRenderer
+						};
+					
+					if (config)
+					{
+						var baseWidget:IBaseWidget = infoWidget as IBaseWidget;
+						baseWidget.setInfoConfig(config, false);
+						//把map传给infotemplate   温杨彪；2012-2-3
+						baseWidget.map=map;
+						baseWidget.configData = configData;
+						baseWidget.addEventListener("widgetConfigLoaded", widgetConfigLoadedHandler);
+					}
+					else
+					{
+						m_infoWidgetCallback(new AppEvent(AppEvent.DATA_CREATE_INFOWIDGET, _infoData));
+						_infowidgetRequestArray.splice(0, 1);
+						infowidgetRequest();
+					}
+				}
+				else
+				{
+					//王红亮，2011-08-01
+					_infowidgetRequestArray.splice(0, 1);
+					infowidgetRequest();
+				}
+			}
+
+            private function loadInfoWidget(url:String, id:String, config:String, isOptLayer:Boolean, layerInfoWindowRenderer:LayerInfoWindowRenderer):void
+            {
+                m_infoWidgetInfo = ModuleManager.getModule(url);
+                m_infoWidgetInfo.data =
+                    {
+                        url: url,
+                        id: id,
+                        config: config,
+                        isOptLayer: isOptLayer,
+                        layerInfoWindowRenderer: layerInfoWindowRenderer
+                    };
+                m_infoWidgetInfo.addEventListener(ModuleEvent.READY, infoWidgetReadyHandler);
+                m_infoWidgetInfo.addEventListener(ModuleEvent.ERROR, moduleErrorHandler);
+                m_infoWidgetInfo.load(null, null, null, moduleFactory);
+                }
+
+            private function infoWidgetReadyHandler(event:ModuleEvent):void
+            {
+                var moduleInfo:IModuleInfo = event.module;
+                var url:String = moduleInfo.data.url as String;
+                infowidgetTable.add(url, moduleInfo);
+                createInfoTemplate(moduleInfo);
+            }
+
+            private var _infoData:Object;
+
+            
+
+            private function widgetConfigLoadedHandler(event:Event):void
+            {
+                m_infoWidgetCallback(new AppEvent(AppEvent.DATA_CREATE_INFOWIDGET, _infoData));
+				//王红亮，2011-08-01
+				_infowidgetRequestArray.splice(0, 1);
+				infowidgetRequest();
+            }
+
+            private function moduleErrorHandler(event:ModuleEvent):void
+            {
+                this.cursorManager.removeBusyCursor();
+				//王红亮，2011-08-01
+				_infowidgetRequestArray.splice(0, 1);
+				infowidgetRequest();
+                AppEvent.showError(event.errorText, WIDGET_MANAGER);
+            }
+
+            //child change handler
+            //TODO: load preload the same way of loading controller
+            private function widgetAddedHandler(event:AppEvent):void
+            {
+                preloadNextWidget();
+            }
+
+            private function focusWidgetHandler(event:AppEvent):void
+            {
+                var widgetId:int = Number(event.data);
+                focusWidgetById(widgetId);
+            }
+
+            private function focusWidgetById(widgetId:int):void
+            {
+                var wgtContainer:IWidgetContainer = getWidgetContainer(widgetId);
+                if (wgtContainer != null)
+                {
+                    wgtContainer.focusWidget(widgetId);
+                }
+            }
+
+            private function widgetCloseHandler(event:AppEvent):void
+            {
+                var widgetId:Number = event.data as Number;
+
+                var idx:Object = configData.widgetIndex[widgetId];
+
+                if (idx == null)
+                {
+                    return;
+                }
+
+                var widget:IBaseWidget = null;
+
+                if (widgetTable.containsKey(widgetId))
+                {
+                    widget = widgetTable.find(widgetId) as IBaseWidget;
+                    widget.setState(WidgetStates.WIDGET_CLOSED);
+                }
+            }
+
+
+            private function widgetClosedHandler(event:AppEvent):void
+            {
+                var data:Object = event.data;
+
+                if (data.state as String == WidgetStates.WIDGET_CLOSED)
+                {
+					setTimeout(removeWidget,500,data.id as Number);
+                }
+            }
+
+            private function removeWidget(widgetId:Number):void
+            {
+				trace(widgetId);
+                var widget:IVisualElement;
+                for (var i:int = 0; i < controlContainer.numElements; i++)
+                {
+                    widget = controlContainer.getElementAt(i);
+
+                    var baseWidget:IBaseWidget = widget as IBaseWidget;
+
+                    if (baseWidget.widgetId == widgetId)
+                    {
+                        controlContainer.removeElement(widget);
+
+                        return;
+                    }
+                }
+            }
+        ]]>
+    </fx:Script>
+
+</s:SkinnableContainer>

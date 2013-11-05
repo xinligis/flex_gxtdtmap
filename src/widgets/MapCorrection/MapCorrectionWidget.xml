@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!--行政区分省->市-->
+	<province name="重庆市">
+<!-- 		<city name="全部" code=""> -->
+<!-- 			<district name="全部" code=""/> -->
+<!-- 		</city> -->
+		<city name="重庆市" code="500000">
+			<district name="全部" code="500000"/>
+			<district name="万州区" code="500101"/>
+			<district name="涪陵区" code="500102"/>
+			<district name="渝中区" code="500103"/>
+			<district name="大渡口区" code="500104"/>
+			<district name="江北区" code="500105"/>
+			<district name="沙坪坝区" code="500106"/>
+			<district name="九龙坡区" code="500107"/>
+			<district name="南岸区" code="500108"/>
+			<district name="北碚区" code="500109"/>
+			<district name="万盛区" code="500110"/>
+			<district name="双桥区" code="500111"/>
+			<district name="渝北区" code="500112"/>
+			<district name="巴南区" code="500113"/>
+			<district name="黔江区" code="500114"/>
+			<district name="长寿区" code="500115"/>
+			<district name="綦江县" code="500222"/>
+			<district name="潼南县" code="500223"/>
+			<district name="铜梁县" code="500224"/>
+			<district name="大足县" code="500225"/>
+			<district name="荣昌县" code="500226"/>
+			<district name="璧山县" code="500227"/>
+			<district name="梁平县" code="500228"/>
+			<district name="城口县" code="500229"/>
+			<district name="丰都县" code="500230"/>
+			<district name="垫江县" code="500231"/>
+			<district name="武隆县" code="500232"/>
+			<district name="忠县" code="500233"/>
+			<district name="开县" code="500234"/>
+			<district name="云阳县" code="500235"/>
+			<district name="奉节县" code="500236"/>
+			<district name="巫山县" code="500237"/>
+			<district name="巫溪县" code="500238"/>
+			<district name="石柱土家族自治县" code="500240"/>
+			<district name="秀山土家族苗族自治县" code="500241"/>
+			<district name="酉阳土家族苗族自治县" code="500242"/>
+			<district name="彭水苗族土家族自治县" code="500243"/>
+
+		</city>
+		<city name="江津市" code="500381">
+			<district name="全部" code="500381"/>
+
+		</city>
+		<city name="合川市" code="500382">
+			<district name="全部" code="500382"/>
+
+		</city>
+		<city name="永川市" code="500383">
+			<district name="全部" code="500383"/>
+
+		</city>
+		<city name="南川市" code="500384">
+			<district name="全部" code="500384"/>
+
+		</city>
+	</province>
+	
+	<imageIcon icon_off="assets/images/mapcorrectionwidget/lowerTriangular.png" icon_on="assets/images/mapcorrectionwidget/epitriquetrum.png"/>
+	
+</configuration>

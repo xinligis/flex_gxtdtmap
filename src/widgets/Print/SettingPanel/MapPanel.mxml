@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SettingPanel1:SettingPanel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:supportClasses="com.esri.ags.skins.supportClasses.*"
+			xmlns:SettingPanel="widgets.Print.SettingPanel.*" creationComplete="settingpanel1_creationCompleteHandler(event)" xmlns:SettingPanel1="widgets.Print.SettingPanel.*">
+	<SettingPanel:layout>
+		<s:VerticalLayout gap="0"/>
+	</SettingPanel:layout>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.ColorPickerEvent;
+			import mx.events.FlexEvent;
+			
+			import widgets.Print.element.MapElement;
+			
+			[Bindable]
+			private var _currentMap:MapElement;
+			public function set currentMap(value:MapElement):void
+			{
+				_currentMap=value;
+			}
+			
+			public function get currentMap():MapElement
+			{
+				return _currentMap;
+			}
+			
+			protected function numericstepper1_changeHandler(event:Event):void
+			{
+				_currentMap.borderWidth=event.target.value;
+			}
+
+			protected function colorpicker1_changeHandler(event:ColorPickerEvent):void
+			{
+				_currentMap.borderColor=event.color;
+			}
+
+			protected function settingpanel1_creationCompleteHandler(event:FlexEvent):void
+			{
+				content.addElement(vgroup);
+				panelLabel.text="地图设置";
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<s:VGroup id="vgroup" paddingLeft="10" >
+			<s:Spacer height="5"/>
+			<s:HGroup>
+				<s:NumericStepper maximum="100" stepSize="1" 
+								  value="{_currentMap.borderWidth}" 
+								  change="numericstepper1_changeHandler(event)"
+								  toolTip="地图边框大小"/>
+				<mx:ColorPicker color="{_currentMap.borderColor}" 
+								change="colorpicker1_changeHandler(event)"
+								toolTip="地图边框颜色"/>
+			</s:HGroup>
+			<s:HGroup gap="15">
+				<s:Label text="地图大小：" paddingTop="5"/>
+				<s:Button label="-" click="{_currentMap.zoomIn()}" width="30"/>
+				<s:Button label="+" click="{_currentMap.zoomOut()}" width="30"/>
+				
+				<!--<s:HSlider />-->
+			</s:HGroup>
+			
+		</s:VGroup>
+	</fx:Declarations>
+</SettingPanel1:SettingPanel>

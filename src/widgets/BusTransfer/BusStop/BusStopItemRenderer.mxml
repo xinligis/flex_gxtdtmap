@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" width="100%" currentState="hide"
+				dataChange="itemrenderer_dataChangeHandler(event)" xmlns:components="com.esri.viewer.components.*">
+	<fx:Metadata>
+		[Event(name="queryDetail",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import spark.events.IndexChangeEvent;
+			[Bindable]
+			private var item:BusStopItem;
+			public var selectedStopRouteItem:StopRouteItem;
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data == null)
+					return;
+				item = data as BusStopItem;
+				if(item.routes !=null && item.routes.length>0)
+				{
+					currentState = "show";
+					borderContainer.setStyle("backgroundColor",0xf7f7f7);
+					titleLabel.setStyle("color",0x4B515D);
+				}
+				else if(item.firstOne)
+				{
+					dispatchEvent(new Event("queryDetail",true));
+					currentState = "loading";
+				}
+				else
+				{
+					currentState = "hide";
+				}
+				
+			}
+			
+			protected function list_changeHandler(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				selectedStopRouteItem = list.selectedItem;
+				dispatchEvent(new Event("stopRouteClick", true));
+			}
+			
+			protected function bordercontainer1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(item.routes != null && item.routes.length>0)
+				{
+					currentState = "show";
+					dispatchEvent(new Event("queryDetail",true));
+				}
+				else
+				{
+					currentState = "loading";
+					dispatchEvent(new Event("queryDetail",true));
+				}
+				if(list.visible)
+				{
+					borderContainer.setStyle("backgroundColor",0xf7f7f7);
+					titleLabel.setStyle("color",0x4B515D);
+				}
+			}
+			
+			protected function bordercontainer2_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				borderContainer.setStyle("backgroundColor",0xffffff);
+				titleLabel.setStyle("color",0x4061ad);
+			}
+			
+			protected function bordercontainer2_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				borderContainer.setStyle("backgroundColor",0xf7f7f7);
+				titleLabel.setStyle("color",0x4B515D);
+			}
+			
+			public function hide():void
+			{
+				currentState = "hide";
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="show"/>
+		<s:State name="hide"/>
+		<s:State name="loading"/>
+	</s:states>
+	<s:BorderContainer width="100%" height="100%" borderColor="#C9C9C9"
+					   backgroundColor="#f7f7f7" fontFamily="宋体" id="borderContainer" 
+					   rollOver.hide="bordercontainer2_rollOverHandler(event)" 
+					   rollOut.hide="bordercontainer2_rollOutHandler(event)">
+		<s:layout>
+			<s:VerticalLayout gap="5" horizontalAlign="center"/> <!--paddingLeft="5" paddingRight="5" paddingTop="5" paddingBottom="5"-->
+		</s:layout>
+		<s:HGroup width="100%" verticalAlign="middle" gap="5" height="30" paddingLeft="15" buttonMode="true"
+				  click="bordercontainer1_clickHandler(event)">
+			<s:Image source="{list.visible?'assets/images/transfer/coll.png':'assets/images/transfer/expand.png'}"/>
+			<s:Label fontWeight="bold" color="0x4B515D" text="{item.name}" id="titleLabel" />
+		</s:HGroup>
+		<s:Group width="100%" height="55" id="loader" 
+				 visible.loading="true" includeInLayout.loading="true"
+				 visible="false" includeInLayout="false">
+			<components:ViewerLoader backGroundAlpha="0" loadingText="正在加载..."/>
+		</s:Group>
+		<s:Line left="0" right="0" width="95%" visible="false" includeInLayout="false"
+				visible.show="true" includeInLayout.show="true">
+			<s:stroke>
+				<s:SolidColorStroke color="#3E62AC"/>
+			</s:stroke>
+		</s:Line>
+		<s:List id="list" width="100%" borderVisible="false"
+				itemRenderer="widgets.BusTransfer.BusStop.StopRouteItemRenderer" dataProvider="{item.routes}"
+				contentBackgroundAlpha="0" visible="false" includeInLayout="false" visible.show="true" includeInLayout.show="true"
+			 change="list_changeHandler(event)">
+			<s:layout>
+				<s:VerticalLayout gap="10" paddingLeft="10" paddingRight="10" paddingTop="5"/>
+			</s:layout>
+		</s:List>
+	</s:BorderContainer>
+</s:ItemRenderer>

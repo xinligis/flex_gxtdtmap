@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 展示站点所经过道路线Infowindow
+* @author 胡国营
+* @ver 1.0
+* @created 07-19-2012 09:01:36
+*/
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:viewer="com.esri.viewer.*" 
+		 xmlns:components="com.esri.viewer.components.*"
+		 xmlns:NewInfowindow = "widgets.NewInfowindow.*"
+		 widgetConfigLoaded="onWidgetConfigLoaded()"
+		 width="400" height="300">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			
+			[Bindable]
+			private var _busRouteNameArrayCollection:ArrayCollection = new ArrayCollection();
+			
+			private function onWidgetConfigLoaded():void
+			{
+				
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				_busRouteNameArrayCollection.addItem("106路；");
+				_busRouteNameArrayCollection.addItem("111路；");
+				_busRouteNameArrayCollection.addItem("116路（城铁柳芳站-龙潭公园）；");
+				_busRouteNameArrayCollection.addItem("332路；");
+				_busRouteNameArrayCollection.addItem("运通106路；");
+				_busRouteNameArrayCollection.addItem("特8路；");
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<viewer:SplitWidgetTemplate id="wTemplate"
+								width="100%" 
+								closed="widgetClosedHandler(event)"
+								open="widgetOpenedHandler(event)">
+		<s:Group top="10" width="100%" height="100%" left="10">
+			<s:layout>
+				<s:VerticalLayout />
+			</s:layout>
+			<s:Label text="东直门" textAlign="left" fontFamily="微软雅黑" color="#d1d0ce" fontSize="14" fontWeight="bold"/>
+			<s:Line width="85%"  left="5" right="5" id="dottedLine">
+				<s:stroke>
+					<s:SolidColorStroke color="#dedede"/>
+				</s:stroke>
+			</s:Line>
+			
+			<s:Label text="途径车次：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+			<NewInfowindow:InfoContentDataGroup id="infoContentDataGroup" width="100%" dataProvider="{_busRouteNameArrayCollection}">
+				<NewInfowindow:layout>
+					<!--<s:layout>-->
+						<components:FlowLayout gapColumn="5" gapRow="5" />
+				   <!-- </s:layout>-->
+				</NewInfowindow:layout>
+			</NewInfowindow:InfoContentDataGroup>
+		</s:Group>
+		
+	</viewer:SplitWidgetTemplate>
+	
+</viewer:BaseWidget>

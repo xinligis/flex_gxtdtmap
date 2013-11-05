@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" 
+		  creationComplete="hgroup1_creationCompleteHandler(event)" gap="12" horizontalAlign="center">
+	<fx:Metadata>
+			[Event(name="PageChanged",type="com.esri.viewer.components.pageSelector.PageChangeEvent")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.components.customskinbutton.ClickButton;
+			
+			import mx.controls.Alert;
+			import mx.controls.LinkButton;
+			import mx.events.FlexEvent;
+			
+			import spark.components.Button;
+			import spark.components.Label;
+			
+			/**
+			 * 显示页码的label的数组
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private var _controlArray:Array = new Array();
+			/**
+			 * 总页码
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private var _nTotalCount:int;
+			
+			/**
+			 * hgroup1创建好后的回调方法
+			 * @author 温杨彪 @date 2011/7/20
+			 **/
+			protected function hgroup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				this.createPage(this._nTotalCount,this._nPageCount);
+			}
+			
+			
+			/**
+			 * 设置总页数，用于mxml标签里面的设置，如果在代码中设置，请使用set_TotalCount方法
+			 * @param value:int 总的页码数
+			 * @author 温杨彪 2011/7/20
+			 **/
+			public function set totalCount(value:int):void
+			{
+				this._nTotalCount = value;
+			}
+			
+			/**
+			 * 设置总页数，在代码中设置
+			 * @param value:int 总的页码数
+			 * @author 温杨彪 2011/7/20
+			 **/
+			public function set_TotalCount(value:int):void
+			{
+				this._nTotalCount =value;
+				//重新设置完页码，需要刷新控件
+				this.createPage(this._nTotalCount,this._nPageCount);
+			}
+			
+			/**
+			 * 得到总页数
+			 * @return value:int 总的页码数
+			 * @author 温杨彪 2011/7/20
+			 **/
+			public function get totalCount():int
+			{
+				return this._nTotalCount;
+			}
+			/**
+			 * 当前页码
+			 * @author 温杨彪
+			 * @date 2011年7月20日
+			 **/
+			private var _currentPage:int;
+			
+			/**
+			 * 设置当前页码
+			 * @author 温杨彪
+			 * @date 2012年3月29日
+			 **/
+			public function set currentPage(value:int):void
+			{
+				if(value<1 || value>_nTotalCount)
+				{
+					return;
+				}
+				_currentPage = value;
+				updateControl(_currentPage);
+			}
+			
+			/**
+			 * 获取当前页码
+			 * @author 温杨彪
+			 * @date 2012年3月29日
+			 **/
+			public function get currentPage():int
+			{
+				return _currentPage;
+			}
+			/**
+			 * 在控件中一次显示多少页码，默认为5个
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private var _nPageCount:int = 5;
+			
+			/**
+			 * 设置在控件中一次显示多少页码
+			 * @param value:int 页码数
+			 * @author 温杨彪 2011/7/20
+			 **/
+			public function set pageCount(value:int):void
+			{
+				this._nPageCount = value;
+			}
+			
+			/**
+			 * 得到在控件中一次显示多少页码
+			 * @author 温杨彪 2011/7/20
+			 **/
+			public function get pageCount():int
+			{
+				return this._nPageCount;
+			}
+			/**
+			 * 当前选中的页码控件的位置
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private var _nCurrentIndex:int;
+			
+			
+			/**
+			 * 创建控件
+			 * @author 温杨彪 2011/7/20
+			 * @param nTotalCount:int 页码总数
+			 * @param nPageCount:int 一次显示页码的数量，默认为5
+			 **/
+			public function createPage(nTotalCount:int,nPageCount:int=5):void
+			{
+				
+				this._nTotalCount = nTotalCount;
+				
+				//首先移除所有的控件
+				this.removeAllElements();
+				//如果不需要显示则返回
+				if(nTotalCount<1)
+				{
+					return;
+				}
+				this.addElement(createPrePageControl());
+				this._controlArray = new Array();
+				this._controlArray.push(createLabel("1",true));
+				
+				//当前从1开始的最后一个显示的数，如果目前需要显示到“5”，那么nCurentTotalPages为“6”
+				var nCurentTotalPages:int = 0;
+				if(this._nTotalCount<this._nPageCount)
+				{
+					nCurentTotalPages = this._nTotalCount+1;
+				}
+				else
+				{
+					nCurentTotalPages = this._nPageCount+1;
+				}
+				//如果总数小于每页需要显示的数量
+				for(var i:int=2;i<nCurentTotalPages;i++)
+				{
+					_controlArray.push(createLabel(i.toString(),false));
+				}					
+				//把控件加到group上
+				for(i=0;i< _controlArray.length;i++)
+				{
+					this.addElement(_controlArray[i]);
+				}
+				//如果没显示完，添加“下一页”
+				var nextBtn:Button=createNextPageControl();	
+				this.addElement(nextBtn);
+				if(nTotalCount>=2)
+				{
+					nextBtn.enabled=true;
+					nextBtn.setStyle("color",0xFFFFFF);
+				}
+				this._currentPage = 1;
+			}
+			
+			/**
+			 * 创建“上一页”按钮，默认不可用
+			 * @autor 温杨彪 2011/7/22
+			 * @return Button 返回“上一页”按钮
+			 **/
+			private function createPrePageControl():Button
+			{
+				var preCtl:ClickButton = new ClickButton();
+				preCtl.setStyle("buttonType","noBorder");
+				preCtl.label = "上一页";
+				preCtl.enabled=false;
+//				preCtl.setStyle("color",0x000000);
+//				preCtl.setStyle("fontSize",13);
+//				preCtl.setStyle("fontWeight","normal");
+//				preCtl.setStyle("chromeColor",0x2B84C0);
+				preCtl.width=60;
+				preCtl.height=25;
+				preCtl.addEventListener(MouseEvent.CLICK,prePage_clickHandler);
+				return preCtl;
+			}
+			
+			/**
+			 * 创建“下一页”按钮
+			 * @autor 温杨彪 2011/7/22
+			 * @return Button 返回“下一页”按钮
+			 **/
+			private function createNextPageControl():Button
+			{
+				var nextCtl:ClickButton = new ClickButton();
+				nextCtl.setStyle("buttonType","noBorder");
+				nextCtl.label = "下一页";
+				nextCtl.enabled=false;
+				nextCtl.width=60;
+				nextCtl.height=25;
+				nextCtl.enabled=false;
+				nextCtl.addEventListener(MouseEvent.CLICK,nextPage_clickHandler);
+				return nextCtl;
+			}
+			
+			/**
+			 * “下一页”按钮，鼠标按下事件处理方法
+			 * @autor 温杨彪 2011/7/22
+			 **/
+			private function nextPage_clickHandler(o:Event):void
+			{
+				this._currentPage++;
+				updateControl(this._currentPage);
+			}
+			
+			/**
+			 * “上一页”按钮，鼠标按下事件处理方法
+			 * @autor 温杨彪 2011/7/22
+			 **/
+			private function prePage_clickHandler(o:Event):void
+			{
+				this._currentPage--;
+				updateControl(this._currentPage);
+			}
+			
+			/**
+			 * 当选择的页面变化后，更新当前控件
+			 * @param nPage:int 选择后的页面
+			 * @autor 温杨彪 2011/7/22
+			 **/
+			[Bindable(event="PageChanged")]
+			private function updateControl(nPage:int):void
+			{
+				//首先移除所有显示的控件
+				this.removeAllElements();
+				//记录是否点击的是第一个或者最后一页
+				var strFlag:String = "";
+				var i:int=0;
+				var ctl:LinkButton = null;
+				this._currentPage = nPage;
+				//需要显示上一页
+				var prebtn:Button = createPrePageControl();
+				this.addElement(prebtn);
+				if(this._currentPage>1)
+				{
+					prebtn.enabled=true;
+					prebtn.setStyle("color",0xFFFFFF);
+				}
+				//如果点击的是第一项，那么把点击的按钮移到中间
+				if(_controlArray[_controlArray.length-1].text== nPage.toString())
+				{
+					strFlag = "last";
+					
+				}
+					//如果点击的是最后一项，那么把点击的按钮移到中间
+				else if(_controlArray[0].text == nPage.toString())
+				{
+					strFlag = "first";
+				}
+				switch(strFlag)
+				{
+					case "last":
+						var thisPageCount:int = -1;
+						if(pageCount>totalCount)
+							thisPageCount = totalCount;
+						else
+							thisPageCount = pageCount;
+						var step:int = (thisPageCount-1)/2;
+						_controlArray = new Array();
+						//当前按钮可以放到中间
+						if(step<(this._nTotalCount-this._currentPage))
+						{
+							for(i=step;i>=0;i--)
+							{
+								if(i == 0)
+								{
+									_controlArray.push(createLabel((this._currentPage - i).toString(),true));
+								}
+								else
+								{
+									_controlArray.push(createLabel((this._currentPage - i).toString(),false));
+								}
+							}
+							//如果页面数是偶数，则需要再加1
+							if(pageCount%2 == 0)
+							{
+								step++; 
+							}
+							for(i=1;i<=step;i++)
+							{
+								_controlArray.push(createLabel((this._currentPage + i).toString(),false));
+							}
+						}
+							//当前按钮不可放在中间
+						else
+						{
+							for(i = this._nTotalCount-thisPageCount+1;i<=this._nTotalCount;i++)
+							{
+								if(i == this._currentPage)
+								{
+									_controlArray.push(createLabel(i.toString(),true));
+								}
+								else
+								{
+									_controlArray.push(createLabel(i.toString(),false));
+								}
+							}
+						}
+						break;
+					case "first":
+						thisPageCount= -1;
+						if(pageCount>totalCount)
+							thisPageCount = totalCount;
+						else
+							thisPageCount = pageCount;
+						step = (thisPageCount-1)/2;
+						
+						_controlArray = new Array();
+						//当前按钮可以放到中间
+						if(step<this._currentPage)
+						{
+							for(i=step;i>=0;i--)
+							{
+								if(i == 0)
+								{
+									_controlArray.push(createLabel((this._currentPage - i).toString(),true));
+								}
+								else
+								{
+									_controlArray.push(createLabel((this._currentPage - i).toString(),false));
+								}
+							}
+							//如果页面数是偶数，则需要再加1
+							if(thisPageCount%2 == 0)
+							{
+								step++; 
+							}
+							for(i=1;i<=step;i++)
+							{
+								_controlArray.push(createLabel((this._currentPage + i).toString(),false));
+							}
+						}
+							//当前按钮不可放在中间
+						else
+						{
+							for(i = 1;i<=thisPageCount;i++)
+							{
+								if(i == this._currentPage)
+								{
+									_controlArray.push(createLabel(i.toString(),true));
+								}
+								else
+								{
+									_controlArray.push(createLabel(i.toString(),false));
+								}
+							}
+						}
+						break;
+					default:
+						_controlArray.forEach(updateLabel);
+						break;
+				}
+				for(i=0;i< _controlArray.length;i++)
+				{
+					this.addElement(_controlArray[i]);
+				} 
+				//需要显示“下一页”
+				var nextbtn:Button = createNextPageControl();
+				this.addElement(nextbtn);
+				if(this._currentPage<this._nTotalCount)
+				{
+					nextbtn.enabled=true;
+					nextbtn.setStyle("color",0xFFFFFF);
+				}
+				
+				//触发事件
+				var e:PageChangeEvent = new PageChangeEvent();
+				e.currentPage = this._currentPage;
+				this.dispatchEvent(e);
+				
+			}
+			
+			/**
+			 * 更新要显示的页码Label
+			 * @param lbl:Label 需要更新的Label
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private function updateLabel(lbl:spark.components.Label,index:int,attr:Array):void
+			{
+				if(lbl.useHandCursor == false)
+				{
+					lbl.useHandCursor = true;
+					lbl.buttonMode = true;
+					lbl.mouseChildren = false; 
+					lbl.setStyle("color",0x535353);
+					lbl.setStyle("fontSize",11);
+					lbl.setStyle("fontWeight","normal");
+					lbl.setStyle("paddingTop",8);
+					lbl.addEventListener(MouseEvent.CLICK,pageLinkbtn_clickHandler);
+				}
+				else if(lbl.text == this._currentPage.toString())
+				{
+					lbl.useHandCursor = false;
+					lbl.setStyle("color",0xFF5900);
+					lbl.setStyle("fontSize",15);
+					lbl.setStyle("fontWeight","bold");
+					lbl.setStyle("paddingTop",6);
+					lbl.removeEventListener(MouseEvent.CLICK,pageLinkbtn_clickHandler);
+				}
+			}
+			
+			/**
+			 * 页码Label鼠标按下事件处理方法
+			 * @author 温杨彪 2011/7/20
+			 **/
+			private function pageLinkbtn_clickHandler(event:MouseEvent):void
+			{
+				var btn:Label = event.target as Label;
+				updateControl(Number(btn.text));
+			}
+			
+			/**
+			 * 创建要显示的页码Label
+			 * @param lbl:Label 需要更新的Label
+			 * @param isSelected:Boolean 是否处于选中状态
+			 * @author 温杨彪 2011/7/20
+			 * @return Label 创建好的Label
+			 **/
+			private function createLabel(page:String,isSelected:Boolean):Label
+			{
+				var lbl:Label = new Label();
+				lbl.text = page;
+				//如果是选中状态
+				if(isSelected)
+				{
+					lbl.useHandCursor = false;
+					lbl.setStyle("color",0xFF5900);
+					lbl.setStyle("fontSize",15);
+					lbl.setStyle("fontWeight","bold");
+					lbl.setStyle("paddingTop",6);
+				}
+				else
+				{
+					lbl.useHandCursor = true;
+					lbl.buttonMode = true;
+					lbl.mouseChildren = false; 
+					lbl.setStyle("color",0x535353);
+					lbl.setStyle("fontSize",11);
+					lbl.setStyle("fontWeight","normal");
+					lbl.setStyle("paddingTop",8);
+					lbl.addEventListener(MouseEvent.CLICK,pageLinkbtn_clickHandler);
+				}
+				return lbl;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+</s:HGroup>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<legendLevels>
+	   <legendLevel levelNum="11">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="12">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="13">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="14">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="15">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="16">
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+		</legendLevel>
+		
+		<legendLevel levelNum="17">
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			<legendImage  source="assets/images/Legend/05.png" />
+			<legendImage  source="assets/images/Legend/01.png" />
+			<legendImage  source="assets/images/Legend/02.png" />
+			<legendImage  source="assets/images/Legend/03.png" />
+			<legendImage  source="assets/images/Legend/04.png" />
+			
+		</legendLevel>
+		
+	</legendLevels>
+
+</configuration>

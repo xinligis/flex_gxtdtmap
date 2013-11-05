@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2010-2011 Esri china. All Rights Reserved.
+// 二维地图对比内容设置的Widget
+// 王红亮，2012-02-08
+///////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:om="com.esrichina.om.componet.checkboxtree.*"
+				   width="100%" height="100%"
+				   widgetConfigLoaded="basewidget_widgetConfigLoadedHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.ArcGISTiledMapServiceLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.layers.WMSLayer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.WidgetStates;
+			import com.esri.viewer.components.WMTSLayer;
+			import com.esrichina.om.componet.checkboxtree.CheckChangeEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.utils.StringUtil;
+			/**
+			 * 主图层信息
+			 * [{data:XML, agsLayer:Layer},]
+			 */
+			private var _mainLayerInfos:Array;
+			/**
+			 * 附属图层信息 [{data:XML, agsLayer:Layer},]
+			 * */
+			private var _attachedLayerInfos:Array;
+			protected function basewidget_widgetConfigLoadedHandler(event:Event):void
+			{
+				if(configXML)
+				{
+					mainSetTree.dataProvider = configXML.mainmap[0].layer;
+					_mainLayerInfos = [];
+					for each(var xml:XML in configXML.mainmap.layer)
+					{
+						var info:Object = {data:xml, agsLayer:null};
+						_mainLayerInfos.push(info);
+					}
+					attachedSetTree.dataProvider = configXML.attachedmap[0].layer;
+					_attachedLayerInfos = [];
+					for each(xml in configXML.attachedmap.layer)
+					{
+						var info1:Object = {data:xml, agsLayer:null};
+						_attachedLayerInfos.push(info1);
+					}
+					runWidget(configXML.attachedmapwidget);
+					AppEvent.addListener(AppEvent.POST_PROCESS,postProcess_handler);
+				}
+				
+			}
+			
+			private function postProcess_handler(event:AppEvent):void
+			{
+				//判断当前是否处于地图对比场景，如果是的话，隐藏自己
+				if(event.data != null && event.data.type == "AttachedMapStateChange")
+				{
+					if(event.data.state == "open")
+					{
+//						grp.visible = false;
+					}
+					else
+					{
+//						AppEvent.dispatch(AppEvent.WIDGET_CLOSE, widgetId);
+					}
+				}
+			}
+			/**
+			 * 找到包含主地图中图层设置信息data的完整对象
+			 */
+			private function dataMainPart(data:XML):Object
+			{
+				for each(var item:Object in this._mainLayerInfos)
+				{
+					if(item.data == data)
+					{
+						return item;
+					}
+				}
+				return null;
+			}
+			
+			/**
+			 * 找到包含附属地图中图层设置信息data的完整对象
+			 */
+			private function dataAttachedPart(data:XML):Object
+			{
+				for each(var item:Object in this._attachedLayerInfos)
+				{
+					if(item.data == data)
+					{
+						return item;
+					}
+				}
+				return null;
+			}
+			
+			private var _postprocessorWidgetID:int = -1;
+			/**
+			 *功能：通知AppEvent打开目标位url的widget
+			 *@param url 目标widget
+			 *@return void
+			 */
+			private function runWidget(url:String):void
+			{
+				_postprocessorWidgetID = -1;
+				for each(var widget:Object in configData.widgets)
+				{
+					if(widget.url == url)
+					{
+						_postprocessorWidgetID = widget.id;
+						//AppEvent.addListener(AppEvent.WIDGET_CREATION_COMPLETE, onCreatedPostprocessor);
+						//添加对widget打开状态的监听
+						AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+						//开启需要进一步处理的widget
+						AppEvent.dispatch(AppEvent.WIDGET_RUN, widget.id);
+						break;
+					}
+				}
+			}
+			/**
+			 * 根据配置信息初始化主地图的内容显示
+			 */
+			private function initializeMainMap():void
+			{
+				if(this._mainLayerInfos == null)
+				{
+					return;
+				}
+				for each(var info:Object in this._mainLayerInfos)
+				{
+					if(info.data.@check == "1")
+					{
+						updateMainMap2Info(info);
+					}
+				}
+				
+			}
+			/**
+			 * 清空主地图上配置信息中显示的图层信息
+			 */
+			private function uninitializeMainMap():void
+			{
+				if(this._mainLayerInfos == null)
+				{
+					return;
+				}
+				for each(var info:Object in this._mainLayerInfos)
+				{
+					if(info.data.@check == "1")
+					{
+						map.removeLayer(info.agsLayer);
+					}
+				}
+			}
+			/**
+			 * 更新主地图的内容至最新的配置信息
+			 * @param layerInfo 最新的配置信息
+			 */
+			private function updateMainMap2Info(layerInfo:Object):void
+			{
+				if(layerInfo == null)
+				{
+					return;
+				}
+				var data:XML = layerInfo.data as XML;
+				
+				if(data.@check == "1")
+				{
+					if(layerInfo.agsLayer == null)
+					{
+						layerInfo.agsLayer = createAGSLayer(data as XML);
+					}
+					map.addLayer(layerInfo.agsLayer);
+				}
+				else
+				{
+					if(layerInfo.agsLayer == null)
+					{
+						return;
+					}
+					map.removeLayer(layerInfo.agsLayer);
+				}
+				
+			}
+			
+			/**
+			 * 根据配置信息初始化主地图的内容显示
+			 */
+			private function initializeAttachedMap():void
+			{
+				if(this._attachedLayerInfos == null)
+				{
+					return;
+				}
+				for each(var info:Object in this._attachedLayerInfos)
+				{
+					if(info.data.@check == "1")
+					{
+						updateAttachedMap2Info(info);
+					}
+				}
+				
+			}
+			/**
+			 * 清空主地图上配置信息中显示的图层信息
+			 */
+			private function uninitializeAttachedMap():void
+			{
+				if(this._attachedLayerInfos == null)
+				{
+					return;
+				}
+				for each(var info:Object in this._attachedLayerInfos)
+				{
+					if(info.data.@check == "1")
+					{
+						if(info.agsLayer == null)
+						{
+							return;
+						}
+						var message:Object = {postprocessor:this._postprocessorWidgetID, name:"removeLayer", layer:info.agsLayer};
+						AppEvent.dispatch(AppEvent.POST_PROCESS, message);
+					}
+				}
+			}
+			/**
+			 * 更新主地图的内容至最新的配置信息
+			 * @param layerInfo 最新的配置信息
+			 */
+			private function updateAttachedMap2Info(layerInfo:Object):void
+			{
+				if(layerInfo == null)
+				{
+					return;
+				}
+				var data:XML = layerInfo.data as XML;
+				if(data == null)
+				{
+					return;
+				}
+				if(data.@check == "1")
+				{
+					if(layerInfo.agsLayer == null)
+					{
+						layerInfo.agsLayer = createAGSLayer(data as XML);
+					}
+					var message:Object = {postprocessor:this._postprocessorWidgetID, name:"addLayer", layer:layerInfo.agsLayer};
+					AppEvent.dispatch(AppEvent.POST_PROCESS, message);
+				}
+				else
+				{
+					if(layerInfo.agsLayer == null)
+					{
+						return;
+					}
+					message = {postprocessor:this._postprocessorWidgetID, name:"removeLayer", layer:layerInfo.agsLayer};
+					AppEvent.dispatch(AppEvent.POST_PROCESS, message);
+				}
+				
+			}
+			private function onCreatedPostprocessor(event:AppEvent):void
+			{
+				if(event.data.widgetId == _postprocessorWidgetID)
+				{
+					//初始化主地图的显示
+					this.initializeMainMap();
+					//初始化附属地图的显示
+					this.initializeAttachedMap();
+					AppEvent.removeListener(AppEvent.WIDGET_CREATION_COMPLETE, onCreatedPostprocessor);
+				}
+			}
+			/**
+			 * 用于后处理的Widget加载并打开之后，向该widget发送要处理的数据
+			 *王红亮，2010-04-08
+			 */
+			private function onOpenedPostprocessor(event:AppEvent):void
+			{
+				if(event.data.state as String == WidgetStates.WIDGET_OPENED && _postprocessorWidgetID == event.data.id as Number)
+				{
+					//初始化主地图的显示
+					this.initializeMainMap();
+					//初始化附属地图的显示
+					this.initializeAttachedMap();
+					//已完成数据发送，不再对widget的打开状态进行监听
+					AppEvent.removeListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+				}
+				
+			}
+			private function mainSetTree_CheckChangeHandler(event:CheckChangeEvent):void
+			{
+				var layerInfo:Object = dataMainPart(event.data as XML);
+				this.updateMainMap2Info(layerInfo);
+			}
+			private function attachedSetTree_CheckChangeHandler(event:CheckChangeEvent):void
+			{
+				if(_postprocessorWidgetID == -1)
+				{
+					return;
+				}
+				var data:Object = event.data;
+				var layerInfo:Object = dataAttachedPart(data as XML);
+				this.updateAttachedMap2Info(layerInfo);
+				
+				//加载图层
+				
+			}
+			/**
+			 * 根据配置信息，创建相应的ArcGIS图层，wms，wmts，dynamic，tiled
+			 * 2012-3-27
+			 */
+			private function createAGSLayer(data:XML):Layer
+			{
+				if(data.@type == "tiled")
+				{
+					var tiled:ArcGISTiledMapServiceLayer = new ArcGISTiledMapServiceLayer();
+					tiled.url = data.@url.toString();
+					return tiled;
+				}
+				else if(data.@type == "dynamic")
+				{
+					var dynamic:ArcGISDynamicMapServiceLayer = new ArcGISDynamicMapServiceLayer();
+					dynamic.url = data.@url.toString();
+					return dynamic;
+				}
+				else if(data.@type == "wms")
+				{
+					var wms:WMSLayer = new WMSLayer();
+					wms.url =  data.@url.toString();
+					var strValue:String = data.@visiblelayers;
+					var visibleLayers:Array = strValue.split(",");
+					wms.visibleLayers = new ArrayCollection(visibleLayers);
+					return wms;
+				}
+				else if(data.@type == "wmts")
+				{
+					var wmtsLayer:WMTSLayer = new WMTSLayer();
+//					wmtsLayer.userName = configData.userName;
+//					wmtsLayer.password = configData.passWord;
+					wmtsLayer.url = data.@url; 
+					
+					return wmtsLayer;
+				}
+				return null;
+			}
+			private function wTemplate_closeHandler(event:Event):void
+			{
+				this.uninitializeMainMap();
+				this.uninitializeAttachedMap();
+				_postprocessorWidgetID != -1 ? AppEvent.dispatch(AppEvent.WIDGET_CLOSE, _postprocessorWidgetID) : "";
+				
+			}
+			
+			private function wTemplate_openHandler(event:Event):void
+			{
+				_postprocessorWidgetID != -1 ? AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID) : "";
+				//初始化主地图的显示
+				this.initializeMainMap();
+				//初始化附属地图的显示
+				this.initializeAttachedMap();
+			}
+		]]>
+	</fx:Script>
+	<viewer:SplitWidgetTemplate id="wTemplate"
+								closed="wTemplate_closeHandler(event)"
+								open="wTemplate_openHandler(event)">
+		<mx:VDividedBox width="100%" height="100%">
+			<om:CheckBoxTree id="mainSetTree" width="100%" height="100%" 
+							 labelField="@name" checkField="@check" contentBackgroundAlpha="0"
+							 CheckChange="mainSetTree_CheckChangeHandler(event);"/>
+			<om:CheckBoxTree id="attachedSetTree" width="100%" height="100%" 
+							 labelField="@name" checkField="@check"  contentBackgroundAlpha="0"
+							 CheckChange="attachedSetTree_CheckChangeHandler(event);"/>
+		</mx:VDividedBox>
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

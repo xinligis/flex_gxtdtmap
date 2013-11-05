@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 搜索工具
+* @author hugy
+* @ver 1.0
+* @created 03-12-2012 10:00:46
+*/
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:esri="http://www.esri.com/2008/ags"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:viewer="com.esri.viewer.*" 
+					xmlns:sho="com.esri.viewer.components.sho.ui.*"
+					widgetConfigLoaded="onWidgetConfigLoaded()" >
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.utils.StringUtil;
+			
+			private const ICON_URL:String = "assets/images/searchTool/";
+			
+			/**
+			 * POI的查询类型
+			 **/
+			private const POITYPENUMBER:int = 0;
+			
+			private var _postprocessorWidgetID:Number = -1; //后处理功能WidgetID
+			
+			private function onWidgetConfigLoaded():void
+			{
+				if (configXML)
+				{
+					_postprocessorWidgetID = super.siblingWidgetId(String(configXML.processWidget));
+					//添加对widget打开状态的监听
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+				}
+			}
+			
+			/**
+			 * 功能：处理Widget加载并打开之后，向该widget发送要处理的数据
+			 */ 
+			private function onOpenedPostprocessor(event:AppEvent):void
+			{
+				//判断widget状态是否为打开，并且widgetID一致
+				if(event.data.state as String == WidgetStates.WIDGET_OPENED && _postprocessorWidgetID == event.data.id as Number)
+				{
+					var data:Object = new Object();
+					data.postprocessor = _postprocessorWidgetID;
+					data.queryType = POITYPENUMBER;
+					data.queryName = StringUtil.trim(nameCompletionInput.text);	//查询关键字
+					AppEvent.dispatch(AppEvent.POST_PROCESS, data);
+				}
+			}
+			
+			protected function searchToolImage_click():void
+			{
+				if(nameCompletionInput.text == "")
+				{
+					mx.controls.Alert.show("查询名称不能为空！","提示");
+					return;
+				}
+				//打开实际处理的Widget
+				AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+			}
+		]]>
+	</fx:Script>
+	<s:HGroup>
+		<s:Image source="{ICON_URL + 'searchZoom.png'}"/>
+		<sho:CompletionInput id="nameCompletionInput"  top="1" right="10"  paddingTop="0" height="35" 
+							 fontSize="18" fontFamily="微软雅黑" width="415" contentBackgroundAlpha="1"
+							 skinClass="com.esri.viewer.skins.RadiusTextInputSkin"
+							 contentBackgroundColor="#ffffff" borderVisible="false" enter="searchToolImage_click()" 
+							 focusColor="#ffffff" keepLocalHistory="false"/> 
+		<mx:Button id= "searchToolImage"
+				   click="searchToolImage_click()"
+				   skin="@Embed('assets/images/searchTool/searchNormal.png')"
+				   overSkin="@Embed('assets/images/searchTool/searchPress.png')" />
+	</s:HGroup>
+</viewer:BaseWidget>

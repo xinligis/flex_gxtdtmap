@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+
+    ADOBE SYSTEMS INCORPORATED
+    Copyright 2008 Adobe Systems Incorporated
+    All Rights Reserved.
+    
+    NOTICE: Adobe permits you to use, modify, and distribute this file
+    in accordance with the terms of the license agreement accompanying it.
+
+-->
+
+<!--- The default skin class for a Spark TitleWindow container.  
+
+     @see spark.skins.spark.TitleWindowCloseButtonSkin
+     @see spark.components.TitleWindow
+
+     @langversion 3.0
+     @playerversion Flash 10
+     @playerversion AIR 1.5
+     @productversion Flex 4
+-->
+<s:SparkSkin xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark" 
+    xmlns:fb="http://ns.adobe.com/flashbuilder/2009" blendMode="normal" mouseEnabled="false"
+    minWidth="10" minHeight="10" alpha.disabled="0.5" alpha.disabledWithControlBar="0.5">
+    
+    <fx:Metadata>
+        <![CDATA[ 
+        /** 
+         * @copy spark.skins.spark.ApplicationSkin#hostComponent
+         */
+        [HostComponent("com.esri.viewer.components.customTitleWindow.PopUpWindow")]
+        ]]>
+    </fx:Metadata> 
+    
+    <fx:Script fb:purpose="styling">
+        <![CDATA[
+			import mx.core.FlexVersion;
+			import mx.events.CloseEvent;
+		
+        
+        /**
+         * @private
+         */
+        override protected function initializationComplete():void
+        {
+            useChromeColor = false;
+            super.initializationComplete();
+        }
+        
+		]]>
+    </fx:Script>
+    <fx:Script>
+		<![CDATA[
+			[Bindable]
+			private var rollOverCloseButtonColor:uint = 0xb6b6b6;
+			[Bindable]
+			private var rollOutCloseButtonColor:uint = 0xf89a08;
+			
+			protected override function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void
+			{
+				super.updateDisplayList(unscaledWidth,unscaledHeight);
+				backgroundFill.color = uint(hostComponent.getStyle('backgroundColor'));
+			}
+		]]>
+	</fx:Script>
+    <s:states>
+        <s:State name="normal" />
+        <s:State name="inactive" stateGroups="inactiveGroup" />
+        <s:State name="disabled" />
+        <s:State name="normalWithControlBar" stateGroups="withControls" />
+        <s:State name="inactiveWithControlBar" stateGroups="withControls, inactiveGroup" />
+        <s:State name="disabledWithControlBar" stateGroups="withControls" />
+    </s:states>
+    
+    <!--- drop shadow can't be hittable so it stays sibling of other graphics @private-->
+    <!--<s:RectangularDropShadow id="dropShadow" blurX="4" alpha="0.32" blurY="0"
+                             distance="4"
+                             angle="90" color="0x000000" left="5" top="0" right="-5" bottom="0"/>-->
+    
+    <!--- drop shadow can't be hittable so all other graphics go in this group -->
+	
+    <s:Group left="0" right="0" top="0" bottom="0">
+        
+        <!-- layer 2: background fill -->
+        <!--- Defines the appearance of the TitleWindowSkin class's background. -->
+		<s:Rect left="2" top="2" right="-2" bottom="-2" radiusX="3" radiusY="3">
+			<s:fill>
+				<s:SolidColor color="#d5d5d5"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect left="1" top="1" right="-1" bottom="-1" radiusX="3" radiusY="3">
+			<s:fill>
+				<s:SolidColor color="#f9f9f9"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect left="0" top="0" right="0" bottom="0" radiusX="3" radiusY="3">
+			<s:fill>
+				<s:SolidColor color="#ffffff"/>
+			</s:fill>
+		</s:Rect>
+        <s:Rect id="background" left="1" top="1" right="1" bottom="1" radiusX="3" radiusY="3">
+            <s:fill>
+                <s:SolidColor id="backgroundFill" color="0xf7f7f7"/>
+            </s:fill>
+        </s:Rect>
+        
+        <!-- layer 3: contents -->
+        <!--- Contains the vertical stack of title bar content and control bar. -->
+        <s:Group left="1" right="1" top="1" bottom="1" id="contents">
+            <s:layout>
+                <s:VerticalLayout gap="0" horizontalAlign="justify" />
+            </s:layout>
+            <!--- @private -->
+            
+            <!--
+                Note: setting the minimum size to 0 here so that changes to the host component's
+                size will not be thwarted by this skin part's minimum size.   This is a compromise,
+                more about it here: http://bugs.adobe.com/jira/browse/SDK-21143
+            -->
+            <!--- @copy spark.components.SkinnableContainer#contentGroup -->
+            <s:Group id="contentGroup" width="100%" height="100%" minWidth="0" minHeight="0">
+            </s:Group>
+        </s:Group>
+    </s:Group>
+	<!--关闭按钮-->
+	<s:Group width="22" height="22" top="-11" right="-11" buttonMode="true" 
+			 rollOver="{closeButtonBorderColor.color = rollOverCloseButtonColor}"
+			 rollOut="{closeButtonBorderColor.color = rollOutCloseButtonColor}"
+			 click="{hostComponent.dispatchEvent(new CloseEvent(CloseEvent.CLOSE))}"
+			 visible="{hostComponent.getStyle('closeButtonVisible')}" includeInLayout="{hostComponent.getStyle('closeButtonVisible')}">
+		<s:Ellipse width="22" height="22" verticalCenter="0" horizontalCenter="0">
+			<s:stroke>
+				<s:SolidColorStroke color="{rollOutCloseButtonColor}" weight="2" id="closeButtonBorderColor"/>
+			</s:stroke>
+			<s:fill>
+				<s:SolidColor color="0xf2f2f2"/>
+			</s:fill>
+		</s:Ellipse>
+		<s:Line x="11" y="5" yTo="12" rotation="45" top="6" left="6">
+			<s:stroke>
+				<s:SolidColorStroke color="0xff8400" weight="2"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line x="11" y="5" yTo="12" rotation="-45" top="6" left="6">
+			<s:stroke>
+				<s:SolidColorStroke color="0xff8400" weight="2"/>
+			</s:stroke>
+		</s:Line>
+	</s:Group>
+</s:SparkSkin>

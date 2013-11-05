@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customTitleWindow:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+							   xmlns:s="library://ns.adobe.com/flex/spark" 
+							   xmlns:mx="library://ns.adobe.com/flex/mx" 
+							   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*" 
+							   width="520" height="280" 
+							   creationComplete="popupwindow1_creationCompleteHandler(event)" 
+							   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.UrlConstructor;
+			
+			import flash.net.navigateToURL;
+			
+			import mx.events.FlexEvent;
+			
+			private var _configXML:XML;
+			
+			/**
+			 * 下载地址
+			 **/
+			private var _downloadPath:String = "";
+			
+			public function set configXML(value:XML):void
+			{
+				_configXML = value;
+			}
+			
+			
+			protected function downLoadButton_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			protected function popupwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setInfo();
+			}
+			
+			private function setInfo():void
+			{
+				typeLabel.text = "类型：" + String(_configXML.type);
+				updateTimeLabel.text = "更新：" + String(_configXML.update);
+				versionLabel.text = "版本：" + String(_configXML.version);
+				sizeLabel.text = "大小：" + String(_configXML.size);
+				langLabel.text = "语言：" + String(_configXML.lang);
+				devLabel.text = "开发商：" + String(_configXML.dev);
+				_downloadPath = UrlConstructor.getUrl(String(_configXML.download));
+			}
+			
+			
+			protected function clickbutton1_clickHandler(event:MouseEvent):void
+			{
+				var request:URLRequest = new URLRequest(_downloadPath);
+				navigateToURL(request,"_blank");
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<customTitleWindow:layout>
+		<s:VerticalLayout paddingTop="15" paddingBottom="0" paddingLeft="20" paddingRight="15" gap="0"/>
+	</customTitleWindow:layout>
+	<s:Label verticalAlign="middle" text="重庆通" color="0x4a535f" fontSize="24" fontFamily="微软雅黑"/>
+	<s:Spacer height="10"/>
+	<s:Line width="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="0xdddddd"/>
+		</s:stroke>
+	</s:Line>
+	<s:Line width="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="0xffffff"/>
+		</s:stroke>
+	</s:Line>
+	<s:Spacer height="5"/>
+	<s:HGroup width="100%">
+		<s:BitmapImage width="193" height="219" source="@Embed('assets/images/titlemenu/cqtong.png')"/>
+		<s:VGroup width="270" height="100%" color="0x45535f" fontSize="12" fontFamily="宋体" gap="0">
+			<s:VGroup paddingTop="10" paddingLeft="15">
+				<s:Label text="类别" id="typeLabel"/>
+				<s:Label id="updateTimeLabel"/>
+				<s:Label id="versionLabel"/>
+				<s:Label id="sizeLabel"/>
+				<s:Label id="langLabel"/>
+				<s:Label id="devLabel" width="250" height="30"/>
+				<customskinbutton:ClickButton overImage="@Embed('assets/images/titlemenu/download_over.png')"
+											  normalImage="@Embed('assets/images/titlemenu/download_normal.png')"
+											  click="clickbutton1_clickHandler(event)"/>
+			</s:VGroup>
+		</s:VGroup>
+	</s:HGroup>
+</customTitleWindow:PopUpWindow>

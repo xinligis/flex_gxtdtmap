@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+			xmlns:esri="http://www.esri.com/2008/ags"
+			xmlns:s="library://ns.adobe.com/flex/spark"
+			xmlns:mx="library://ns.adobe.com/flex/mx"
+			xmlns:viewer="com.esri.viewer.*"
+			xmlns:tools="com.esri.viewer.components.tools.*"
+			widgetConfigLoaded	="init()" xmlns:ui="widgets.ToolBar.ui.*" 
+			visible="false">
+	
+	<fx:Declarations>
+		<s:Fade duration="1000" alphaFrom="0" alphaTo="1" id="showFade" target="{this}"/>
+		<s:Fade duration="1000" alphaFrom="1" alphaTo="0" id="hideFade" target="{this}" effectEnd="hideFade_effectEndHandler(event)"/>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.events.MapEvent;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ModuleEvent;
+			import mx.modules.IModuleInfo;
+			import mx.modules.ModuleManager;
+			
+			import spark.events.RendererExistenceEvent;
+			
+			import widgets.ToolBar.Tools.ITool;
+			import widgets.ToolBar.ui.ToolBarItem;
+			import widgets.ToolBar.ui.ToolBarItemRanderer;
+			
+			/**
+			 * 工具、命令项导入类。温杨彪；2012年11月19日
+			 **/
+			private var _toolCmdImporter:ToolCommandImporter = new ToolCommandImporter();
+			
+			/**
+			 * 当前激活的工具
+			 **/
+			private var _currentTool:ITool=null;
+			
+			/**
+			 * 绑定显示的工具或者命令集合
+			 **/
+			[Bindable]
+			private var _itemsAC:ArrayCollection;
+			
+			/**
+			 * 工具条上所有工具和命令共享的graphicsLayer
+			 **/
+			private var _graphicslayer:GraphicsLayer=new GraphicsLayer();
+			
+			private var _currentCursorId:int;
+			
+			/**
+			 * 一共有多少个工具和命令
+			 **/
+			private var _totalLength:int = 0;
+			
+			/**
+			 * 是否加载完所有工具和命令
+			 **/
+			private var _loadAllItemCompelete:Boolean = false;
+			
+			private var _loadedCount:int = 0;
+			
+			private function map_loadEvent(event:MapEvent):void
+			{
+				map.addLayer(_graphicslayer);
+				map.removeEventListener(MapEvent.LOAD,map_loadEvent);
+				initItems();
+			}
+			
+			private function init():void
+			{
+				if(map.loaded == false)
+				{
+					map.addEventListener(MapEvent.LOAD,map_loadEvent);
+				}
+				else
+				{
+					map.addLayer(_graphicslayer);
+					initItems();
+				}
+				
+				
+//				visibleHandler(true);
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widget_stateChangeHandler);
+				AppEvent.addListener(AppEvent.POST_PROCESS,post_processHandler);
+				
+			}
+			
+			/**
+			 * 初始化工具栏中的工具项
+			 **/
+			private function initItems():void
+			{
+				var items:XMLList=configXML.children();
+				var length:int=items.length();
+				_itemsAC=new ArrayCollection();
+				//读取配置文件中配置的工具和命令
+				for(var i:int=0;i<length;i++)
+				{
+					var item:XML=items[i];
+					var uiItem:ToolBarItem=new ToolBarItem();
+					uiItem.tooltip=String(item.@tooltip);
+					uiItem.icon=String(item.@icon);
+					uiItem.label=String(item.@label);
+					uiItem.configData = configData;
+					
+					if(String(item.@spacer)=="true")
+					{
+						uiItem.spacer=true;
+					}
+					else
+					{
+						uiItem.spacer=false;
+					}
+					
+					//单项
+					if(item.name()=="item")
+					{
+						uiItem.isGroup=false;
+						uiItem.type=String(item.@type);
+						uiItem.classpath=String(item.@classpath);
+						uiItem.map=map;
+						uiItem.graphicsLayer=_graphicslayer;
+						uiItem.config=String(item.@config);
+						_totalLength++;
+					}
+						//组
+					else if(item.name()=="itemgroup")
+					{
+						uiItem.items=new ArrayCollection();
+						uiItem.isGroup=true;
+						
+						var tmpitems:XMLList=item.children();
+						var tmpLength:int=tmpitems.length();
+						for(var j:int=0;j<tmpLength;j++)
+						{
+							var tmpuiItem:ToolBarItem=new ToolBarItem();
+							var tmpItem:XML=tmpitems[j];
+							tmpuiItem.icon=String(tmpItem.@icon);
+							tmpuiItem.isGroup=false;
+							tmpuiItem.label=String(tmpItem.@label);
+							tmpuiItem.classpath=String(tmpItem.@classpath);
+							tmpuiItem.type=String(tmpItem.@type);
+							tmpuiItem.map=map;
+							tmpuiItem.graphicsLayer=_graphicslayer;
+							tmpuiItem.config=String(tmpItem.@config);
+							tmpuiItem.tooltip=String(tmpItem.@tooltip);
+							tmpuiItem.configData=configData;
+							uiItem.items.addItem(tmpuiItem);
+							_totalLength++;
+						}
+					}
+					_itemsAC.addItem(uiItem);
+				}
+			}
+			
+			protected function post_processHandler(event:AppEvent):void
+			{
+//				trace("post_process");
+				if(event.data != null && event.data.data != null && String(event.data.data) == "releaseTool")
+				{
+					if(_currentTool !=null && _currentTool.activated)
+					{
+						_currentTool.deactivate();
+						_currentTool = null;
+					}
+				}
+			}
+
+			
+			protected function widget_stateChangeHandler(event:AppEvent):void
+			{
+				if(event.data.id == widgetId)
+				{
+					if(event.data.state == "open")
+					{
+						if(_loadAllItemCompelete == true)
+						{
+							visibleHandler(true);
+						}
+					}
+					else
+					{
+						visibleHandler(false);
+					}
+				}
+			}
+			
+			protected function toolbardatagroup1_ToolActiveHandler(event:Event):void
+			{
+				var item:ToolBarItemRanderer=event.target as ToolBarItemRanderer;
+				
+				//释放原来的Tool。保证工具条上只有一个Tool处于激活状态
+				if(_currentTool!=null&&_currentTool!=item.tool)
+				{
+					_currentTool.deactivate();
+				}
+				_currentTool=item.tool;
+				
+				//向其他widget发送消息，告诉现在toolbar激活了工具
+				AppEvent.dispatch(AppEvent.POST_PROCESS,{data:"toolActive"});
+			}
+
+
+			protected function toolbardatagroup1_ToolDeactiveHandler(event:Event):void
+			{
+				var item:ToolBarItemRanderer=event.target as ToolBarItemRanderer;
+				if(_currentTool==item.tool)
+				{
+					_currentTool=null;
+				}
+			}
+
+
+			protected function toolbardatagroup1_CommandExcuteHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+			}
+
+
+			protected function toolbardatagroup1_RunWidgetCommandHandler(event:RunWidegtEvent):void
+			{
+				runWidget(event.widgetUrl,event.data,event.callback);
+			}
+			
+		
+			/**
+			 * 运行向viewer框架发送run widget消息
+			 **/
+			private function runWidget(url:String,data:Object=null,callback:Function=null):void
+			{
+				for each(var widget:Object in configData.widgets)
+				{
+					if(widget.url == url)
+					{
+						AppEvent.dispatch(AppEvent.WIDGET_CHANGE_STATE,{widgetId:widget.id,state:"open",data:data});
+						break;
+					}
+				}
+			}
+			
+			private function postProcess(type:String,data:Object):void
+			{
+				AppEvent.dispatch(AppEvent.POST_PROCESS,{type:type,data:data});
+			}
+			
+			private var _url2ItemTable:Hashtable=new Hashtable();
+			
+			private function Toolbar_rendererAddHandler(event:RendererExistenceEvent):void
+			{
+				if(event.renderer is ToolBarItemRanderer)
+				{
+					_url2ItemTable.add(event.data.classpath,event.renderer);
+				}
+			}
+			
+			protected function toolbardatagroup1_ExcuteEventHandler(event:ExcuteEvent):void
+			{
+				var item:ToolBarItemRanderer=_url2ItemTable.find(event.classpath) as ToolBarItemRanderer;
+				if(item!=null)
+				{
+					if(item.tool!=null)
+					{
+						item.tool.activate(event.params);
+					}
+					else if(item.command!=null)
+					{
+						item.command.excute(event.params);
+					}
+				}
+			}
+			
+			protected function toolbardatagroup1_SendPostProcessHandler(event:PostProcessEvent):void
+			{
+				postProcess(event.messageType,event.data);
+			}
+			
+			/**
+			 * 控制工具栏的可见性
+			 * @author 温杨彪；2012-3-20
+			 * @param flag 可见性
+			 **/
+			private function visibleHandler(flag:Boolean):void
+			{
+				if(_loadAllItemCompelete == false)
+				{
+					return;
+				}
+				if(flag ==true)
+				{
+					if(hideFade.isPlaying)
+					{
+						hideFade.stop();
+					}
+					this.visible = true;
+					showFade.play();
+				}
+				else
+				{
+					if(showFade.isPlaying)
+					{
+						showFade.stop();
+					}
+					hideFade.play();
+				}
+			}
+			
+			protected function toolbardatagroup1_toolCommandLoadCompeleteHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				_loadedCount++;
+				if(_loadedCount == _totalLength)
+				{
+					_loadAllItemCompelete = true;
+					visibleHandler(true);
+				}
+			}
+			
+			protected function showFade_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			protected function hideFade_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.visible = false;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group>
+		<s:Rect top="0" left="-8" width="8" height="36">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/toolbar/bgleft.png')"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect top="0" right="-8" width="8" height="36">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/toolbar/bgright.png')"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect top="0" left="0" right="0" height="36">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/toolbar/bg.png')" fillMode="repeat"/>
+			</s:fill>
+		</s:Rect>
+		<ui:ToolbarDataGroup dataProvider="{_itemsAC}" verticalCenter="0"
+							 ToolActive="toolbardatagroup1_ToolActiveHandler(event)" 
+							 ToolDeactive="toolbardatagroup1_ToolDeactiveHandler(event)" 
+							 CommandExcute="toolbardatagroup1_CommandExcuteHandler(event)"
+							 RunWidgetCommand="toolbardatagroup1_RunWidgetCommandHandler(event)"
+							 focusEnabled="false" rendererAdd="Toolbar_rendererAddHandler(event)"
+							 ExcuteEvent="toolbardatagroup1_ExcuteEventHandler(event)"
+							 SendPostProcess="toolbardatagroup1_SendPostProcessHandler(event)"
+							 toolCommandLoadCompelete="toolbardatagroup1_toolCommandLoadCompeleteHandler(event)">
+			<ui:layout>
+				<s:HorizontalLayout gap="0"/>
+			</ui:layout>
+		</ui:ToolbarDataGroup>
+	</s:Group>
+</viewer:BaseWidget>

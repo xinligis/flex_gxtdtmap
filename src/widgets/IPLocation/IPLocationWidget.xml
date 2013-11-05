@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<cityDivision>
+		<url>http://www.tianditucq.com/RemoteRest/services/PAC/MapServer/0</url>
+		<districtmatch>PAC = '[value]'</districtmatch>
+		<fullnamefield>FullName</fullnamefield>
+	</cityDivision>
+<!-- 	<remoteobject destination="digitalMapDestination" getpac="RemoteInvoke"/> -->
+	<remotefunction>IPLocationFacade.getPAC</remotefunction>
+	<zoomregion xmin="105.36724546700007" ymin="28.25111036060008" xmax="110.09844935100007" ymax="32.12748696140005"/>
+	<debug>false</debug>
+</configuration>

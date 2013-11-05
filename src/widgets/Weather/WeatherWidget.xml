@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<cities>
+		<!-- 格式说明：[cityid 天气信息服务中对城市的标识] [name 显示的城市名称] [pac城市的行政编码和行政边界服务对应]-->
+		<city cityid="101040100" name="重庆" pac="500100"/>
+		<city cityid="101040200" name="永川" pac="500383"/>
+		<city cityid="101040300" name="合川" pac="500382"/>
+		<city cityid="101040400" name="南川" pac="500384"/>
+		<city cityid="101040500" name="江津" pac="500381"/>
+		<city cityid="101040600" name="万盛" pac="500110"/> 
+		<city cityid="101040700" name="渝北" pac="500112"/> 
+		<city cityid="101040800" name="北碚" pac="500109"/> 
+		<city cityid="101040900" name="巴南" pac="500113"/>
+		<city cityid="101041000" name="长寿"  pac="500115"/>
+		<city cityid="101041100" name="黔江" pac="500114"/>
+		<city cityid="101041200" name="万州" pac="500101"/>
+<!-- 		<city cityid="101041300" name="万州龙宝" pac="500100"/> -->
+		<city cityid="101041400" name="涪陵" pac="500102"/>
+		<city cityid="101041500" name="开县" pac="500234"/> 
+		<city cityid="101041600" name="城口" pac="500229"/> 
+		<city cityid="101041700" name="云阳" pac="500235"/> 
+		<city cityid="101041800" name="巫溪" pac="500238"/>
+		<city cityid="101041900" name="奉节"  pac="500236"/>
+		<city cityid="101042000" name="巫山"  pac="500237"/>
+		<city cityid="101042100" name="潼南" pac="500223"/>
+		<city cityid="101042200" name="垫江" pac="500231"/>
+		<city cityid="101042300" name="梁平" pac="500228"/>
+		<city cityid="101042400" name="忠县" pac="500233"/>
+		<city cityid="101042500" name="石柱" pac="500240"/> 
+		<city cityid="101042600" name="大足" pac="500225"/> 
+		<city cityid="101042700" name="荣昌" pac="500226"/> 
+		<city cityid="101042800" name="铜梁" pac="500224"/>
+		<city cityid="101042900" name="璧山"  pac="500227"/>
+		<city cityid="101043000" name="丰都"  pac="500230"/>
+		<city cityid="101043100" name="武隆" pac="500232"/>
+		<city cityid="101043200" name="彭水" pac="500243"/>
+		<city cityid="101043300" name="綦江" pac="500222"/>
+		<city cityid="101043400" name="酉阳" pac="500242"/>
+<!-- 		<city cityid="101043500" name="金佛山" pac="500241"/>  -->
+		<city cityid="101043600" name="秀山" pac="500241"/> 
+		<city cityid="101043700" name="沙坪坝" pac="500106"/> 
+	</cities>
+	<cityNameField>PAC</cityNameField>
+	<outFields> 
+		<field>OBJECTID</field>
+		<field>NAME</field>
+		<field>PAC</field>
+	</outFields>
+	<cityServiceUrl>http://124.205.245.98:8181/OneMapServer/rest/services/CQWeatherGraph10/MapServer/0</cityServiceUrl>
+	<info>widgets/Weather/WeatherInfoWidget.swf</info>
+	<infoConfig>widgets/Weather/WeatherInfoWidget.xml</infoConfig>
+</configuration>

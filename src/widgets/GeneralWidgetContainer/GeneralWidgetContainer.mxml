@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// 通用的WidgetContainer类
+// Copyright (c) 2012-2013 Esri China. All Rights Reserved.
+// 王红亮，2012-01-12
+///////////////////////////////////////////////////////////////////////////
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+					  xmlns:s="library://ns.adobe.com/flex/spark"
+					  xmlns:mx="library://ns.adobe.com/flex/mx"
+					  width="100%" height="100%"
+					  creationComplete="init()"
+					  elementAdd="widgetAddedHandler(event)"
+					  elementRemove="widgetRemovedHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.core.IVisualElement;
+			import mx.events.FlexEvent;
+			
+			import spark.events.ElementExistenceEvent;
+			
+			private var isDraggable:Boolean = true;
+			private var isResizeable:Boolean = true;
+			
+			
+			private function init():void
+			{
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, widgetClosedHandler);
+			}
+			
+			private var elmToAdd:IVisualElement = null;
+				
+			public function addWidget(value:IBaseWidget):void
+			{
+				const visualElement:IVisualElement = value as IVisualElement;
+				if(visualElement == null)
+				{
+					return;
+				}
+				var id:int = containWidget(visualElement);
+				if (id < 0)
+				{
+					addElement(visualElement);
+					AppEvent.dispatch(AppEvent.WIDGET_ADDED, visualElement);
+				}
+				
+			}
+
+			private function widgetClosedHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				
+				if (data.state as String == WidgetStates.WIDGET_CLOSED)
+				{
+					var curId:Number = data.id as Number;
+					removeWidget(curId);
+				}
+			}
+			
+			private function removeWidget(widgetId:Number):void
+			{
+				var widget:IVisualElement;
+				for (var i:int = 0; i < this.numElements; i++)
+				{
+					widget = this.getElementAt(i);
+			
+					var baseWidget:IBaseWidget = widget as IBaseWidget;
+					if (baseWidget.widgetId == widgetId)
+					{
+						this.removeElement(widget);					
+						return;
+					}
+				}
+			}
+			/**
+			 * 容器中是否已经存在某个widget
+			 * 王红亮，2012-01-04
+			 * @return 存在，widget的id；否则，-1
+			 */
+			private function containWidget(element:IVisualElement):int
+			{
+				var baseElm:IBaseWidget = element as IBaseWidget;
+				var id:int = baseElm.widgetId;
+				var widget:IVisualElement;
+				for (var i:int = 0; i < this.numChildren; i++)
+				{
+					widget = this.getElementAt(i);
+					var baseWidget:IBaseWidget = widget as IBaseWidget;
+					if (baseWidget.widgetId == id)
+					{
+						return id;
+					}
+				}
+				
+				return -1;
+			}
+			
+			public function set config(value:Object):void
+			{
+				
+				
+			}
+				
+			public function set focusWidget(id:Number):void
+			{
+				
+			}
+			
+			
+			
+			//========================================================
+			// Setting Layout
+			//========================================================
+			//layout
+			/*TODO: only when there is widget opened the position controller shows up
+			*/
+			private var _widgetLayout:String;
+			
+			private function isConstrainedLayout():Boolean
+			{
+				return widgetlayout == "attached";
+			}
+			
+			public function get widgetlayout():String
+			{
+				return _widgetLayout;
+			}
+			
+			private function setWidgetLayout(layout:String):void
+			{
+				if (_widgetLayout != layout)
+				{
+					_widgetLayout = layout;
+				}
+			}
+			
+			private function widgetAddedHandler(event:ElementExistenceEvent):void
+			{
+				AppEvent.dispatch(AppEvent.WIDGET_ADDED, event.element);
+			}
+
+			private function widgetRemovedHandler(event:ElementExistenceEvent):void
+			{
+				if(this.numElements == 1)
+				{
+					dispatchEvent(new Event("isEmpty"));
+				}
+			}
+		]]>
+	</fx:Script>
+</s:Group>

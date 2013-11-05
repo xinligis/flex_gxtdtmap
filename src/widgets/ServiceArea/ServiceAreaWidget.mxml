@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   x="600" y="300"
+				   layout="absolute"
+				   widgetConfigLoaded="init()"
+				   initialize="basewidget1_initializeHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<esri:SimpleFillSymbol id="rFill" alpha="0.5" color="0xFF0000"/>
+		<esri:SimpleFillSymbol id="gFill" alpha="0.5" color="0xFF7800"/>
+		<esri:SimpleFillSymbol id="bFill" alpha="0.5" color="0xC8FF00"/>
+		<esri:ServiceAreaTask id="saTask"
+							  concurrency="last"								  
+							  requestTimeout="30"
+							  showBusyCursor="true"/>
+		
+		<esri:ServiceAreaParameters id="saParams"
+									defaultBreaks="{[3]}"
+									outSpatialReference="{map.spatialReference}"
+									returnFacilities="false"/>
+		
+		
+		<esri:UniqueValueRenderer id="uniqueValueRenderer" field="ToBreak">
+			<esri:UniqueValueInfo symbol="{rFill}" value="1"/>
+			<esri:UniqueValueInfo symbol="{gFill}" value="2"/>
+			<esri:UniqueValueInfo symbol="{bFill}" value="3"/>
+		</esri:UniqueValueRenderer>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.SpatialReference;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.events.GraphicEvent;
+			import com.esri.ags.events.ServiceAreaEvent;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.renderers.UniqueValueRenderer;
+			import com.esri.ags.renderers.supportClasses.UniqueValueInfo;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.tasks.supportClasses.AddressCandidate;
+			import com.esri.ags.tasks.supportClasses.DataFile;
+			import com.esri.ags.tasks.supportClasses.ExecuteResult;
+			import com.esri.ags.tasks.supportClasses.ParameterValue;
+			import com.esri.ags.tasks.supportClasses.ServiceAreaSolveResult;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.utils.GraphicUtil;
+			import com.esri.serialization.json.*;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.skins.WidgetButtonSkin;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.collections.*;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.Fault;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			//labels
+			[Bindable]
+			private var serviceareaLabel:String;
+			
+			[Bindable]
+			private var locationLabel:String;
+			
+			[Bindable]
+			private var addlocationLabel:String;
+			
+			[Bindable]
+			private var previouslocationLabel:String;
+			
+			[Bindable]
+			private var intervalLabel:String;
+			
+			[Bindable]
+			private var submitLabel:String;
+			
+			[Bindable]
+			private var clearLabel:String;
+			
+			private var loadingLabel:String;
+			
+			[Bindable]
+			private var msgVisible:Boolean = false;
+			
+			private var graphicsLayer:GraphicsLayer = new GraphicsLayer();
+			
+			private var addrFields:Array;
+			
+			private var locPoint:MapPoint;
+			
+			private var outlineSym:SimpleLineSymbol = new SimpleLineSymbol("solid", 0xFFFFFF, 1, 2);
+			
+//			private var locSym:SimpleMarkerSymbol = new SimpleMarkerSymbol("circle", 12, 0x08C308, 1,0,0,0, outlineSym);
+			
+			private var locSym:PictureMarkerSymbol = new PictureMarkerSymbol("assets/images/startPt.png",33,39,5,10);
+			
+//			private var fillSym1:SimpleFillSymbol = new SimpleFillSymbol("solid", 0xFF0000, 0.5);
+//			
+//			private var fillSym2:SimpleFillSymbol = new SimpleFillSymbol("solid", 0xFF7800, 0.5);
+//			
+//			private var fillSym3:SimpleFillSymbol = new SimpleFillSymbol("solid", 0xC8FF00, 0.5);
+			
+			private var sharedwidgets:String;	
+			
+			[Bindable]
+			private var sharedLocations:Array = [];		
+			
+			private const ICON_URL:String = "assets/images/";
+			
+			private function init():void
+			{
+				graphicsLayer.addEventListener(GraphicEvent.GRAPHIC_ADD,function(event:com.esri.ags.events.GraphicEvent):void
+				{
+				});
+				//edited by wanghl, 2010-10-11
+				graphicsLayer.renderer = uniqueValueRenderer;
+				map.addLayer(graphicsLayer);
+				if (configXML)
+				{
+					serviceareaLabel = configXML.labels.servicearealabel || "输入点";
+					intervalLabel = configXML.labels.intervallabel || "驾驶时间(分):";
+					submitLabel = configXML.labels.submitlabel || "显示服务区";
+					clearLabel = configXML.labels.clearlabel || "清 除";
+					loadingLabel = configXML.labels.loadinglabel || "加载中...";
+					
+					saTask.url = configXML.serviceareaservice;
+					
+//					locSym = new PictureMarkerSymbol(configXML.startSymbol,
+					//serviceAreaService.url = configXML.serviceareaservice;
+				}
+				
+			}			
+			
+			
+			
+			private function activateTool():void
+			{
+				var status:String = addlocationLabel;
+				setMapAction(DrawTool.MAPPOINT, status, null, locationClick);	
+			}			
+			
+			private function locationClick(event:DrawEvent):void
+			{
+				// deactivate the draw tool
+				event.target.deactivate();
+				//让输入点按钮处于弹起状态；温杨彪；2011/7/26
+				getPointbtn.selected=false;
+				var geom:Geometry = event.graphic.geometry;
+				var pt:MapPoint = geom as MapPoint;
+				locPoint = pt;
+				updateGraphics();
+			}			
+			
+			private function updateGraphics():void
+			{
+				graphicsLayer.clear();
+				if (locPoint)
+				{
+					var locGra:com.esri.ags.Graphic = new com.esri.ags.Graphic(locPoint, locSym);
+					graphicsLayer.add(locGra);
+				}
+			}			
+			
+			
+			private function locateError(info:Object, token:Object = null):void
+			{
+				showMessage(info.toString(), false);	
+			}			        
+			
+			private function getServiceArea():void
+			{
+				
+				computeServiceArea();
+				
+			}        	
+			
+			private function computeServiceArea():void
+			{
+				
+				
+				if (locPoint)
+				{
+					var graphic:com.esri.ags.Graphic = new com.esri.ags.Graphic(locPoint, locSym);
+					var featureSet:FeatureSet = new FeatureSet([graphic]);
+					var driveTimes:String = "";
+					//改变符号的分段值,added by wanghl, 2010-10-13
+					var breakInfos:Array = UniqueValueRenderer(graphicsLayer.renderer).infos;
+					var indexInfo:int = 0;
+					
+					if (numTime1.value > 0) 
+					{
+						driveTimes += numTime1.value.toString();
+						UniqueValueInfo(breakInfos[indexInfo++]).value = numTime1.value.toString();
+					}
+					if (numTime2.value > 0)
+					{
+						if(driveTimes.length)
+							driveTimes += ",";
+						driveTimes +=  numTime2.value.toString();
+						UniqueValueInfo(breakInfos[indexInfo++]).value = numTime2.value.toString();
+					}
+					if (numTime3.value > 0)
+					{
+						if(driveTimes.length)
+							driveTimes += ",";
+						driveTimes +=  numTime3.value.toString();
+						UniqueValueInfo(breakInfos[indexInfo++]).value = numTime3.value.toString();			
+					}
+					if (driveTimes.length)
+					{
+						saParams.facilities = featureSet;
+						saParams.defaultBreaks = driveTimes.split(",");
+						saTask.addEventListener(ServiceAreaEvent.SOLVE_COMPLETE,onResult);
+						saTask.addEventListener(FaultEvent.FAULT,onFault);
+						saTask.solve(saParams);
+						showMessage("分析中...", true);
+					}
+				}
+			}    
+			
+			
+			private function onResult(gpResult:ServiceAreaEvent, token:Object = null):void
+			{
+				//updateGraphics();
+				graphicsLayer.clear();
+				
+				for each(var gra:com.esri.ags.Graphic in gpResult.serviceAreaSolveResult.serviceAreaPolygons)
+				{
+					graphicsLayer.add(gra);
+				}
+				
+				map.extent = com.esri.ags.utils.GraphicUtil.getGraphicsExtent(gpResult.serviceAreaSolveResult.serviceAreaPolygons).expand(1.5);
+				
+				
+				var locGra:com.esri.ags.Graphic = new com.esri.ags.Graphic(locPoint, locSym);
+				graphicsLayer.add(locGra);
+			}
+			
+			private function onFault(info:Object, token:Object = null):void
+			{
+				showMessage(info.toString(), false);
+				trace(info.toString());
+			}
+			
+			//edited by wanghl, 2010-10-11
+			/*已经过时，而无法使用
+			private function fillFunc(g:Graphic):Symbol
+			{
+				var toBreak:Number = g.attributes.ToBreak;
+				if (toBreak == numTime1.value)
+				{
+					return rFill;
+				}
+				if (toBreak == numTime2.value)
+				{
+					return gFill;
+				}
+				return bFill;
+			}	        
+			*/
+			
+			private function clear():void
+			{
+				graphicsLayer.clear();
+				locPoint = null;
+				clearMessage();
+			}			
+			
+			private function showMessage(msg:String, swfVisible:Boolean):void
+			{
+				//txtMessage.text = msg;
+				//swfMessage.visible = swfVisible;
+				msgVisible = true;
+			}			
+			
+			private function clearMessage():void
+			{
+				msgVisible = false;
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				graphicsLayer.visible = false;
+				setMapNavigation(null, null);
+			}			
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				if(graphicsLayer)
+				{
+					graphicsLayer.visible = true;
+				}
+			}	
+			
+
+			/**
+			 * 用来记录选择点按钮的状态 normal为没有按下时的状态，down为按下状态
+			 * @author 温杨彪；2011/7/26
+			 **/
+			private var _getPointButtonFlag:String="normal";		
+
+
+			protected function getPoint_clickHandler(event:MouseEvent):void
+			{
+				if(getPointbtn.selected)
+					activateTool();
+				else
+					setMapNavigation("pan","移动地图");
+			}
+
+
+			protected function basewidget1_initializeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				AppEvent.addListener(AppEvent.POST_PROCESS, onPostprocess);
+			}
+			
+			private function onPostprocess(event:AppEvent):void
+			{
+				if(this.widgetId != event.data.postprocessor)
+				{
+					return;
+				}
+				//currentName = event.data.name;
+				if(event.data.graphic)
+				{
+					locPoint = event.data.graphic.geometry;
+					updateGraphics();
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+	<fx:Style>
+		@namespace esri "http://www.esri.com/2008/ags";
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace viewer "com.esri.viewer.*";
+		/*“选择位置”和“驾驶时间”样式;温杨彪;2011/7/25 */
+		.lblTextStyle
+		{
+			paddingLeft:15;
+			fontSize:13;
+			color:#535353;
+			fontWeight:"bold";
+			fontFamily:"宋体";
+		}
+		
+		/*两个说明的样式;温杨彪;2011/7/25 */
+		.descriptionTextStyle
+		{
+			fontFamily:"宋体";
+			fontSize:13;
+			color:#2c8fd8;
+		}
+		s|NumericStepper
+		{
+			text-align:center;
+		}
+		
+		/*输入点按钮的样式；温杨彪；2011/7/26*/
+		.getPointcbStyle
+		{
+			upIcon: Embed(source="assets/images/serviceArea/getPoint_normal.png");
+			overIcon: Embed(source="assets/images/serviceArea/getPoint_hover.png");
+			downIcon: Embed(source="assets/images/serviceArea/getPoint_down.png");
+			
+			selectedUpIcon: Embed(source="assets/images/serviceArea/getPoint_down.png");
+			selectedOverIcon: Embed(source="assets/images/serviceArea/getPoint_down.png");
+			selectedDownIcon:Embed(source="assets/images/serviceArea/getPoint_down.png");
+
+
+		}
+	</fx:Style>
+	<!--
+		
+	-->
+	
+						
+	<!-- 胡国营修改框架 20120208 -->
+	<viewer:SplitWidgetTemplate id="wTemplate" height="425" width="355" 
+						   closed="widgetClosedHandler(event)" open="widgetOpenedHandler(event)">
+		
+		<!--界面修改；温杨彪 2011/7/25-->
+		<s:BorderContainer borderVisible="true" borderStyle="solid" borderWeight="1" left="0" right="0" top="0" height="345" backgroundAlpha="0" borderColor="#e0edf5">
+			<s:layout>
+				<s:VerticalLayout />
+			</s:layout>
+			<mx:Image source="@Embed('assets/images/serviceArea/step.png')" width="100%" height="27"/>
+			<s:HGroup x="28" y="0" width="100%" height="75">
+				<s:HGroup paddingTop="15" paddingLeft="15">
+					<mx:Image source="@Embed('assets/images/serviceArea/flag.png')"/>
+				</s:HGroup>
+				<s:Label text="选择位置：" styleName="lblTextStyle" paddingTop="35"/>
+				<mx:CheckBox selected="false" styleName="getPointcbStyle" toolTip="输入点" click="getPoint_clickHandler(event)" id="getPointbtn" buttonMode="true" paddingTop="30"/>
+			</s:HGroup>
+			<s:HGroup width="100%" horizontalAlign="right">
+				<s:Label text="在地图上选定您所在的位置" styleName="descriptionTextStyle" paddingRight="10"/>
+			</s:HGroup>
+			<s:Graphic>
+				<s:Line width="305" left="2">
+					<s:stroke>
+						<s:SolidColorStroke color="#3185c0" weight="1"/>
+					</s:stroke>
+				</s:Line> 
+			</s:Graphic>
+			<s:HGroup width="100%" height="113">
+				<s:HGroup paddingTop="15" paddingLeft="15">
+					<mx:Image source="@Embed('assets/images/serviceArea/time.png')"/>
+				</s:HGroup>
+				<s:Label text="驾驶时间：" styleName="lblTextStyle" paddingTop="15"/>
+				<s:VGroup gap="10" paddingTop="15" paddingLeft="5">
+					<s:HGroup>
+						<s:NumericStepper width="70" minimum="0" maximum="60" value="1" id="numTime1"/>
+						<s:Label text="分钟" fontFamily="宋体" fontSize="13" color="#535353" paddingTop="7" paddingLeft="3"/>
+					</s:HGroup>
+					<s:HGroup>
+						<s:NumericStepper width="70" minimum="0" maximum="60" value="3" id="numTime2"/>
+						<s:Label text="分钟" fontFamily="宋体" fontSize="13" color="#535353" paddingTop="7" paddingLeft="3"/>
+					</s:HGroup>
+					<s:HGroup>
+						<s:NumericStepper width="70" minimum="0" maximum="60" value="5" id="numTime3"/>
+						<s:Label text="分钟" fontFamily="宋体" fontSize="13" color="#535353" paddingTop="7" paddingLeft="3"/>
+					</s:HGroup>
+				</s:VGroup>
+			</s:HGroup>
+			<s:HGroup width="100%" horizontalAlign="right">
+				<s:Label text="选择您想了解的时间范围" styleName="descriptionTextStyle" paddingRight="10"/>
+			</s:HGroup>
+			<s:Graphic>
+				<s:Line width="305" left="2">
+					<s:stroke>
+						<s:SolidColorStroke color="#3185c0" weight="1"/>
+					</s:stroke>
+				</s:Line> 
+			</s:Graphic>
+			<s:HGroup horizontalAlign="center" verticalAlign="middle" width="100%" height="50" gap="15">
+				<s:Button id="getServiceAreabtn" click="getServiceArea()" toolTip="{submitLabel}" skinClass="com.esri.viewer.skins.WidgetButtonSkin" width="81" height="26" buttonMode="true"/>
+				<s:Button click="clear()" toolTip="{clearLabel}" width="81" height="26" skinClass="com.esri.viewer.skins.WidgetButtonSkin" id="cleanServiceAreabtn" buttonMode="true"/>
+			</s:HGroup>
+		</s:BorderContainer>
+		
+	</viewer:SplitWidgetTemplate>
+	
+</viewer:BaseWidget>

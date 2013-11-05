@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ////////////////////////////////////////////////////////////////////////////////
+     //
+     // Copyright (c) 2010 ESRI
+     //
+     // All rights reserved under the copyright laws of the United States.
+     // You may freely redistribute and use this software, with or
+     // without modification, provided you include the original copyright
+     // and use restrictions.  See use restrictions in the file:
+     // <install location>/License.txt
+     //
+     ////////////////////////////////////////////////////////////////////////////////
+-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+                xmlns:s="library://ns.adobe.com/flex/spark"
+                xmlns:mx="library://ns.adobe.com/flex/mx"
+				xmlns:viewer="com.esri.viewer.components.*"
+				xmlns:om="com.esrichina.om.componet.*"
+                autoDrawBackground="false"
+                click="itemrenderer_clickHandler(event)"
+                dataChange="itemrenderer_dataChangeHandler(event)"
+                minHeight="30"
+                mouseOut="itemrenderer_mouseOutHandler(event)"
+                mouseOver="itemrenderer_mouseOverHandler(event)"
+			    fontFamily="宋体">
+	<fx:Declarations>
+		<mx:SetStyleAction id="rollOverColorStyle" name="color" value="0x1C00C7"/>
+	</fx:Declarations>
+
+    <fx:Script>
+        <![CDATA[
+            import com.esri.ags.symbols.Symbol;
+            
+            import mx.events.FlexEvent;
+            import mx.utils.StringUtil;
+            private const SEARCH_RESULT_CLICK:String = "searchResultClick";
+
+            private const SEARCH_RESULT_MOUSE_OVER:String = "searchResultMouseOver";
+
+            private const SEARCH_RESULT_MOUSE_OUT:String = "searchResultMouseOut";
+
+            [Bindable]
+            private var searchResult:SearchResult;
+
+            private var lastResultSymbol:Symbol;
+			[Bindable]
+			private static var TAG_ICON:Array = ["01.png", "02.png", "03.png", "04.png", "05.png", "06.png", "07.png", "08.png", "09.png"];
+            private function itemrenderer_dataChangeHandler(event:FlexEvent):void
+            {
+                searchResult = data as SearchResult;
+
+                if (searchResult)
+                {
+					tagIamge.source = "assets/images/" + TAG_ICON[searchResult.index];
+					linkButton.visible = false;
+					linkButton.includeInLayout = false;
+					if(searchResult.link)
+					{
+						var link:String = searchResult.link as String;
+						if(StringUtil.trim(link) == "")
+						{
+							return;
+						}
+						linkButton.visible = true;
+						linkButton.includeInLayout = true;
+					}
+                }
+            }
+
+            private function itemrenderer_clickHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_CLICK, true)); // bubbles
+            }
+
+            private function itemrenderer_mouseOverHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_MOUSE_OVER, true)); // bubbles
+            }
+
+            private function itemrenderer_mouseOutHandler(event:MouseEvent):void
+            {
+                dispatchEvent(new Event(SEARCH_RESULT_MOUSE_OUT, true)); // bubbles
+            }
+
+            private function showLink(event:MouseEvent):void
+            {
+                event.stopImmediatePropagation();
+                navigateToURL(new URLRequest(searchResult.link));
+            }
+        ]]>
+    </fx:Script>
+
+    <s:states>
+        <s:State name="normal"/>
+        <s:State name="hovered"/>
+    </s:states>
+
+    <s:Rect left="0" right="0" top="0" bottom="0"
+            radiusX="4"
+            radiusY="4">
+        <s:fill>
+            <mx:SolidColor alpha="0.3"
+                           alpha.hovered="0.8"
+                           color.hovered="0xf3f3f3"
+                           color.normal="{getStyle('contentBackgroundColor')}"/>
+        </s:fill>
+    </s:Rect>
+	<mx:Image id="tagIamge" x="2" y="1" width="33" height="39"/>
+	<s:VGroup width="100%" height="100%"
+			  verticalAlign="middle"
+			  paddingLeft="40" paddingTop="10" paddingBottom="10">
+		<s:Label width="100%"
+				 fontWeight="bold" color="0x4061ad"
+				 maxDisplayedLines="1"
+				 text="{searchResult.title}"/>
+		<s:Label width="100%"
+				 fontWeight="normal" color="0x6f6f6f"
+				 maxDisplayedLines="-1"
+				 text="{searchResult.content}"/>
+		<s:Label id="linkButton" x="0" width="100%"
+				  text="详细信息" 
+				textAlign="left" textDecoration="underline"
+				color="0x2100ED" rollOverEffect="{rollOverColorStyle}"
+				includeInLayout="false" visible="false"
+				buttonMode="true"
+				click="showLink(event);"/>
+	</s:VGroup>
+	<om:DottedLine left="5" right="5" bottom="0"/>
+</s:ItemRenderer>

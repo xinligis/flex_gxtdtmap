@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+	<loginurl>/Portal3_0/main/*.action</loginurl>
+	<abouturl>http://www.baidu.com</abouturl>
+</configuration>

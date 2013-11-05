@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customTitleWindow:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+							   xmlns:s="library://ns.adobe.com/flex/spark" 
+							   xmlns:mx="library://ns.adobe.com/flex/mx" 
+							   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*" 
+							   width="520" height="400"
+							   creationComplete="popupwindow1_creationCompleteHandler(event)" 
+							   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.net.navigateToURL;
+			
+			import flashx.textLayout.conversion.TextConverter;
+			
+			import mx.events.FlexEvent;
+			
+			private var _configXML:XML;
+			
+			public function set configXML(value:XML):void
+			{
+				_configXML = value;
+			}
+			
+			protected function popupwindow1_creationCompleteHandler(event:FlexEvent):void
+			{
+				setInfo();
+			}
+			
+			private function setInfo():void
+			{
+				aboutArea.textFlow = TextConverter.importToFlow(String(_configXML),TextConverter.TEXT_FIELD_HTML_FORMAT);
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<customTitleWindow:layout>
+		<s:VerticalLayout paddingTop="15" paddingBottom="0" paddingLeft="20" paddingRight="15" gap="0"/>
+	</customTitleWindow:layout>
+	<s:Label verticalAlign="middle" text="关于我们" color="0x4a535f" fontSize="24" fontFamily="微软雅黑"/>
+	<s:Spacer height="10"/>
+	<!--<s:Line width="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="0xdddddd"/>
+		</s:stroke>
+	</s:Line>
+	<s:Line width="100%">
+		<s:stroke>
+			<s:SolidColorStroke color="0xffffff"/>
+		</s:stroke>
+	</s:Line>-->
+	<s:Spacer height="5"/>
+	<!--<s:Scroller width="100%" height="330">
+		<s:Group width="100%" height="330">-->
+			<s:TextArea id="aboutArea" width="100%" height="330" contentBackgroundAlpha="0"
+						borderAlpha="0" editable="false" fontFamily="宋体"/>
+		<!--</s:Group>
+	</s:Scroller>-->
+</customTitleWindow:PopUpWindow>

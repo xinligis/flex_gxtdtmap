@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" width="315">
+	
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.symbols.Symbol;
+			
+			import mx.events.FlexEvent;
+			import mx.utils.StringUtil;
+			
+			[Bindable]
+			private var _searchData:Object;
+			
+			[Bindable]
+			private var _searchName:String;
+			
+			[Bindable]
+			private var _searchErrType:String;
+			
+			[Bindable]
+			private var _searchState:String;
+			
+	 		override public function set data(value:Object):void
+			{
+				super.data = value;
+				_searchName = value.name;
+				switch(int(value.errType))
+				{
+					case 1:
+						_searchErrType = "名称错误";
+						break;
+					case 2:
+						_searchErrType = "位置错误";
+						break;
+					case 3:
+						_searchErrType = "其他错误";
+						break;
+				}
+				switch(int(value.state))
+				{
+					case 0:
+						_searchState = "未审核";
+						stateLabel.setStyle("color","0x0248ad");
+						break;
+					case 1:
+						_searchState = "已审核";
+						stateLabel.setStyle("color","0x047601");
+						break;
+				}
+//				dateLabel.text = dateFormatter.format(value.createdate);
+				_searchData = value;
+			}
+			
+			override public function get data():Object
+			{
+				return _searchData;
+			} 
+
+			protected function group1_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				contentGroup.setStyle("fontWeight","bold");
+			}
+			
+			protected function contentGroup_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				contentGroup.setStyle("fontWeight","normal");
+			}
+			
+			protected function contentGroup_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("contentGroup_clickHandler");
+				dispatchEvent(new Event("itemClick",true));
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:DateTimeFormatter dateTimePattern="yyyy-MM-dd" id="dateFormatter"/>
+	</fx:Declarations>
+
+	
+	<!--<s:HGroup top="0" bottom="0" left="0" right="0"
+			  verticalAlign="middle"
+			  gap="20" fontFamily="宋体">
+		<s:Label fontWeight="normal" color="0x535353" fontSize="12"
+				 maxDisplayedLines="1"
+				 text="{'● '+_searchName}"/>
+		<s:Label fontWeight="normal" color="0x535353" fontSize="12"
+				 maxDisplayedLines="-1"
+				 text="{_searchErrType}"/>
+		<s:Label fontWeight="normal" color="0x535353" fontSize="12"
+				 maxDisplayedLines="-1"
+				 text="{_searchState}"/>
+		<s:Label width="100%" color="0x535353" fontSize="12"
+				 id="dateLabel" maxDisplayedLines="1"/>
+	</s:HGroup>-->
+	
+	<s:Group top="0" bottom="0" left="0" right="0" fontFamily="宋体" buttonMode="true" id="contentGroup"
+			 fontWeight="normal" color="0x535353" fontSize="12" click="contentGroup_clickHandler(event)"
+			 rollOver="group1_rollOverHandler(event)" rollOut="contentGroup_rollOutHandler(event)">
+		<s:Label text="●" fontSize="8" verticalCenter="0" left="0"/>
+		<s:Label maxDisplayedLines="1" verticalCenter="0" left="15"
+				 text="{_searchName}" width="185" showTruncationTip="true"/>
+		<s:Label verticalCenter="0" text="{_searchErrType}" right="55"/>
+		<s:Label verticalCenter="0" text="{_searchState}" right="0" id="stateLabel"/>
+		<!--<s:Label width="100%" color="0x535353" fontSize="12"
+				 id="dateLabel" maxDisplayedLines="1" verticalCenter="0"/>-->
+	</s:Group>
+	
+</s:ItemRenderer>

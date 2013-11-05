@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<trafficConditionURL>http://124.205.245.98:8181/OneMapServer/rest/services/CQRoadStatus10/MapServer</trafficConditionURL>
+	<refreshTime>120000</refreshTime>
+	<zoomscale>144286</zoomscale>
+	<centerpoint x="106.52220565" y="29.576728348"></centerpoint>
+	<label>数据来源:重庆市城市交通规划研究所</label>
+</configuration>
+<!-- http://222.177.24.124:3080/ArcGIS/rest/services/RoadStatus84/MapServer -->

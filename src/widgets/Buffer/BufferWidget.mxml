@@ -1,0 +1,1262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:Buffer="widgets.Buffer.*"
+				   xmlns:components="com.esri.viewer.components.*"
+				   xmlns:pageSelector="com.esri.viewer.components.pageSelector.*"
+				   xmlns:onemap="com.esrichina.om.componet.*"
+				   width="100%" height="100%"
+				   creationComplete="creationCompleteHandler(event)"
+				   widgetConfigLoaded="init()" xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<esri:SimpleFillSymbol id="sfs" color="0xC0C0C0"/>
+		<esri:SimpleMarkerSymbol id="pointSymbol" color="0xFF0000" size="10" style="circle"/>
+		<esri:SimpleLineSymbol id="lineSymbol" color="0xFF0000" width="3" style="solid"/>
+		<esri:GeometryService id="myGeometryService"
+							  url="{url}"
+							  fault="onGeometryServiceFault(event)"/>
+		<s:Resize id="resizeEffect" target="{inputGroup}" duration="1000" effectEnd="resizeEffect_effectEndHandler(event)"/>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.SpatialReference;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.events.GeometryServiceEvent;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.symbols.*;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.BufferParameters;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IInfowindowTemplate;
+			import com.esri.viewer.ViewerContainer;
+			import com.esri.viewer.components.pageSelector.PageChangeEvent;
+			import com.esri.viewer.components.tools.*;
+			import com.esri.viewer.skins.WidgetButtonSkin;
+			
+			import mx.collections.*;
+			import mx.controls.Alert;
+			import mx.controls.LinkBar;
+			import mx.controls.LinkButton;
+			import mx.core.UIComponent;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.components.supportClasses.ItemRenderer;
+			
+			private var _filter:Object;
+			
+			//labels
+			private var graphicalsearchLabel:String;
+			
+			private var textsearchLabel:String;
+			
+			private var resultsLabel:String;
+			
+			[Bindable]
+			private var layerLabel:String;
+			
+			private var nolayerLabel:String;
+			
+			[Bindable]	
+			private var submitLabel:String;	
+			
+			[Bindable]
+			private var pointLabel:String;
+			
+			[Bindable]
+			private var lineLabel:String;
+			
+			[Bindable]
+			private var rectangleLabel:String;
+			
+			[Bindable]
+			private var polygonLabel:String;
+			
+			[Bindable]
+			private var clearLabel:String;	
+			
+			private var loadingLabel:String;	
+			
+			private var selectionLabel:String;
+			
+			[Bindable]
+			private var msgVisible:Boolean = false;
+			
+			private var zoomScale:Number = 5;
+			
+			private var configSearchGraphical:Array;
+			
+			private var configSearchText:Array;
+			
+			private var queryLayer:String;
+			
+			private var queryGeom:Geometry;
+			
+			private var queryExpr:String;
+			
+			private var queryFields:Array;
+			
+			private var queryTitleField:String;
+			
+			private var queryLinkField:String;
+			
+			private var graphicsLayer:GraphicsLayer;
+			private var bufferSpatialRef:Number = 102003;
+			//private var graphicPointSym:PictureMarkerSymbol;
+			
+			//private var graphicLineSym:SimpleLineSymbol = new SimpleLineSymbol("solid", 0xC9C9C9, 0.8, 2);
+			
+			//private var graphicPolySym:SimpleFillSymbol = new SimpleFillSymbol("solid", 0xC9C9C9, 0.5, graphicLineSym);
+			
+			private var timer:Timer;
+			
+			private var baseGraLayer:GraphicsLayer = new GraphicsLayer();
+			
+			[Bindable]
+			private var currentName:String; //当前地物名称，王红亮，2010-04-08
+			private var currentGeometry:Geometry; //当前地物的几何形状
+			
+			[Bindable]
+			private var bufferRadius:Number;
+			
+			[Bindable]
+			private var url:String;
+			
+			[Bindable]
+			private var queryResultAC:ArrayCollection;		
+			private const ICON_URL:String = "assets/images/";
+			private var infoUrl:String;
+			private var highlightGraphic:com.esri.ags.Graphic;
+			
+			//非高亮结果的显示 温杨彪；2011-8-1
+			private var _resultMarkerSymbol:SimpleMarkerSymbol;
+			
+			//当前用于显示文本的textSymbol 温杨彪；2011-8-1
+			private var _textSymbol:TextSymbol;
+			
+			private var _picSymbol:PictureMarkerSymbol;
+			
+			private const RECORDS_PER_PAGE:uint = 9; //每页显示的记录数
+			
+			private var _symbolsPerPage:Array=new Array();
+			
+			private var _relatedTableXMLList:XML=null;
+			
+			private var _foreignkeyfield:String="";
+			
+			[Bindable]
+			[Embed('assets/images/search/expand.png')]
+			private var _expandClass:Class;
+			
+			[Bindable]
+			[Embed('assets/images/search/coll.png')]
+			private var _collClass:Class;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				AppEvent.addListener(AppEvent.POST_PROCESS, onPostprocess);
+			}
+			private function init():void
+			{
+				trace("BufferWidget config loaded");
+				
+				//	graphicPointSym = new PictureMarkerSymbol(widgetIcon, 30, 30);
+				graphicsLayer = new GraphicsLayer();
+				map.addLayer(baseGraLayer);
+				map.addLayer(graphicsLayer);
+				
+				if (configXML)
+				{
+					//从配置文件中搜索半径；温杨彪；2011-8-1
+					if(configXML.maxRadius && configXML.minRadius)
+					{
+						hSlider.maximum=Number(configXML.maxRadius.toString());
+						hSlider.minimum=Number(configXML.minRadius.toString());
+					}
+					//hSlider
+					
+					//labels
+					graphicalsearchLabel = configXML.labels.graphicalsearchlabel || "图形查找";
+					textsearchLabel = configXML.labels.textsearchlabel || "文本查找";
+					resultsLabel = configXML.labels.resultslabel || "结果集";
+					layerLabel = configXML.labels.layerlabel || "查找图层：";
+					nolayerLabel = configXML.labels.nolayerlabel || "没有定义查找图层.";
+					submitLabel = configXML.labels.submitlabel || "查找";
+					pointLabel = configXML.labels.pointlabel || "点查询";
+					lineLabel = configXML.labels.linelabel || "线查询";
+					rectangleLabel = configXML.labels.rectanglelabel || "矩形查询";
+					polygonLabel = configXML.labels.polygonlabel || "多边形查询";
+					clearLabel = configXML.labels.clearlabel || "清除";
+					loadingLabel = configXML.labels.loadinglabel || "Loading...";
+					selectionLabel = configXML.labels.selectionlabel || "选择的要素:";
+					bufferRadius = 	Number(configXML.bufferRadius);
+					if(Number(configXML.bufferspatialref) > 0)
+					{
+						bufferSpatialRef = Number(configXML.bufferspatialref);
+					}
+					url = configXML..geometryServiceURL;
+					infoUrl = configXML.info;
+					configSearchGraphical = [];
+					configSearchText = [];
+					var poiUrl:String = configXML.poicatalogs.url;
+					var poiExpression:String = configXML.poicatalogs.expression;
+					var lyrList:XMLList = configXML.poicatalogs.poicatalog;
+					for (var i:Number = 0; i < lyrList.length(); i++)
+					{
+						var lyrURL:String = lyrList[i].url || poiUrl;
+						var lyrLabel:String = lyrList[i].@name;
+						var lyrTextLabel:String = lyrList[i].textsearchlabel;
+						var lyrGraphicalLabel:String = lyrList[i].graphicalsearchlabel;
+						var lyrExpr:String = lyrList[i].expression || poiExpression;
+						lyrExpr = lyrExpr.replace("[value]", lyrList[i].@code.toString());
+						var xmlFields:XML = lyrList[i].fields[0] || configXML.poicatalogs.fields[0];
+						var xmlFieldList:XMLList = xmlFields.field;
+						var lyrFields:Array = new Array();
+						for each(var fieldXML:XML in xmlFieldList)
+						{
+							var name:String = fieldXML.@name[0];
+							var alias:String = fieldXML.@alias[0];
+							var field:Object = 
+								{
+									name:name,
+									alias:alias
+								}
+							lyrFields.push(field);
+						}
+						var lyrTitleField:String = lyrList[i].titlefield || configXML.poicatalogs.titlefield;
+						var lyrLinkField:String = lyrList[i].linkfield || configXML.poicatalogs.linkfield;
+						//符号显示
+						var  SIZE:Number = lyrList[i].simplemarkersymbol.@size || 10;
+						const COLOR:Number = lyrList[i].simplemarkersymbol.@color || 0x000000;
+						const ALPHA:Number = lyrList[i].simplemarkersymbol.@alpha || 1.0;
+						var simpleMarkerSymbol:SimpleMarkerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, SIZE, COLOR, ALPHA);
+						
+						const ICON:String = lyrList[i].compositesymbol.picturemarkersymbol.@source || this.widgetIcon;
+						const WIDTH:Number = lyrList[i].compositesymbol.picturemarkersymbol.@width || 20;
+						const HEIGHT:Number = lyrList[i].compositesymbol.picturemarkersymbol.@height || 20;
+						const XOFFSET:Number = lyrList[i].compositesymbol.picturemarkersymbol.@xoffset || 0;
+						const YOFFSET:Number = lyrList[i].compositesymbol.picturemarkersymbol.@yoffset || 0;
+						var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON, WIDTH, HEIGHT, XOFFSET, YOFFSET);
+						const COLOR_TEXT:Number = lyrList[i].compositesymbol.textsymbol.@color || 0x000000;
+						const XOFFSET_TEXT:Number = lyrList[i].compositesymbol.textsymbol.@xoffset || 0;
+						const YOFFSET_TEXT:Number = lyrList[i].compositesymbol.textsymbol.@yoffset || 0;
+						const SIZE_TEXT:Number = lyrList[i].compositesymbol.textsymbol.@size || 20;
+						var textFormat:TextFormat = new TextFormat("Arial", SIZE_TEXT, COLOR_TEXT);
+						
+						var symbolsPerPage:Array = new Array();
+						for(var index:int = 0; index < 10; ++index)
+						{
+							var textSymbol:TextSymbol = new TextSymbol((index + 1).toString(), null, 1,COLOR_TEXT, false, 0, false, 0, "middle", 
+								0, XOFFSET_TEXT, YOFFSET_TEXT, textFormat);
+							var composite:CompositeSymbol = new CompositeSymbol([pictureSymbol, textSymbol]);
+							symbolsPerPage.push(composite);
+						}
+						textSymbol.textFormat = textFormat;
+						var relatedTableXML:XML = lyrList[i].relatedtable[0] || configXML.poicatalogs.relatedtable[0];
+						var foreignKeyField:String = lyrList[i].foreignkeyfield || configXML.poicatalogs.foreignkeyfield;
+						var searchLayer:Object = 
+							{
+								url: lyrURL,
+								label: lyrLabel,
+								textlabel: lyrTextLabel,
+								graphicallabel: lyrGraphicalLabel,
+								expr: lyrExpr,
+								fields: lyrFields,
+								titlefield: lyrTitleField,
+								linkfield: lyrLinkField,
+								simpleSymbol:simpleMarkerSymbol,
+								pictureSymbol:pictureSymbol,
+								symbolPerPage:symbolsPerPage,
+								textSymbol:textSymbol,
+								relatedtableXML:relatedTableXML,
+							    foreignkeyfield:foreignKeyField
+							}
+						configSearchGraphical.push(searchLayer);
+						//动态添加POI对应的超链接按钮
+						//						var linkButton:LinkButton = new LinkButton();
+						//						linkButton.label = lyrLabel;
+						//						linkButton.setStyle("color", 0x0000FF);
+						//						linkButton.setStyle("textDecoration", "underline");
+						
+						
+						//动态添加POI对应的超链接按钮；温杨彪；2011/7/25
+						var linkButton:LinkButton = new LinkButton();
+						linkButton.label = lyrLabel;
+						linkButton.setStyle("color", 0x535353);
+						linkButton.setStyle("textDecoration", "underline");
+						linkButton.addEventListener(MouseEvent.CLICK, onClickPOI);
+						this.POIGroup.addElement(linkButton);
+					}
+					//
+					if (Number(configXML.zoomlevel) > 0)
+						zoomScale = Number(configXML.zoomlevel);
+					
+					
+					//added by wanghl, 2010-10-13
+					var infoConfig:String = configXML.infoConfig;
+					var data:Object =
+						{
+							id: String(this.widgetId),
+							url: infoUrl,
+							config: infoConfig
+						};	
+					AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET, data, infoReady);
+				}
+				//				wTemplate.addTitlebarButton(ICON_URL + "i_searchgraphical.png", graphicalsearchLabel, showStateGraphicalSearch);
+				//				wTemplate.addTitlebarButton(ICON_URL + "i_table.png", resultsLabel, showStateResults);
+				
+				map.infoWindow.addEventListener(Event.CLOSE, closeMessage);
+				//scroller.height = resultsList.height;
+			}			
+			
+			private var infoTemplate:IInfowindowTemplate;
+			
+			private function infoReady(event:AppEvent):void
+			{
+				var id:Number = Number(event.data.id);
+				if (id == this.widgetId)
+				{
+					infoTemplate = event.data.infoWidget;
+					infoTemplate.infoConfig = configXML;
+					//王红亮，2011-04-08
+					var bWidget:BaseWidget = infoTemplate as BaseWidget;
+					if(bWidget)
+					{
+						bWidget.configData = this.configData;
+					}
+				}
+			}
+			
+			
+			//			private function searchLayerChangedText():void
+			//			{
+			//				
+			//			}
+			//			
+			//			private function searchLayerChangedGraphical():void
+			//			{
+			//				clear();
+			//				var i:Number = cboLayerGraphical.selectedIndex;
+			//				//txtLabelGraphical.text = configSearchGraphical[i].graphicallabel;				
+			//				graphicsLayer.symbol = configSearchGraphical[i].symbol;
+			//				var symbolsArray:ArrayCollection = highlightSymbol.symbols as ArrayCollection;
+			//				if(symbolsArray)
+			//				{
+			//					symbolsArray.setItemAt(graphicsLayer.symbol, 1);
+			//				}
+			//			}
+			//			
+			private function activateSearchTool(value:String):void
+			{
+				clear();
+				var status:String;
+				switch (value)
+				{
+					case DrawTool.MAPPOINT:
+					{
+						status = pointLabel;
+						break;
+					}
+						
+					case DrawTool.POLYLINE:
+					{
+						status = lineLabel;
+						break;
+					}
+						
+					case DrawTool.EXTENT:
+					{
+						status = rectangleLabel;
+						break;
+					}
+						
+					case DrawTool.POLYGON:
+					{
+						status = polygonLabel;
+						break;
+					}
+				}
+				setMapAction(value, status, null, searchDrawEnd);;		
+			}			
+			
+			private function searchDrawEnd(event:DrawEvent):void
+			{
+				event.target.deactivate();
+				clear();
+				currentGeometry = event.graphic.geometry;
+				currentName = "手动绘制";
+				drawCurrentGeometry();
+			}			
+			
+			private function onClickPOI(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				if(currentGeometry == null)
+				{
+					mx.controls.Alert.show("请首先确定目标点", "无法继续操作");
+					return;
+				}
+				buffer(currentGeometry, POIGroup.getElementIndex(linkButton));
+			}
+			private function buffer(geom:Geometry, layerIndex:int):void
+			{
+//				swfMessage.includeInLayout = true;
+//				swfMessage.visible = true;
+				
+				lblNoReslut.visible=false;
+				lblNoReslut.includeInLayout = false;
+				
+				clear();
+				drawCurrentGeometry();
+				var bufferParameters:BufferParameters = new BufferParameters();
+				//王红亮，2011-08-21
+				if(geom.spatialReference.wkid == 0)
+				{
+					geom.spatialReference.wkid = map.spatialReference.wkid;
+				}
+				bufferParameters.geometries = [geom];
+				var distArray:Array = new Array();
+				distArray.push(bufferRadius);
+				bufferParameters.distances = distArray;
+				bufferParameters.unit = GeometryService.UNIT_METER;
+				bufferParameters.bufferSpatialReference = new SpatialReference(bufferSpatialRef);
+				bufferParameters.outSpatialReference = map.spatialReference;
+				
+				myGeometryService.addEventListener(GeometryServiceEvent.BUFFER_COMPLETE, bufferCompleteHandler);
+				myGeometryService.buffer(bufferParameters);
+				
+				function bufferCompleteHandler(event:GeometryServiceEvent):void
+				{
+					myGeometryService.removeEventListener(GeometryServiceEvent.BUFFER_COMPLETE, bufferCompleteHandler);
+					for each (var geometry:Polygon in event.result)
+					{
+						var graphic:com.esri.ags.Graphic = new com.esri.ags.Graphic();
+						graphic.geometry = geometry;
+						graphic.symbol = sfs;
+						baseGraLayer.add(graphic);
+						queryFeaturesGraphical(geometry, layerIndex);
+					}
+					//放大突出显示，王红亮，2012-4-27
+					if (map.level < zoomScale)
+						map.level = zoomScale;
+				}
+			}
+			private function onGeometryServiceFault(event:FaultEvent):void
+			{
+				//Alert.show(event.fault.faultDetail,event.fault.faultString);
+//				swfMessage.includeInLayout = false;
+//				swfMessage.visible = false;
+				
+			}
+			//query features graphical
+			private function queryFeaturesGraphical(geom:Geometry, layerIndex:int):void
+			{
+				var querySpatialRel:String = "esriSpatialRelIntersects";
+				queryLayer = configSearchGraphical[layerIndex].url;
+				
+				this._resultMarkerSymbol=configSearchGraphical[layerIndex].simpleSymbol;
+				this._textSymbol = configSearchGraphical[layerIndex].textSymbol;
+				this._picSymbol=configSearchGraphical[layerIndex].pictureSymbol;
+				this._symbolsPerPage = configSearchGraphical[layerIndex].symbolPerPage;
+				this._relatedTableXMLList = configSearchGraphical[layerIndex].relatedtableXML;
+				this._foreignkeyfield = configSearchGraphical[layerIndex].foreignkeyfield;
+				
+				queryGeom = geom;
+				queryFields = null;
+				queryFields = new Array();
+				var fieldArray:Array = configSearchGraphical[layerIndex].fields;
+				for(var index:int = 0; index < fieldArray.length; ++index)
+				{
+					queryFields.push(fieldArray[index].name);
+				}
+				if(_foreignkeyfield.toString()!="")
+					queryFields.push(_foreignkeyfield.toString());
+				queryTitleField = configSearchGraphical[layerIndex].titlefield;
+				queryLinkField = configSearchGraphical[layerIndex].linkfield;
+				
+				if (queryLayer)
+				{
+					var queryTask:QueryTask = new QueryTask(queryLayer);
+					//added by wanghl, 2010-10-13
+					queryTask.useAMF = true;
+					var query:Query = new Query();
+					query.geometry = queryGeom;
+					query.where = configSearchGraphical[layerIndex].expr;
+					query.outFields = queryFields;
+					query.returnGeometry = true;
+					query.spatialRelationship = querySpatialRel;
+					query.outSpatialReference = map.spatialReference;
+					queryTask.execute(query, new AsyncResponder(onResult, onFault));  
+					showMessage(loadingLabel, true); 
+					
+					
+					// on result
+					function onResult(featureSet:FeatureSet, token:XML = null):void                
+					{   
+						trace("query ok");
+						try
+						{
+							//把所有的结果都添加到地图上
+							
+							showStateResults();
+//							swfMessage.includeInLayout = false;
+//							swfMessage.visible = false;						
+							if(featureSet.features.length==0)
+							{
+								searchResultDG.dataProvider = null;
+								lblNoReslut.visible=true;
+								lblNoReslut.includeInLayout = true;
+								lblNoReslut.text="没有发现目标";
+							}
+							queryResultAC = createRecordData(featureSet, layerIndex);
+							const totalPageCount:uint = queryResultAC.length % RECORDS_PER_PAGE == 0 ? queryResultAC.length / RECORDS_PER_PAGE : (queryResultAC.length / RECORDS_PER_PAGE + 1);
+							pagesSelector.set_TotalCount(totalPageCount);
+							//							var sort:Sort = new Sort();
+							//							var sortField:SortField = new SortField("title", true);
+							//							sort.fields = [sortField];
+							//							sort.compareFunction = myCompare;
+							//							queryResultAC.sort = sort;
+							//							queryResultAC.refresh();
+							//							
+							//addSharedData(widgetTitle, queryResultAC);
+							
+							switchToPage(1);
+							
+							//bufferResultDG.dataProvider = queryResultAC;
+							showMessage(selectionLabel + " " + featureSet.features.length, false); 
+							if(inputGroup.visible)
+							{
+								expendbtn_clickHandler(null);
+							}
+						}
+						catch (error:Error)
+						{
+							trace(error.message);
+							showMessage(error.message, false);
+						}	
+					}
+					
+					//on fault
+					function onFault(info:Object, token:Object = null) : void
+					{    
+//						swfMessage.includeInLayout = false;
+//						swfMessage.visible = false;
+						showMessage(info.toString(), false);         
+					}
+				}  
+			}			
+			
+			//create record data
+			private function createRecordData(featureSet:FeatureSet, layerIndex:int):ArrayCollection
+			{
+				graphicsLayer.clear();
+				
+				//				if(!poiCatalog)
+				//					return null;
+				//				//if(resultStatus == "normal")
+				//				//{
+				//				
+				//				//}
+				//				var queryFields:XMLList = poiCatalog.fields;
+				//				var fields:XMLList = poiCatalog.fields[0] ? poiCatalog.fields[0].field : null;
+				//				
+				//				var result:ArrayCollection = new ArrayCollection();
+				//				var queryTitleField:String = poiCatalog.titlefield[0];
+				//				var queryLinkField:String = poiCatalog.linkfield[0];
+				//				var catalogField:String = poiCatalog.catalogfield[0] || "";
+				//				var subcatalogField:String = poiCatalog.subcatalogfield[0] || "";
+				
+				
+				var recAC:ArrayCollection = new ArrayCollection();
+				if (!queryTitleField)
+					queryTitleField = featureSet.displayFieldName;
+				var icon:String = widgetIcon;
+				var fieldArray:Array = configSearchGraphical[layerIndex].fields;				
+				for each (var gra:com.esri.ags.Graphic in featureSet.features)                    
+				{   
+					var obj:Object = gra.attributes;
+					var fld:String;
+					var value:String;
+					var title:String;
+					var content:String = "";
+					var link:String = "";
+					var point:MapPoint = getGeomCenter(gra);
+					var foreignkeyfield:String = "";
+					
+					for (fld in obj)
+					{
+						if(obj[fld])
+						{
+							value = obj[fld].toString();
+						}
+						else
+						{
+							value = "";
+						}
+						if (fld.toUpperCase() == queryTitleField.toUpperCase())
+						{
+							title = value;
+							if (!title)
+								title = widgetTitle;
+						}
+						else if (fld.toUpperCase() == queryLinkField.toUpperCase())
+						{
+							link = value;
+						}
+						else if(fld.toUpperCase() == this._foreignkeyfield.toUpperCase())
+						{
+							foreignkeyfield = value;
+						}
+						else
+						{
+							for(var index:int = 0; index < fieldArray.length; ++index)
+							{
+								if(fieldArray[index].name.toUpperCase() == fld.toUpperCase())
+								{
+									content += fieldArray[index].alias + ": " + value + "\n";
+									break;
+								}
+							}
+						}
+					}
+					
+					var infoData:BufferResult = new BufferResult;
+					//					infoData.icon = widgetIcon;
+					infoData.title = title;
+					infoData.content = content; 
+					infoData.link = link;
+					infoData.point = point;
+					
+					//***
+					//					gra.addEventListener(MouseEvent.CLICK, mouseOverGraphic)
+					gra.attributes.infoData = infoData;
+					//gra.attributes[this._foreignkeyfield] = obj[this._foreignkeyfield];
+					switch (gra.geometry.type)
+					{
+						case Geometry.POLYLINE:
+						{
+							gra.symbol = infoData.symbol = graphicsLayer.symbol;
+							break;
+						}
+							
+						case Geometry.POLYGON:
+						{
+							gra.symbol = infoData.symbol = graphicsLayer.symbol;
+							break;
+						}
+						case Geometry.MAPPOINT:
+						{
+							gra.symbol = infoData.symbol = this._resultMarkerSymbol;
+						}
+					}
+					infoData.graphic = gra;
+					recAC.addItem(infoData);
+					graphicsLayer.add(gra);
+					
+				}
+				return recAC;
+			}		
+			
+			//get geom center
+			private function getGeomCenter(gra:com.esri.ags.Graphic):MapPoint
+			{
+				var pt:MapPoint;
+				switch (gra.geometry.type)
+				{
+					case Geometry.MAPPOINT:
+					{
+						pt = gra.geometry as MapPoint;
+						break;
+					}
+						
+					case Geometry.POLYLINE:
+					{
+						var pl:Polyline = gra.geometry as Polyline;
+						var pathCount:Number = pl.paths.length;
+						var pathIndex:int = int((pathCount / 2) - 1);
+						var midPath:Array = pl.paths[pathIndex];
+						var ptCount:Number = midPath.length;
+						var ptIndex:int = int((ptCount / 2) - 1);
+						pt = pl.getPoint(pathIndex, ptIndex);
+						break;
+					}
+						
+					case Geometry.POLYGON:
+					{
+						var poly:Polygon = gra.geometry as Polygon;
+						pt = poly.extent.center;
+						break;
+					}
+				}
+				return pt;
+			}			
+			
+			//mouse over graphic
+			private function mouseOverGraphic(event:MouseEvent):void
+			{
+				var gra:com.esri.ags.Graphic = event.currentTarget as com.esri.ags.Graphic;
+				var infoData:Object = gra.attributes.infoData;
+				if(highlightGraphic)
+				{
+					//highlightGraphic.symbol = graphicsLayer.symbol;
+				}
+				highlightGraphic = gra;
+				showHighlight([infoData])
+				//this.showInfoWindow();
+			}			
+			
+			private function clear():void
+			{
+				if(graphicsLayer)
+				{
+					graphicsLayer.clear();
+				}
+				if(baseGraLayer)
+				{
+					baseGraLayer.clear();
+				}
+				clearMessage();
+				//				this.currentGeometry =null;
+				//				this.currentName = "";
+				this.showInfoWindow(null);
+				if(queryResultAC)
+				{
+					queryResultAC.removeAll();
+				}
+				this.searchResultDG.dataProvider = null;
+				this.pagesSelector.set_TotalCount(0);
+			}			
+			
+			override public function showInfoWindow(infoData:Object):void
+			{
+				if (infoData)
+				{
+					//王红亮，2011-04-08
+					var infoWindowData:Object = {title:infoData.title, 
+						content:infoData.content,
+						graphic:infoData.graphic,
+						multimedia:infoData.graphic.attributes.multimedia,
+						fromWidget:this};
+					
+					infoTemplate.data = infoWindowData
+					map.infoWindow.content = infoTemplate as UIComponent;
+					map.infoWindow.label = infoData.title || "";
+					map.infoWindow.show(infoData.point);
+				}
+				else
+				{
+					if(highlightGraphic)
+					{
+						highlightGraphic.symbol = graphicsLayer.symbol;
+					}
+					map.infoWindow.hide();
+				}
+			}
+			
+			private var hitimer:uint;
+			
+			private function mouseOverRecord(event:Event):void
+			{
+				var infoData:Object = ItemRenderer(event.target).data as BufferResult;
+				clearTimeout(hitimer);
+				hitimer = setTimeout(showHighlight, 800, [infoData]);
+			}			
+			
+			private function mouseOutRecord(event:Event):void
+			{
+				clearTimeout(hitimer);
+				//this.showInfoWindow(null);
+			}			
+			
+			private function clickRecord(event:Event):void
+			{
+				var infoData:BufferResult = ItemRenderer(event.target).data as BufferResult;
+				var pt:MapPoint = infoData.point as MapPoint;
+				//放大突出显示，王红亮，2012-4-27
+				if (map.level < zoomScale)
+					map.level = zoomScale;
+				map.centerAt(pt);
+			}			
+			
+			private function showHighlight(params:Array):void
+			{
+				var infoData:BufferResult = params[0];
+				var pt:MapPoint = infoData.point;
+				//if (!map.extent.contains(pt))
+				//	map.centerAt(pt);
+				//				if(highlightGraphic)
+				//				{
+				//					highlightGraphic.symbol = graphicsLayer.symbol;
+				//				}
+				//highlightGraphic = infoData.graphic;
+				//this.showInfoWindow(params[0]);
+				
+				var graphic:com.esri.ags.Graphic = infoData.graphic;
+				//查询该图形关联的多媒体信息
+				var queryTask:QueryTask = new QueryTask();
+				var relatedtableXML:XML;
+				if(this._relatedTableXMLList)
+					relatedtableXML = this._relatedTableXMLList;
+				else
+					relatedtableXML = configXML.general.relatedtable[0];
+				queryTask.url = relatedtableXML.url;
+				queryTask.useAMF = true;
+				var query:Query = new Query();
+				query.returnGeometry = false;
+				var express:String = relatedtableXML.expression;
+				var keyValue:String;
+				var foreignKeyField:String;
+				if(this._foreignkeyfield)
+				{
+					foreignKeyField= this._foreignkeyfield
+				}
+				else
+				{
+					foreignKeyField = configXML.general.foreignkeyfield;
+				}
+				for(var attribute:String in graphic.attributes)
+				{
+					if(foreignKeyField.toUpperCase() == attribute.toUpperCase())
+					{
+						keyValue = graphic.attributes[attribute]||"0";
+						break;
+					}
+				}
+				if(keyValue == "")
+				{
+					return;
+				}
+				query.where = express.replace("[value]", keyValue);
+				var multimediaField:String = relatedtableXML.multimediafield;
+				query.outFields = [multimediaField];
+				queryTask.execute(query, new AsyncResponder(query_resultHandler, onFault, graphic));
+				
+				function query_resultHandler(featureSet:FeatureSet, token:com.esri.ags.Graphic = null):void
+				{
+					var arr:Array = [];
+					for each(var result:com.esri.ags.Graphic in featureSet.features)
+					{
+						arr.push(result.attributes[multimediaField]);
+						
+					}
+					token.attributes.multimedia = arr;
+					
+					showInfoWindow(params[0]);
+				}
+				
+				function onFault(fault:Object, token:Object = null):void
+				{
+					token.attributes.multimedia = [];
+					showInfoWindow(params[0]);
+				}
+			}			
+			
+			private function showMessage(msg:String, swfVisible:Boolean):void
+			{
+				//温杨彪
+				//				txtMessage.text = msg;
+				//				swfMessage.visible = swfVisible;
+				//				msgVisible = true;
+			}			
+			
+			private function clearMessage():void
+			{
+				msgVisible = false;
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				graphicsLayer.visible = false;
+				baseGraLayer.visible = false;
+				this.showInfoWindow(null);
+				setMapNavigation(null, null);
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				if(graphicsLayer)
+				{
+					graphicsLayer.visible = true;
+				}
+				if(baseGraLayer)
+				{
+					baseGraLayer.visible = true;
+				}
+			}
+			
+			private function showStateGraphicalSearch():void
+			{
+				//WidgetEffects.flipWidget(this, viewStack, "selectedIndex", 0, 400);
+				
+				//hugy 注释
+				//this.currentState = "filterInput";
+				//wTemplate.selectedTitlebarButtonIndex = 0;
+			}
+			
+			private function showStateResults():void
+			{
+				//hugy 注释
+				//this.currentState = "resultsList";
+				//wTemplate.selectedTitlebarButtonIndex = 1;
+			} 
+			private function closeMessage(event:Event):void
+			{
+				if(highlightGraphic)
+				{
+					//highlightGraphic.symbol = graphicsLayer.symbol;
+				}
+			}
+			private function myCompare(a:Object, b:Object, fields:Array = null):int
+			{
+				var result:int = 0;
+				var i:int = 0;
+				if(fields.length)
+				{
+					if(fields[0] is SortField)
+					{
+						result = compareHanzi(a[fields[0].name], b[fields[0].name]);
+					}
+					else
+					{
+						result = compareHanzi(a[fields[0]], b[fields[0]]);
+					}
+				}
+				return result;
+			}
+			private function compareHanzi(a:String, b:String):int
+			{
+				if (a == null && b == null)
+					return 0;
+				
+				if (a == null)
+					return 1;
+				
+				if (b == null)
+					return -1;
+				
+				var tool:HanZi2PinYin = new HanZi2PinYin();
+				var str1:String = tool.toPinyin(a);
+				var str2:String = tool.toPinyin(b);
+				if (str1 < str2)
+					return -1;
+					
+				else if(str1 > str2)
+					return 1;
+				
+				return 0;
+			}
+			//王红亮，2011-04-08
+			private function onPostprocess(event:AppEvent):void
+			{
+				if(this.widgetId != event.data.postprocessor)
+				{
+					return;
+				}
+				currentName = event.data.name;
+				if(event.data.graphic)
+				{
+					currentGeometry = event.data.graphic.geometry;
+					clear();
+					drawCurrentGeometry();
+				}
+			}
+			//绘制当前的坐标位置
+			private function drawCurrentGeometry():void
+			{
+				var graphic:com.esri.ags.Graphic = new com.esri.ags.Graphic(currentGeometry);
+				switch(currentGeometry.type)
+				{
+					case Geometry.MAPPOINT:
+						graphic.symbol = pointSymbol;
+						break;
+					case Geometry.POLYLINE:
+						graphic.symbol = lineSymbol;
+						break;
+					case Geometry.POLYGON:
+						graphic.symbol = sfs;
+						break;
+				}
+				this.baseGraLayer.add(graphic);
+				drawLinebtn.selected=false;
+				drawPointbtn.selected=false;
+				drawPolygonbtn.selected=false;
+			}
+			
+			
+			/**
+			 * 转换到某一页
+			 * @param pageNum 目标页面，base：0
+			 * @return 无
+			 * 2011-07-08
+			 */
+			private function switchToPage(pageNum:uint):void
+			{
+				var totalLength:uint = queryResultAC.length;
+				const totalPageCount:uint = totalLength % RECORDS_PER_PAGE == 0 ? totalLength / RECORDS_PER_PAGE : (totalLength / RECORDS_PER_PAGE + 1);
+				
+				if(pageNum > totalPageCount || pageNum < 1)
+					return;
+				var startIndex:uint = (pageNum - 1) * RECORDS_PER_PAGE;
+				var endIndex:uint = startIndex + RECORDS_PER_PAGE;
+				endIndex = endIndex <= queryResultAC.length ? endIndex : queryResultAC.length;
+				var records:ArrayCollection = new ArrayCollection(queryResultAC.source.slice(startIndex, endIndex));
+				//恢复之前作为当前页的符号显示
+				if(this.searchResultDG.dataProvider)
+				{
+					for each(var item:BufferResult in searchResultDG.dataProvider)
+					{
+						item.graphic.symbol = this._resultMarkerSymbol;
+						item.graphic.removeEventListener(MouseEvent.CLICK, mouseOverGraphic)
+					}
+				}
+				//以图片符号显示当前页
+				var index:int = 0;
+				//				for each(item in records)
+				//				{
+				//					item.graphic.symbol = _symbolsPerPage[index];
+				//					index += 1;
+				//				}
+				
+				
+				//把该页的结果展示到地图上；温杨彪；2011-7-25
+				//graphicsLayer.clear();
+				for(var i:int=0;i<records.length;i++)
+				{
+					records[i].index = i;
+					records[i].graphic.symbol = _symbolsPerPage[i];
+					//graphicsLayer.add(records[i].graphic);
+					records[i].graphic.addEventListener(MouseEvent.CLICK, mouseOverGraphic)
+				}
+				
+				this.searchResultDG.dataProvider = records;
+				
+				
+			}
+			
+			protected function pagesSelector_PageChangedHandler(event:PageChangeEvent):void
+			{
+				switchToPage(event.currentPage);
+			}
+			
+			
+			protected function drawPointbtn_clickHandler(event:MouseEvent):void
+			{
+				if(drawPointbtn.selected)
+				{
+					drawLinebtn.selected = false;
+					drawPolygonbtn.selected = false;
+					activateSearchTool(DrawTool.MAPPOINT);
+				}
+				else
+				{
+					setMapNavigation("pan","移动地图");
+				}
+			}
+			
+			
+			protected function drawLinebtn_clickHandler(event:MouseEvent):void
+			{
+				if(drawLinebtn.selected)
+				{
+					drawPointbtn.selected = false;
+					drawPolygonbtn.selected = false;
+					activateSearchTool(DrawTool.POLYLINE);
+				}
+				else
+				{
+					setMapNavigation("pan","移动地图");
+				}
+			}
+			
+			
+			protected function drawPolygonbtn_clickHandler(event:MouseEvent):void
+			{
+				if(drawPolygonbtn.selected)
+				{
+					drawPointbtn.selected = false;
+					drawLinebtn.selected = false;
+					activateSearchTool(DrawTool.POLYGON);
+				}
+				else
+				{
+					setMapNavigation("pan","移动地图");
+				}
+			}
+			
+			
+			/**
+			 * 条件输入框高度
+			 **/
+			private var _inputGroupHeight:Number = -1;
+			
+			protected function expendbtn_clickHandler(event:MouseEvent):void
+			{
+				//如果输入框的高度为-1，说明输入框Resize效果还未初始化，第一次执行Resize动画
+				if(_inputGroupHeight == -1)
+				{
+					_inputGroupHeight = inputGroup.height;
+				}
+				_inputGroupHeight = _inputGroupHeight*(-1);
+				if(_inputGroupHeight>0)
+				{
+					inputGroup.visible = true;
+					inputGroup.includeInLayout = true;
+				}
+				resizeEffect.heightBy = _inputGroupHeight;
+				resizeEffect.play();
+			}
+			
+			protected function resizeEffect_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				if(_inputGroupHeight<0)
+				{
+					inputGroup.visible = false;
+					inputGroup.includeInLayout = false;
+					
+					showImage.source = _expandClass;
+				}
+				else
+				{
+					showImage.source = _collClass;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Style>
+		@namespace esri "http://www.esri.com/2008/ags";
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+		@namespace viewer "com.esri.viewer.*";
+		@namespace Buffer "widgets.Buffer.*";
+		@namespace components "com.esri.viewer.components.*";
+		@namespace pageSelector "com.esri.viewer.components.pageSelector.*";
+		.drawPointButtonStyle
+		{
+			upIcon: Embed(source="assets/images/buffer/drawPoint_normal.png");
+			overIcon: Embed(source="assets/images/buffer/drawPoint_over.png");
+			downIcon: Embed(source="assets/images/buffer/drawPoint_down.png");
+			
+			selectedUpIcon: Embed(source="assets/images/buffer/drawPoint_down.png");
+			selectedOverIcon: Embed(source="assets/images/buffer/drawPoint_down.png");
+			selectedDownIcon: Embed(source="assets/images/buffer/drawPoint_down.png");
+			
+		}
+		.drawLineButtonStyle
+		{
+			upIcon: Embed(source="assets/images/buffer/drawLine_normal.png");
+			overIcon: Embed(source="assets/images/buffer/drawLine_over.png");
+			downIcon: Embed(source="assets/images/buffer/drawPoint_down.png");
+			
+			selectedUpIcon: Embed(source="assets/images/buffer/drawLine_down.png");
+			selectedOverIcon: Embed(source="assets/images/buffer/drawLine_down.png");
+			selectedDownIcon: Embed(source="assets/images/buffer/drawLine_down.png");
+		}
+		.drawPolygonButtonStyle
+		{
+			upIcon: Embed(source="assets/images/buffer/drawPolygon_normal.png");
+			overIcon: Embed(source="assets/images/buffer/drawPolygon_over.png");
+			downIcon: Embed(source="assets/images/buffer/drawPolygon_down.png");
+			
+			selectedUpIcon: Embed(source="assets/images/buffer/drawPolygon_down.png");
+			selectedOverIcon: Embed(source="assets/images/buffer/drawPolygon_down.png");
+			selectedDownIcon: Embed(source="assets/images/buffer/drawPolygon_down.png");
+		}
+	</fx:Style>
+	
+	<!-- 胡国营修改框架 20120207 -->
+	<!--按新设计修改，王红亮，2012-4-23-->
+	<viewer:SplitWidgetTemplate id="wTemplate"
+								width="100%" height="100%"
+								closed="widgetClosedHandler(event)"
+								open="widgetOpenedHandler(event)">
+		<viewer:layout>
+			<s:VerticalLayout gap="8" paddingLeft="10" paddingRight="10" paddingTop="10"/>
+		</viewer:layout>
+		<s:VGroup id="inputGroup" gap="10" width="100%" horizontalAlign="center" clipAndEnableScrolling="true">
+			<s:HGroup width="100%" verticalAlign="middle" gap="10">
+				<s:Label text="自定义位置：" fontWeight="bold" fontSize="13" fontFamily="宋体" color="#535353"/>
+				<mx:CheckBox selected="false" styleName="drawPointButtonStyle" toolTip="{pointLabel}" id="drawPointbtn" buttonMode="true" click="drawPointbtn_clickHandler(event)"/>
+				<mx:CheckBox selected="false" styleName="drawLineButtonStyle" toolTip="{lineLabel}" id="drawLinebtn" buttonMode="true" click="drawLinebtn_clickHandler(event)"/>
+				<mx:CheckBox selected="false" styleName="drawPolygonButtonStyle" toolTip="{polygonLabel}" id="drawPolygonbtn" buttonMode="true" click="drawPolygonbtn_clickHandler(event)"/>
+				<customskinbutton:ClickButton buttonType="normalTowState" label="清 空" height="26" width="65"
+											  click="clear()" id="bufferCleanButton" toolTip="{clearLabel}"/>
+			</s:HGroup>	
+			<s:Line left="0" width="100%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xffffff"/>
+				</s:stroke>
+			</s:Line>
+			<s:HGroup width="100%" paddingTop="20">
+				<s:Label text="查找半径：" styleName="WidgetText" fontWeight="bold" fontSize="13" fontFamily="宋体" color="#535353"/>	
+				<s:HSlider id="hSlider" width="155" minimum="0" maximum="1000" value="{bufferRadius}" stepSize="10"
+						   snapInterval="1" liveDragging="true" 
+						   skinClass="widgets.Buffer.BufferHSliderSkin"
+						   change="this.bufferRadius = hSlider.value;"/>
+				<s:Label id="radiusValueLabel" text="{'['+bufferRadius + '米' + ']'}" styleName="WidgetText" textAlign="left"/>			
+			</s:HGroup>
+			<s:Group id="POIGroup" width="100%" height="80">
+				<s:layout>
+					<components:FlowLayout gapColumn="0" />
+				</s:layout>
+			</s:Group>
+		</s:VGroup>
+		
+		<s:Group width="100%">
+			<s:Line width="100%" verticalCenter="0">
+				<s:stroke>
+					<s:SolidColorStroke color="0xffffff"/>
+				</s:stroke>
+			</s:Line>
+			<s:Line width="100%" verticalCenter="1">
+				<s:stroke>
+					<s:SolidColorStroke color="0xd1d0ce"/>
+				</s:stroke>
+			</s:Line>
+			<s:Image source="{_collClass}" verticalCenter="0" horizontalCenter="0" 
+					 buttonMode="true" click="expendbtn_clickHandler(event)" id="showImage"/>
+		</s:Group>
+		<!--<onemap:DottedLine left="0" width="100%"/>-->
+		<s:Label text="查找结果" styleName="WidgetText" fontWeight="bold" fontSize="13" fontFamily="宋体" color="#535353"/>
+		<s:Label visible = "false" includeInLayout="false" id="lblNoReslut"/>
+		<s:Scroller id="scroller" width="100%" height="100%" fontFamily="宋体">
+			<Buffer:BufferResultDataGroup id="searchResultDG" fontFamily="宋体"
+										  bufferResultClick="clickRecord(event)"
+										  bufferResultMouseOut="mouseOutRecord(event)"
+										  bufferResultMouseOver="mouseOverRecord(event)">
+				<Buffer:layout>
+					<s:VerticalLayout gap="2"
+									  horizontalAlign="justify"
+									  useVirtualLayout="true"/>
+				</Buffer:layout>
+			</Buffer:BufferResultDataGroup>
+		</s:Scroller>
+		<mx:HRule width="100%" styleName="BannerRule"/>
+		<s:Group width="100%">
+			<pageSelector:PagesSelector pageCount="6" id="pagesSelector" paddingTop="10" horizontalCenter="0"
+										PageChanged="pagesSelector_PageChangedHandler(event)"/>
+		</s:Group>
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

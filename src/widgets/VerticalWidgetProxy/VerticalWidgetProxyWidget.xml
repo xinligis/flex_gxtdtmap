@@ -1,0 +1,12 @@
+<?xml version="1.0" ?>
+<configuration>
+	<proxy name="天气" 
+		icon_off="assets/images/verticalwidgetproxy/weather_off.png" 
+		icon_on="assets/images/verticalwidgetproxy/weather_on.png" 
+		widget="widgets/Weather/WeatherWidget.swf"/>
+	<proxy name="路况" 
+		icon_off="assets/images/verticalwidgetproxy/roadConditions_off.png" 
+		icon_on="assets/images/verticalwidgetproxy/roadConditions_on.png" 
+		widget="widgets/TrafficCondition/TrafficConditionWidget.swf"/>
+	<!--<proxy name="摄像头" icon_off="assets/images/verticalwidgetproxy/probe_off.png" icon_on="assets/images/verticalwidgetproxy/probe_on.png" widget=""/> -->
+</configuration>

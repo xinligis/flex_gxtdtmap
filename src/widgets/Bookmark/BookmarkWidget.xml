@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<configuration>
+    <bookmarks>
+    	<!-- 左上x y 右下x y -->
+    	<bookmark name="解放碑" icon="">106.569 29.563 106.576 29.557</bookmark>
+    	<bookmark name="观音桥" icon="">106.523 29.587 106.535 29.572</bookmark>
+    	<bookmark name="南坪" icon="">106.557 29.535 106.565 29.529</bookmark>
+    	<bookmark name="杨家坪" icon="">106.507 29.516 106.515 29.51</bookmark>
+    	<bookmark name="沙坪坝" icon="">106.456 29.562 106.464 29.557</bookmark>   	  	
+    </bookmarks>
+</configuration>

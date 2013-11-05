@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<configuration>
+	<proxy name="图层管理" icon_off="assets/images/shortcut/imgLayer_up.png" icon_on="assets/images/shortcut/imgLayer_down.png" widget="widgets/BusTransfer/BusTransferWidget.swf"/>
+	<proxy name="图例" icon_off="assets/images/shortcut/legend_up.png" icon_on="assets/images/shortcut/legend_down.png"  widget="widgets/NetworkAnalyst/NetworkAnalystWidget.swf"/>
+	<proxy name="书签" icon_off="assets/images/shortcut/bookmark_up.png" icon_on="assets/images/shortcut/bookmark_down.png" widget=""/>
+	<proxy name="周边查询" icon_off="assets/images/shortcut/around_up.png" icon_on="assets/images/shortcut/around_down.png" widget=""/>
+	<proxy name="设施查询" icon_off="assets/images/shortcut/facility_up.png" icon_on="assets/images/shortcut/facility_down.png" widget=""/>
+	<proxy name="纠错" icon_off="assets/images/shortcut/mapCorrection_up.png" icon_on="assets/images/shortcut/mapCorrection_down.png" widget=""/>
+	<proxy name="卷帘放大镜" icon_off="assets/images/shortcut/blend_up.png" icon_on="assets/images/shortcut/blend_down.png" widget=""/>
+	<proxy name="分析" icon_off="assets/images/shortcut/analysis_up.png" icon_on="assets/images/shortcut/analysis_down.png" widget=""/>
+</configuration>

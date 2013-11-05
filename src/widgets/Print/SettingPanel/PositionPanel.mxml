@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:HGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+		 width="126" height="82" gap="3" verticalAlign="middle">
+	<fx:Metadata>
+		[Event(name="positionChange",type="widgets.Print.SettingPanel.PositionChangeEvent")]
+	</fx:Metadata>
+
+	<fx:Script>
+		<![CDATA[
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_UP,PositionChangeEvent.STEP_SMALL));
+			}
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_UP,PositionChangeEvent.STEP_LARGE));
+			}
+			
+			protected function button4_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTOIN_LEFT,PositionChangeEvent.STEP_SMALL))
+			}
+			
+			protected function button3_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTOIN_LEFT,PositionChangeEvent.STEP_LARGE))
+			}
+			
+			protected function button6_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_DOWN,PositionChangeEvent.STEP_LARGE))
+			}
+			protected function button7_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_RIGHT,PositionChangeEvent.STEP_SMALL))
+			}
+			protected function button5_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_DOWN,PositionChangeEvent.STEP_SMALL))
+			}
+			
+			protected function button8_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_RIGHT,PositionChangeEvent.STEP_LARGE))
+			}
+			
+			protected function button9_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_CENTER,PositionChangeEvent.STEP_LARGE))
+			}
+			
+			protected function button10_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_VERTICAL_CENTER,PositionChangeEvent.STEP_LARGE))
+			}
+			protected function button11_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new PositionChangeEvent(PositionChangeEvent.DIRECTION_HORIZONTAL_CENTER,PositionChangeEvent.STEP_LARGE))
+			}
+			[Bindable]
+			[Embed('assets/images/print/u.png')]
+			private var uClass:Class;
+			
+			[Bindable]
+			[Embed('assets/images/print/d.png')]
+			private var dClass:Class;
+			
+			[Bindable]
+			[Embed('assets/images/print/l.png')]
+			private var lClass:Class;
+			
+			[Bindable]
+			[Embed('assets/images/print/r.png')]
+			private var rClass:Class;
+			
+			
+			[Bindable]
+			[Embed('assets/images/print/vc.png')]
+			private var vcClass:Class; 
+			
+			[Bindable]
+			[Embed('assets/images/print/hc.png')]
+			private var hcClass:Class; 
+			
+			[Bindable]
+			[Embed('assets/images/print/jz.png')]
+			private var jzClass:Class; 
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<mx:Button click="button4_clickHandler(event)" 
+			   toolTip="左移"
+			   width="19" height="19" icon="{lClass}"/>
+	<s:Group width="82" height="82">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/print/positionBg.png')"/>
+			</s:fill>
+		</s:Rect>
+		<mx:Button click="button2_clickHandler(event)" width="19" height="19" icon="{uClass}" top="4" horizontalCenter="0" toolTip="上移"/>
+		<mx:Button click="button11_clickHandler(event)" width="19" height="19" icon="{hcClass}" toolTip="水平居中" verticalCenter="0" left="4"/>
+		<mx:Button click="button5_clickHandler(event)" width="19" height="19" icon="{dClass}" horizontalCenter="0" bottom="4" toolTip="下移"/>
+		<mx:Button click="button10_clickHandler(event)" width="19" height="19" icon="{vcClass}" toolTip="垂直居中" right="4" verticalCenter="0"/>
+		<mx:Button click="button9_clickHandler(event)" width="19" height="19" icon="{jzClass}" toolTip="居中" verticalCenter="0" horizontalCenter="0"/>
+	</s:Group>
+	<mx:Button click="button7_clickHandler(event)" width="19" height="19" icon="{rClass}" toolTip="右移"/>
+	
+</s:HGroup>

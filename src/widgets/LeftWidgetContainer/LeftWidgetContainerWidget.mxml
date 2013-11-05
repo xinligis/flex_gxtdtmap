@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:viewer="com.esri.viewer.*"
+				   width="100%" height="100%"
+				   backgroundColor="#FFFFFF"
+				   implements="com.esri.viewer.IWidgetContainer"
+				   creationComplete="this_creationCompleteHandler()">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.IWidgetContainer;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.core.IVisualElement;
+			import mx.events.FlexEvent;
+			
+			import spark.components.BorderContainer;
+			import spark.events.ElementExistenceEvent;
+
+			private function this_creationCompleteHandler():void
+			{
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, widgetClosedHandler);
+			}
+			
+			public function isBasicLayout():Boolean
+			{
+				return true;
+			}
+			
+			/**
+			 * 判断是否拆分布局
+			 */
+			public function isSplitLayout():Boolean
+			{
+				return false;
+			}
+			
+			public function addWidget(value:IBaseWidget):void
+			{
+				if(widgetVGroup.numElements>0){
+					var widget:IVisualElement = widgetVGroup.getElementAt(0);
+					var baseWidget:IBaseWidget = widget as IBaseWidget;
+					if (baseWidget){
+						baseWidget.setState(WidgetStates.WIDGET_CLOSED);
+					}
+				}
+				
+				var visualElement:IVisualElement = value as IVisualElement;
+				if (visualElement)
+				{
+					widgetVGroup.addElement(visualElement);
+				}
+				AppEvent.dispatch(AppEvent.WIDGET_ADDED, visualElement);
+			}
+			
+			public function focusWidget(id:Number):void
+			{
+			}
+			
+			public function set configParams(value:Object):void
+			{
+				if (value.left)
+				{
+					this.left = value.left;
+				}
+				if (value.right)
+				{
+					this.right = value.right;
+				}
+				if (value.top)
+				{
+					this.top = value.top;
+				}
+				if (value.bottom)
+				{
+					this.bottom = value.bottom;
+				}
+			}
+			
+			private function widgetClosedHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				
+				if (data.state as String == WidgetStates.WIDGET_CLOSED)
+				{
+					var curId:Number = data.id as Number;
+					removeWidget(curId);
+				}
+			}
+			
+			private function removeWidget(curId:Number):void
+			{
+				var widget:IVisualElement;
+				for (var i:int = 0; i < widgetVGroup.numElements; i++)
+				{
+					widget = widgetVGroup.getElementAt(i);
+					var baseWidget:IBaseWidget = widget as IBaseWidget;
+					if (baseWidget && (baseWidget.widgetId == curId))
+					{
+						widgetVGroup.removeElement(widget);
+						return;
+					}
+				}
+			}
+			
+			private function onClickBackMain(event:MouseEvent):void
+			{
+				AppEvent.dispatch(AppEvent.BASE_BACK_HOME, null);
+			}
+		]]>
+	</fx:Script>
+	<s:BorderContainer width="100%" height="100%"
+					   borderAlpha="1" borderColor="#d8d8d8"
+					   backgroundColor="#FFFFFF">
+		<s:layout>
+			<s:VerticalLayout horizontalAlign="left" gap="0"/>
+		</s:layout>
+		<s:BorderContainer width="100%" height="32" borderVisible="false" backgroundImage="@Embed('assets/images/navibackground.gif')">
+			<s:layout>
+				<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle"/>
+			</s:layout>
+			<s:Image id="home" width="16" height="16" source="@Embed('assets/images/useroperationfloor/backhome.png')"/>
+			<s:Label text="首页" textAlign="left" fontFamily="宋体" fontSize="12" color="#4061ad" 
+					 fontWeight="normal" buttonMode="true"  click="onClickBackMain(event)"/>
+		</s:BorderContainer>
+		<!-- 各个子Widget的真正容器-->
+		<s:VGroup id="widgetVGroup"  width="100%" height="100%" gap="0">
+		</s:VGroup>
+	</s:BorderContainer>
+</viewer:BaseWidget>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
+				xmlns:s="library://ns.adobe.com/flex/spark"
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				autoDrawBackground="false"
+				click="itemrenderer_clickHandler(event)"
+				mouseOver = "itemrenderer_mouseOverHandler(event)"
+				mouseOut = "itemrenderer_mouseOutHandler(event)"
+				dataChange="itemrenderer_dataChangeHandler(event)"
+				minHeight="30"
+				>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.symbols.Symbol;
+			
+			import mx.events.FlexEvent;
+			import mx.utils.StringUtil;
+			
+			private const QUERY_RESULT_CLICK:String = "closestFacilityResultClick";
+			
+			private const QUERY_RESULT_MOUSE_OVER:String = "closestFacilityResultMouseOver";
+			
+			private const QUERY_RESULT_MOUSE_OUT:String = "closestFacilityResultMouseOut";
+			
+			[Bindable]
+			private var closestFacilityResult:ClosestFacilityResult;
+			
+			private var lastResultSymbol:Symbol;
+			private var lastResultSwatch:UIComponent;
+			
+			private function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				closestFacilityResult = data as ClosestFacilityResult;
+				
+				if (closestFacilityResult)
+				{
+					if (lastResultSymbol !== closestFacilityResult.symbol)
+					{
+						if (resultIcon.numChildren > 0)
+						{
+							resultIcon.removeChildAt(0);
+						}
+						lastResultSymbol = closestFacilityResult.symbol;
+						lastResultSwatch = lastResultSymbol.createSwatch(20, 20);
+					}
+					if(lastResultSwatch)
+						resultIcon.addChild(lastResultSwatch);
+					
+					/* 更新itemrender，加入视频和图片处理的代码段
+					 * 张丹荔
+					 * 2011-04-19
+					 */
+					//当超链接不为视频或图片时才显示超链接符号，王红亮，2011-01-17
+					if(closestFacilityResult.link)
+					{		
+						linkImage.visible = false;
+						linkImage.includeInLayout = false;
+						var link:String = closestFacilityResult.link as String;
+						if(StringUtil.trim(link) == "")
+						{
+							return;
+						}
+						var pos:Number = link.length - 4;
+						var sfx:String = link.substr(pos, 4).toLowerCase();
+						if ((sfx == ".jpg") || (sfx == ".png") || (sfx == ".gif"))
+						{
+							
+						}
+						else if(sfx == ".flv")
+						{
+							
+						}
+						else if(link != "")
+						{
+							linkImage.visible = true;
+							linkImage.includeInLayout = true;
+						}
+					}
+				}
+				
+			}
+			
+			private function itemrenderer_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event(QUERY_RESULT_CLICK, true)); // bubbles
+			}
+			
+			private function itemrenderer_mouseOverHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event(QUERY_RESULT_MOUSE_OVER, true)); // bubbles
+			}
+			
+			private function itemrenderer_mouseOutHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event(QUERY_RESULT_MOUSE_OUT, true)); // bubbles
+			}
+			
+			private function showLink(event:MouseEvent):void
+			{
+				event.stopImmediatePropagation(); // don't dispatch QUERY_RESULT_CLICK since we don't want to zoom to feature
+				navigateToURL(new URLRequest(closestFacilityResult.link));
+			}
+		]]>
+	</fx:Script>
+	
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="hovered"/>
+	</s:states>
+	
+	<!-- border/background rectangle -->
+	<s:Rect left="0" right="0" top="0" bottom="0"
+			radiusX="4"
+			radiusY="4">
+		<s:stroke>
+			<mx:SolidColorStroke alpha="{getStyle('borderAlpha')}"
+								 color="{getStyle('borderColor')}"
+								 weight="1"/>
+		</s:stroke>
+		<!--<s:fill>
+			<mx:SolidColor alpha="0.3"
+						   alpha.hovered="0.8"
+						   color.hovered="{getStyle('rollOverColor')}"
+						   color.normal="{getStyle('contentBackgroundColor')}"/>
+		</s:fill>-->
+	</s:Rect>
+	
+	<s:HGroup width="100%" height="100%"
+			  paddingBottom="3"
+			  paddingLeft="3"
+			  paddingRight="3"
+			  paddingTop="3"
+			  verticalAlign="middle">
+		<mx:UIComponent id="resultIcon"
+						width="100%" height="100%"
+						maxHeight="20"
+						maxWidth="20">
+			<mx:filters>
+				<mx:GlowFilter alpha="0.5"
+							   blurX="10"
+							   blurY="10"
+							   color="#000000"/>
+			</mx:filters>
+		</mx:UIComponent>
+		<s:VGroup width="100%" height="100%"
+				  verticalAlign="middle">
+			<s:Label width="100%"
+					 fontWeight="bold"
+					 maxDisplayedLines="1"
+					 text="{closestFacilityResult.title}"/>
+			<s:Label width="100%"
+					 fontWeight="normal"
+					 maxDisplayedLines="-1"
+					 text="{closestFacilityResult.content}"/>
+			<s:Label width="100%"
+					 fontWeight="normal"
+					 maxDisplayedLines="-1"
+					 text="距离：{closestFacilityResult.totalDistance}"/>
+			<s:Label width="100%"
+					 fontWeight="normal"
+					 maxDisplayedLines="-1"
+					 text="时间：{closestFacilityResult.totalTime}"/>
+		</s:VGroup>
+		<mx:Image id="linkImage"
+				  width="18" height="18"
+				  buttonMode="true"
+				  click="showLink(event)"
+				  includeInLayout="false"
+				  source="assets/images/w_link.png"
+				  useHandCursor="true"
+				  visible="false"/>
+	</s:HGroup>
+</s:ItemRenderer>

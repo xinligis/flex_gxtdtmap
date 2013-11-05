@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="25" 
+		 xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*"
+		 xmlns:Windows="widgets.HeaderController.HeaderMenu.Windows.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.UrlConstructor;
+			
+			import flash.net.navigateToURL;
+			
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			private var _configXml:XML = null;
+			private var _oldMapUrl:String = null;
+			
+			public function set configXml(value:XML):void
+			{
+				_configXml = value;
+				indexLabel.text = _configXml.headermemu.indexpage.@label;
+				phoneWindow.iphoneXML = _configXml.headermemu.phonemap.iphone[0];
+				phoneWindow.androidXML = _configXml.headermemu.phonemap.andriod[0];
+				cqWindow.configXML = _configXml.headermemu.cqtong[0];
+				aboutWindow.configXML = _configXml.headermemu.about[0];
+				_oldMapUrl = String(_configXml.headermemu.oldmap[0]);
+				_oldMapUrl = UrlConstructor.getUrl(_oldMapUrl);
+			}
+			
+			protected function indexLabel_mouseOverHandler(event:MouseEvent):void
+			{
+				var label:Label = event.target as Label;
+				label.setStyle("color",0xffffff);
+			}
+			
+			protected function indexLabel_mouseOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var label:Label = event.target as Label;
+				label.setStyle("color",0x92a2c6);
+				
+			}
+			
+			protected function indexLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var request:URLRequest = new URLRequest(UrlConstructor.getUrl(_configXml.headermemu.indexpage.@url));
+				navigateToURL(request,"_blank");
+			}
+			
+			protected function phoneLabel_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.addPopUp(phoneWindow,this.parent.parent,true);
+				PopUpManager.centerPopUp(phoneWindow);
+			}
+			
+			protected function cqWindow_closeHandler(event:CloseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(cqWindow);
+			}
+			
+			protected function phoneWindow_closeHandler(event:CloseEvent):void
+			{
+				PopUpManager.removePopUp(phoneWindow);
+			}
+			
+			protected function cqLabel_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.addPopUp(cqWindow,this.parent.parent,true);
+				PopUpManager.centerPopUp(cqWindow);
+			}
+			
+			protected function aboutLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.addPopUp(aboutWindow,this.parent.parent,true);
+				PopUpManager.centerPopUp(aboutWindow);
+			}
+			
+			protected function aboutWindow_closeHandler(event:CloseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(aboutWindow);
+			}
+			
+			protected function oldMapLabel_clickHandler(event:MouseEvent):void
+			{
+				var request:URLRequest = new URLRequest(_oldMapUrl);
+				navigateToURL(request,"_blank");
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<Windows:CQTongWindow id="cqWindow" close="cqWindow_closeHandler(event)" 
+							  backgroundColor="0xf7f7f7" closeButtonVisible="true"/>
+		<Windows:PhoneWindow id="phoneWindow" close="phoneWindow_closeHandler(event)"
+							 backgroundColor="0xf7f7f7" closeButtonVisible="true"/>
+		<Windows:AboutWindow id="aboutWindow" close="aboutWindow_closeHandler(event)"
+							 backgroundColor="0xf7f7f7" closeButtonVisible="true"/>
+	</fx:Declarations>
+	<!--<s:Rect width="100%" height="100%">
+		<s:fill>
+			<s:SolidColor color="#1e4083"/>
+		</s:fill>
+	</s:Rect>-->
+	<s:Rect top="0" left="0" height="100%" width="475">
+		<s:fill>
+			<s:BitmapFill source="@Embed('assets/images/headermenu/headermenuleft.png')"/>
+		</s:fill>
+	</s:Rect>
+	<s:Rect top="0" right="0" height="100%" width="211">
+		<s:fill>
+			<s:BitmapFill source="@Embed('assets/images/headermenu/headermenuright.png')"/>
+		</s:fill>
+	</s:Rect>
+	<s:Rect top="0" right="211" left="475" height="100%">
+		<s:fill>
+			<s:BitmapFill source="@Embed('assets/images/headermenu/headermenumiddle.png')" fillMode="repeat"/>
+		</s:fill>
+	</s:Rect>
+	<s:HGroup width="100%" height="100%" gap="0" verticalAlign="middle"
+			  fontFamily="宋体" fontSize="12" color="#92a2c6" visible="false">
+		<s:Spacer width="25"/>
+		<s:Label id="indexLabel" text="重庆市地理信息公共服务平台" 
+				 buttonMode="true" click="indexLabel_clickHandler(event)"
+				 mouseOver="indexLabel_mouseOverHandler(event)"
+				 mouseOut="indexLabel_mouseOutHandler(event)"/>
+		<s:Spacer width="25"/>
+		<!--<s:Line height="12">
+			<s:stroke>
+				<s:SolidColorStroke color="#92a2c6"/>
+			</s:stroke>
+		</s:Line-->
+		<s:Spacer width="25"/>
+		<s:Label text="手机地图" id="phoneLabel" buttonMode="true"
+				 mouseOver="indexLabel_mouseOverHandler(event)"
+				 mouseOut="indexLabel_mouseOutHandler(event)"
+				 click="phoneLabel_clickHandler(event)"/>
+		<s:Spacer width="25"/>
+		<s:Line height="12">
+			<s:stroke>
+				<s:SolidColorStroke color="#92a2c6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Spacer width="25"/>
+		<s:Label text="重庆通" id="cqLabel" buttonMode="true"
+				 mouseOver="indexLabel_mouseOverHandler(event)"
+				 mouseOut="indexLabel_mouseOutHandler(event)"
+				 click="cqLabel_clickHandler(event)"/>
+		<s:Spacer width="25"/>
+		<s:Line height="12">
+			<s:stroke>
+				<s:SolidColorStroke color="#92a2c6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Spacer width="25"/>
+		<s:Label text="老地图" id="oldMapLabel" buttonMode="true"
+				 mouseOver="indexLabel_mouseOverHandler(event)"
+				 mouseOut="indexLabel_mouseOutHandler(event)"
+				 click="oldMapLabel_clickHandler(event)"/>
+		<s:Spacer width="25"/>
+		<s:Line height="12">
+			<s:stroke>
+				<s:SolidColorStroke color="#92a2c6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Spacer width="25"/>
+		<s:Label text="关于我们" id="aboutLabel" buttonMode="true"
+				 mouseOver="indexLabel_mouseOverHandler(event)"
+				 mouseOut="indexLabel_mouseOutHandler(event)"
+				 click="aboutLabel_clickHandler(event)"/>
+	</s:HGroup>
+</s:Group>

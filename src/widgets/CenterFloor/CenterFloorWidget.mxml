@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 中间背景条
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:viewer="com.esri.viewer.*" 
+					width="100%"
+					widgetConfigLoaded="onWidgetConfigLoaded()">
+	<fx:Script>
+		<![CDATA[
+			private function onWidgetConfigLoaded():void
+			{
+				
+			}
+		]]>
+	</fx:Script>
+	<s:BorderContainer width="100%" height="32" 
+					   borderAlpha="1" borderColor="#d8d8d8"
+					   backgroundImage="@Embed('assets/images/navibackground.gif')">
+	</s:BorderContainer>
+</viewer:BaseWidget>	

@@ -1,0 +1,198 @@
+<?xml version="1.0" ?>
+<!-- //////////////////////////////////////////////////////////////////////////////// 
+	// // Copyright © 2008 ESRI // // All rights reserved under the copyright 
+	laws of the United States. // You may freely redistribute and use this software, 
+	with or // without modification, provided you include the original copyright 
+	// and use restrictions. See use restrictions in the file: // <install location>/FlexViewer/License.txt 
+	// //////////////////////////////////////////////////////////////////////////////// -->
+<configuration>
+	<geometryServiceURL>http://124.205.245.98:8181/OneMapServer/rest/services/Geometry/GeometryServer</geometryServiceURL>
+	<bufferspatialref>102113</bufferspatialref>
+	<poicatalogs>
+		<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+		<oidfield>OBJECTID</oidfield>
+		<titlefield>NAME</titlefield>
+		<linkfield></linkfield>
+		<fields all="false">
+			<field name="NAME" alias="名称" />
+			<field name="ADDNAME" alias="地址" />
+			<field name="TELEPHONE" alias="电话号码" />
+		</fields>
+		<expression>TYPE = '[value]'</expression>
+		<foreignkeyfield></foreignkeyfield>
+		<relatedtable>
+			<url></url>
+			<expression>RelateID = [value]</expression>
+			<multimediafield>URL</multimediafield>
+		</relatedtable>
+		<poicatalog name="餐饮" code="01">
+			<simplemarkersymbol color="0xFF7505" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/restaurant.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="购物" code="02">
+			<simplemarkersymbol color="0x20bf0f" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/shopping.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="住宿" code="03">
+			<simplemarkersymbol color="0xe50000" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/hotel.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="出行" code="04">
+			<simplemarkersymbol color="0x0080ff" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/travel.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="文体娱乐" code="05">
+			<simplemarkersymbol color="0xd60f5e" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/entertainment.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="金融服务" code="06">
+			<simplemarkersymbol color="0xaa640a" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/finance.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="生活服务" code="07">
+			<simplemarkersymbol color="0x0f1aa7" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/life.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="汽车服务" code="08">
+			<simplemarkersymbol color="0x0e8e9e" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/car.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="教育" code="09">
+			<simplemarkersymbol color="0x8e0d0d" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/education.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="医疗" code="10">
+			<simplemarkersymbol color="0xa616d5" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/hospital.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="房产" code="11">
+			<simplemarkersymbol color="0x5c5c5c" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/house.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="旅游" code="12">
+			<simplemarkersymbol color="0x19e40f" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/park.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="企事业单位" code="13">
+			<simplemarkersymbol color="0x764010" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/enterprise.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="行政机构" code="14">
+			<simplemarkersymbol color="0x8e0d0d" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/government.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+		<poicatalog name="公共服务设施" code="15">
+			<simplemarkersymbol color="0xffc50e" alpha="1"
+				size="10" />
+			<compositesymbol>
+				<picturemarkersymbol source="assets/images/search/general.png"
+					width="47" height="54" xoffset="7" yoffset="25" />
+				<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+			</compositesymbol>
+		</poicatalog>
+	</poicatalogs>
+	<general>
+		<name>其它</name>
+		<url></url>
+		<expression></expression>
+		<textsearchlabel>查找</textsearchlabel>
+		<graphicalsearchlabel></graphicalsearchlabel>
+		<fields>
+			<field name="NAME" alias="名称" />
+			<field name="ADDNAME" alias="地址" />
+			<field name="TELEPHONE" alias="电话号码" />
+		</fields>
+		<titlefield>NAME</titlefield>
+		<linkfield></linkfield>
+		<simplemarkersymbol color="0x20bf0f" alpha="1"
+			size="10" />
+		<compositesymbol>
+			<picturemarkersymbol source="assets/images/search/general.png"
+				width="47" height="54" xoffset="7" yoffset="25" />
+			<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40" />
+		</compositesymbol>
+		<foreignkeyfield></foreignkeyfield>
+		<relatedtable>
+			<url></url>
+			<expression>RelateID = [value]</expression>
+			<multimediafield>URL</multimediafield>
+		</relatedtable>
+	</general>
+	<zoomlevel>8</zoomlevel>
+	<bufferRadius>500</bufferRadius>
+	<searchzoomscale>36112</searchzoomscale>
+	<info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
+	<infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+	<maxRadius>3000</maxRadius>
+	<minRadius>0</minRadius>
+</configuration>

@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" 
+		 height="100%" xmlns:validPanel="com.esri.viewer.components.validPanel.*" 
+		 xmlns:pageSelector="com.esri.viewer.components.pageSelector.*" xmlns:esri="http://www.esri.com/2008/ags">
+	<fx:Metadata>
+		/**
+		 * 查询POI的详细信息
+		 **/
+		[Event(name="queryDetail",type="flash.events.Event")]
+		/**
+		* 选择POI事件
+		**/
+		[Event(name="selectPOI",type="flash.events.Event")]
+		
+		/**
+		 * 取消选择POI事件
+		 **/
+		[Event(name="cancelSelect",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.viewer.components.pageSelector.PageChangeEvent;
+			
+			import mx.collections.ArrayCollection;
+			/**
+			 * 不确定的起点类型
+			 **/
+			public static const INVALID_TYPE_START:String = "start";
+			/**
+			 * 不确定的终点类型
+			 **/
+			public static const INVALID_TYPE_END:String = "end";
+			/**
+			 * 不确定的途经点类型
+			 **/
+			public static const INVALID_TYPE_PASS:String = "pass";
+			
+			private var _invalidType:String;
+			
+			private var _zoomlevel:int = 0;
+			
+			/**
+			 * 点击某个项放大居中时的放大级别
+			 **/
+			public function set zoomlevel(value:int):void
+			{
+				_zoomlevel = value;
+			}
+			
+			public function get zoomlevel():int
+			{
+				return _zoomlevel;
+			}
+			
+			/**
+			 * 当前验证的类型，“起点”、“终点”或者途经点。参考INVALID_TYPE_START、INVALID_TYPE_END、INVALID_TYPE_PASS
+			 **/
+			public function get invalidType():String
+			{
+				return _invalidType;
+			}
+			
+			public function set invalidType(value:String):void
+			{
+				_invalidType = value;
+				switch(_invalidType)
+				{
+					case INVALID_TYPE_START:
+						titleLable.text = "请选择准确的起点";
+						break;
+					case INVALID_TYPE_END:
+						titleLable.text = "请选择准确的终点";
+						break;
+					case INVALID_TYPE_PASS:
+						titleLable.text = "请选择准确的途经点";
+						break;
+				}
+			}
+			
+			private var _poiIds:Array;
+			
+			
+			/**
+			 * 设置所有需要展示的POI的Ids，组件会根据这些ID进行分页查询
+			 **/
+			public function get poiIds():Array
+			{
+				return _poiIds;
+			}
+			public function set poiIds(value:Array):void
+			{
+				_poiIds = value;
+				if(_poiIds == null || _poiIds.length<1)
+				{
+					//说明没有结果
+					return;
+				}
+				var count:Number = _poiIds.length;
+				var pageNumber:int;
+				if(count%_pageSize == 0)
+				{
+					pageNumber = count/_pageSize;
+				}
+				else
+				{
+					pageNumber = count/_pageSize+1;
+				}
+				pager.set_TotalCount(pageNumber);
+				pager.currentPage = 1;
+			}
+			
+			private var _pageSize:int = 10;
+			
+			/**
+			 * 一页显示多少条记录
+			 **/
+			public function get pageSize():int
+			{
+				return _pageSize;
+			}
+			public function set pageSize(value:int):void
+			{
+				_pageSize = value;
+			}
+			
+			private var _currentPoiIds:Array = [];
+			/**
+			 * 当前需要查询的POI的ID
+			 **/
+			public function get currentPoiIds():Array
+			{
+				return _currentPoiIds;
+			}
+			
+			protected function pager_PageChangedHandler(event:PageChangeEvent):void
+			{
+				var startIndex:int = (event.currentPage-1)*_pageSize;
+				var endIndex:int = startIndex + _pageSize;
+				_currentPoiIds = _poiIds.slice(startIndex,endIndex);
+				dispatchEvent(new Event("queryDetail"));
+			}
+			
+			/**
+			 * POI的显示名字字段
+			 **/
+			private var _poiDisplayField:String;
+			
+			public function get poiDisplayField():String
+			{
+				return _poiDisplayField;
+			}
+			
+			public function set poiDisplayField(value:String):void
+			{
+				_poiDisplayField = value;
+			}
+			
+			/**
+			 * POI的地址字段
+			 **/
+			private var _poiAddField:String = "";
+			
+			public function set poiAddField(value:String):void
+			{
+				_poiAddField = value;
+			}
+			
+			public function get poiAddField():String
+			{
+				return _poiAddField;
+			}
+			
+			/**
+			 * 用户确定后选择的POI
+			 **/
+			private var _selectedPOI:Graphic;
+			/**
+			 * 用户确定后选择的POI
+			 **/
+			public function get selectedPOI():Graphic
+			{
+				return _selectedPOI;
+			}
+			
+			private var _highlightGraphic:Graphic = null;
+			
+			/**
+			 * 设置显示的POI 实际的featureSet。
+			 **/
+			public function setPoiDatas(featrueSet:FeatureSet):void
+			{
+				//清除原来的结果
+				_graphicsLayer.clear();
+				_highlightGraphic = null;
+				var len:int = featrueSet.features.length;
+				var ac:ArrayCollection = new ArrayCollection();
+				for(var i:int = 0;i<len;i++)
+				{
+					var feature:Graphic = featrueSet.features[i];
+					var data:Object = new Object();
+					data.name = feature.attributes[_poiDisplayField];
+					if(_poiAddField != "")
+					{
+						data.address = feature.attributes[_poiAddField];
+					}
+					else
+					{
+						data.address = "";
+					}
+					feature.symbol = sms;
+					data.graphic = feature;
+					data.type = _invalidType;
+					data.index = i;
+					ac.addItem(data);
+					_graphicsLayer.add(feature);
+				}
+				validDataGroup.dataProvider = ac;
+			}
+			
+			protected function validDataGroup_selectPOIHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var itemRender:ValidItemRenderer = event.target as ValidItemRenderer;
+				_selectedPOI = itemRender.data.graphic;
+				_graphicsLayer.clear();
+				_highlightGraphic = null;
+				dispatchEvent(new Event("selectPOI"));
+//				_map.removeLayer(_graphicsLayer);
+				
+			}
+			
+//			public var map:Map;
+			
+			private var _graphicsLayer:GraphicsLayer;
+			
+			private var _map:Map = null;
+			
+			public function set map(value:Map):void
+			{
+				if(value != null &&　value != _map)
+				{
+					_map = value;
+					_graphicsLayer = new GraphicsLayer();
+					_map.addLayer(_graphicsLayer);
+				}
+			}
+			
+			protected function validDataGroup_itemRollOverHandler(event:Event):void
+			{
+				var itemRender:ValidItemRenderer = event.target as ValidItemRenderer;
+				var g:Graphic = itemRender.data.graphic as Graphic
+				if(_highlightGraphic == null)
+				{
+					_highlightGraphic = new Graphic(g.geometry,hlsymbol);
+					_graphicsLayer.add(_highlightGraphic);
+				}
+				else
+				{
+					_highlightGraphic.geometry = g.geometry;
+					_highlightGraphic.refresh();
+				}
+//				_selectedPOI = itemRender.data.graphic;
+				
+			}
+			
+			protected function validDataGroup_certerAtItemHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var itemRender:ValidItemRenderer = event.target as ValidItemRenderer;
+				var g:Graphic = itemRender.data.graphic as Graphic;
+//				if(_highlightGraphic == null)
+//				{
+//					_highlightGraphic = new Graphic(g.geometry,hlsymbol);
+//					_graphicsLayer.add(_highlightGraphic);
+//				}
+//				else
+//				{
+//					_highlightGraphic.geometry = g.geometry;
+//					_highlightGraphic.refresh();
+//				}
+				if(_graphicsLayer.map.level < _zoomlevel)
+				{
+					_graphicsLayer.map.level = _zoomlevel;
+				}
+				_graphicsLayer.map.centerAt(g.geometry as MapPoint);
+			}
+			
+			/**
+			 * 添加或者移除验证图层
+			 **/
+			public function switchLayer(flag:Boolean):void
+			{
+				if(_graphicsLayer)
+				{
+					_graphicsLayer.visible = flag;
+				}
+			}
+			
+			protected function returnLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				_graphicsLayer.clear();
+				_highlightGraphic = null;
+				dispatchEvent(new Event("cancelSelect"));
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<esri:SimpleMarkerSymbol size="10" style="circle" color="0xff8400" id="sms"/>
+		<esri:PictureMarkerSymbol source="@Embed('assets/images/validpanel/highlightsymbol.png')" 
+								  xoffset="5" id="hlsymbol" yoffset="15"/>
+	</fx:Declarations>
+	<s:Label id="titleLable" top="5" left="20" fontFamily="宋体" color="#ff8400" fontSize="12"/>
+	<s:Label text="返回" top="5" right="20" fontFamily="宋体" color="#2d4b8d" buttonMode="true"
+			 rollOut="{returnLabel.setStyle('fontWeight','normal')}" 
+			 rollOver="{returnLabel.setStyle('fontWeight','bold')}"
+			 fontSize="12" id="returnLabel" click="returnLabel_clickHandler(event)"/>
+	<s:Scroller top="30" horizontalScrollPolicy="off" bottom="65" width="100%">
+		<validPanel:ValidDataGroup id="validDataGroup" left="10" right="10"
+								   itemSelect="validDataGroup_selectPOIHandler(event)"
+								   itemRollOver="validDataGroup_itemRollOverHandler(event)"
+								   certerAtItem="validDataGroup_certerAtItemHandler(event)">
+			<validPanel:layout>
+				<s:VerticalLayout gap="0" horizontalAlign="center"/>
+			</validPanel:layout>
+		</validPanel:ValidDataGroup>
+	</s:Scroller>
+	<pageSelector:PagesSelector id="pager" bottom="5" horizontalCenter="0" 
+								PageChanged="pager_PageChangedHandler(event)"/>
+</s:Group>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+   <placeNameAddress>
+  	<url>http://www.tianditucq.com/GeoCoding/rest/services/ChGeocodeServer/chgeocoding</url>
+  	<displayfield>NAME</displayfield>
+  </placeNameAddress>
+  <resultWidget>widgets/PlaceNameAddress/PlaceNameAddressWidget.swf</resultWidget>
+</configuration>

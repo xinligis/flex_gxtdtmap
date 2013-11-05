@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false"
+				dataChange="itemrenderer_dataChangeHandler(event)" 
+				xmlns:components="com.esri.viewer.components.*" 
+				width="100%" currentState="hide"
+				xmlns:componet="com.esrichina.om.componet.*" xmlns:BusRoute="widgets.BusTransfer.BusRoute.*">
+	<fx:Metadata>
+		/**
+		 * 查询线路详细信息事件
+		 **/
+		[Event(name="queryDetail",type="flash.events.Event")]
+		/**
+		 * 显示线路
+		 **/
+		[Event(name="showBusRoute",type="flash.events.Event")]
+		
+		[Event(name="busStopItemOver",type="flash.events.Event")]
+		[Event(name="busStopItemClick",type="flash.events.Event")]
+		
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			[Bindable]
+			private var _item:BusRouteItem;
+			/**
+			 * 当前处于上行还是下行。
+			 **/
+			private var _lineType:String;
+			/**
+			 * 当前处于上行还是下行。
+			 **/
+			public function get lineType():String
+			{
+				return _lineType;
+			}
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data == null)
+				{
+					return;
+				}
+				_item = data as BusRouteItem;
+				if(_item.downStops!=null && _item.downStops.length>0 && _item.upStops != null && _item.upStops.length>0)
+				{
+					currentState = "show";
+					_lineType = "up";
+					directionLabel.text = "查看下行";
+					basicInfosGroup.dataProvider = _item.upBasicInfos;
+					setStopMessage(_item.upStops);
+				}
+				else if(_item.firstOne)
+				{
+					currentState = "loading";
+					_item.firstOne = false;
+					dispatchEvent(new Event("queryDetail",true));
+				}
+			}
+			
+			protected function bordercontainer1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(detailGroup.includeInLayout == true)
+				{
+					return;
+				}
+				if(_item.upStops == null)
+				{
+					currentState = "loading";
+					dispatchEvent(new Event("queryDetail",true));
+					return;
+				}
+				currentState = "show";
+				dispatchEvent(new Event("queryDetail",true));
+				dispatchEvent(new Event("showBusRoute",true));
+			}
+			
+			/**
+			 * 设置一条线路的详细信息 
+			 **/
+//			public function setDetail(detailItem:BusRouteItem):void
+//			{
+//				currentState = "selected";
+//				item = detailItem;
+//				detailGroup.includeInLayout = true;
+//				detailGroup.visible = true;
+//				loader.visible = false;
+//				loader.includeInLayout = false;
+//				_lineType = "up";
+//				setStopMessage(detailItem.upStops);
+//			}
+			
+//			protected function itemrenderer1_stateChangeCompleteHandler(event:FlexEvent):void
+//			{
+//				if(currentState == "normal")
+//				{
+//					setTimeout(function():void
+//					{
+//						detailGroup.includeInLayout = false;
+//						detailGroup.visible = false;
+//					},200);
+//				}
+//			}
+			
+			public function hide():void
+			{
+				currentState = "hide";
+			}
+			
+			private function changeLineType():void
+			{
+				var stops:ArrayCollection;
+				if(lineType == "up")
+				{
+					_lineType = "down";
+					directionLabel.text = "查看上行";
+					stops = _item.downStops;
+					basicInfosGroup.dataProvider = _item.downBasicInfos;
+				}
+				else
+				{
+					_lineType = "up";
+					directionLabel.text = "查看下行";
+					stops = _item.upStops;
+					
+					basicInfosGroup.dataProvider = _item.upBasicInfos;
+				}
+				setStopMessage(stops);
+			}
+			
+			private function setStopMessage(stops:ArrayCollection):void
+			{
+				stopListSingle.dataProvider = new ArrayCollection();
+				stopListDouble.dataProvider = new ArrayCollection();
+				var length:int = 0;
+				if(stops.length % 2 == 0)
+				{
+					length = stops.length / 2;
+				}
+				else
+				{
+					length = stops.length / 2 + 1;
+				}
+				for each(var stop:Object in stops)
+				{
+					var index:int = stops.getItemIndex(stop);
+					if(index < length)
+					{
+						stopListSingle.dataProvider.addItem({index:index+1,stop:stop});
+					}
+					else
+					{
+						stopListDouble.dataProvider.addItem({index:index+1,stop:stop});
+					}
+				}
+				
+			}
+			
+			protected function label1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				changeLineType();
+				dispatchEvent(new Event("showBusRoute",true));
+			}
+			
+			protected function stopListSingle_busStopItemOverHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			protected function stopListSingle_busStopItemClickHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="show"/>
+		<s:State name="hide"/>
+		<s:State name="loading"/>
+	</s:states>
+	<s:BorderContainer width="100%" height="100%" 
+					   borderColor="#C9C9CB"
+					   backgroundColor="#f7f7f7" click="bordercontainer1_clickHandler(event)">
+		<s:layout>
+			<s:VerticalLayout gap="5"/>
+		</s:layout>
+		<s:HGroup width="100%" verticalAlign="middle" gap="5" height="30" paddingLeft="15">
+			<s:Image source="{detailGroup.visible?'assets/images/transfer/coll.png':'assets/images/transfer/expand.png'}"/>
+			<s:Label id="titleLabel" text="{_item.name}" fontFamily="宋体" fontWeight="bold" 
+					 color="{detailGroup.visible?0x3E62AC:0x495263}"/>
+		</s:HGroup>
+		<s:Group width="100%" height="55" id="loader" visible.loading="true" includeInLayout.loading="true"
+				 visible="false" includeInLayout="false">
+			<components:ViewerLoader backGroundAlpha="0" loadingText="正在加载..."/>
+		</s:Group>
+		<s:VGroup width="100%" horizontalAlign="center" gap="5" id="detailGroup" includeInLayout="false" visible="false"
+				  includeInLayout.show="true" visible.show="true">
+			<s:Line width="95%">
+				<s:stroke>
+					<s:SolidColorStroke color="#3E62AC"/>
+				</s:stroke>
+			</s:Line>
+			<s:DataGroup id="basicInfosGroup" width="100%"
+						 itemRenderer="{new ClassFactory(BasicInfoItemRenderer)}">
+				<s:layout>
+					<s:VerticalLayout gap="1" paddingLeft="15" paddingRight="15" horizontalAlign="contentJustify" useVirtualLayout="true"/>
+				</s:layout>
+			</s:DataGroup>
+			<s:Group width="305" height="25">
+				<s:Label text="沿线公交车站：" left="0" verticalCenter="0" color="#4B5360" fontFamily="宋体" fontWeight="bold"/>
+				<s:Label id="directionLabel" text="返程" right="0" verticalCenter="0" color="#0326A4" fontFamily="宋体" buttonMode="true" click="label1_clickHandler(event)"/>
+			</s:Group>
+			<componet:DottedLine width="305" color="#BFBFBF"/>
+			<s:Group width="305">
+				<BusRoute:BusStopList id="stopListSingle" width="145" top="0" left="0" borderVisible="false" contentBackgroundAlpha="0">
+					<BusRoute:layout>
+						<s:VerticalLayout gap="10"/>
+					</BusRoute:layout>
+				</BusRoute:BusStopList>
+				<BusRoute:BusStopList id="stopListDouble" width="145" top="0" right="0" borderVisible="false" contentBackgroundAlpha="0">
+					<BusRoute:layout>
+						<s:VerticalLayout gap="10"/>
+					</BusRoute:layout>
+				</BusRoute:BusStopList>
+				<s:Line height="100%" width="1" verticalCenter="0" top="0" horizontalCenter="-3">
+					<s:stroke>
+						<s:SolidColorStroke color="#E5E5E5"/>
+					</s:stroke>
+				</s:Line>
+			</s:Group>
+			<s:Spacer height="1"/>
+		</s:VGroup>
+	</s:BorderContainer>
+</s:ItemRenderer>

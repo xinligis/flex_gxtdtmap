@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+			xmlns:esri="http://www.esri.com/2008/ags"
+			xmlns:s="library://ns.adobe.com/flex/spark"
+			xmlns:mx="library://ns.adobe.com/flex/mx"
+			xmlns:viewer="com.esri.viewer.*"
+			xmlns:tools="com.esri.viewer.components.tools.*"
+			widgetConfigLoaded	="init()" xmlns:Tools="widgets.ToolBar.Tools.*" 
+			xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	
+	<viewer:states>
+		<s:State name="swipeTool"/>
+		<s:State name="zoomTool"/>
+	</viewer:states>
+	
+	<viewer:transitions>
+		<s:Transition autoReverse="true" toState="*">
+			<!--<s:Fade targets="{[swipeTool, zoomTool]}"/>-->
+		</s:Transition>
+	</viewer:transitions>
+	
+	<fx:Declarations>
+		<tools:SwipeTool id="swipe" map="{map}" layers="{_activeLayers}"/>
+		<tools:SpotlightTool id="spotlight" map="{map}" layers="{_activeLayers}" radius="{spotlightRadius.value}"/>		
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.ArcGISTiledMapServiceLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.viewer.AppEvent;
+	//		import com.esri.viewer.utils.WidgetEffects;		
+			//[Bindable]
+			//private var activeLayer:Layer;
+			//王红亮，2011-08-11
+			[Bindable]	
+			private var _activeLayers:Array = [];
+			//[Bindable]
+			//private var activaLayerUrl:String;
+			//马红涛  2012-02-09
+			[Bindable]			
+			private var swipeToolTitle:String;			
+			[Bindable]
+			private var zoomToolTitle:String;
+			
+			[Bindable]
+			private var spotlightNum:Object;
+			
+			private var layerIDArray :Array = new Array();
+			//private var typeStr:String;
+			private const ICON_URL:String = "assets/images/";
+			private function init():void
+			{				
+				
+				if (configXML)
+				{
+				//	trace(configXML);
+					var url:String;
+					var type:String;
+					var label:String;
+					for each(var layerXML:XML in configXML.activelayers.activelayer)
+					{
+						url = layerXML.@url;
+						type = layerXML.@type;
+						label = layerXML.@label || "卷帘放大镜";
+						switch(type.toLowerCase())
+						{
+							case "tiled":
+							{
+								var tiledLayer:ArcGISTiledMapServiceLayer = new ArcGISTiledMapServiceLayer(url);
+								tiledLayer.id = map.layers.length.toString();
+								tiledLayer.name = label;
+								map.addLayer(tiledLayer);
+								_activeLayers.push(tiledLayer);
+							}
+								break;
+							case "dynamic":
+							{
+								var dynamicLayer:ArcGISDynamicMapServiceLayer = new ArcGISDynamicMapServiceLayer(url);
+								map.addLayer(dynamicLayer);
+								_activeLayers.push(dynamicLayer);
+							}
+								break;
+							default:
+								break;
+						}
+					}
+					swipeToolTitle = configXML.labels.title || "卷帘";
+					zoomToolTitle = configXML.labels.title || "放大镜";
+				}
+				AppEvent.addListener(AppEvent.POST_PROCESS,post_processHandler);
+			}
+			
+			protected function post_processHandler(event:AppEvent):void
+			{
+				//				trace("post_process");
+				if(event.data != null && event.data.data != null && String(event.data.data) == "toolActive")
+				{
+					swipe.deactivate();
+					spotlight.deactivate();
+					magnifierButton.checked = false;
+					rollerButton.checked = false;
+				}
+			}
+			
+			private function clear():void
+			{
+				swipe.deactivate();
+				spotlight.deactivate();
+				magnifierButton.checked = false;
+				rollerButton.checked = false;
+			}
+			private function widgetClosedHandler(event:Event):void
+			{
+				//graphicsLayer.visible = false;
+				setMapNavigation(null, null);
+				setMapAction(null, null, null, null);
+				clear();
+				//王红亮，2011-08-11
+				if(_activeLayers)
+				{
+					for each(var lyr:Layer in _activeLayers)
+					{
+						lyr.visible = false;
+					}
+				}
+				//activeLayer.visible = false;
+			}
+						
+			private function widgetOpenedHandler(event:Event):void
+			{	
+				//王红亮，2011-08-11
+				if(_activeLayers)
+				{
+					for each(var lyr:Layer in _activeLayers)
+					{
+						lyr.visible = true;
+					}
+				}
+				setMapNavigation(null, null);
+				setMapAction(null, null, null, null);
+			}
+				
+			protected function checkbutton1_checkChangeHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				if(magnifierButton.checked)
+				{
+					AppEvent.dispatch(AppEvent.POST_PROCESS,{data:"releaseTool"});
+					swipe.deactivate();
+					spotlight.activate();
+					rollerButton.checked = false;
+					
+				}
+				else
+				{
+					spotlight.deactivate();
+				}
+			}
+			
+			protected function checkbutton2_checkChangeHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				if(rollerButton.checked)
+				{
+					AppEvent.dispatch(AppEvent.POST_PROCESS,{data:"releaseTool"});
+					spotlight.deactivate();
+					swipe.activate();
+					magnifierButton.checked = false;
+					
+				}
+				else
+				{
+					swipe.deactivate();
+				}
+			}
+		]]>
+	</fx:Script>
+
+	<viewer:SplitWidgetTemplate id="wTemplate"
+						   closed="widgetClosedHandler(event)" 
+						   open="widgetOpenedHandler(event)"
+						   width="100%" >  
+		<s:VGroup width="100%" gap="10" >
+			<s:Group id="zoomTool" 
+					 width="100%" height="100%"
+					 visible="true"
+					 visible.zoomTool="true">
+				<s:layout>
+					<s:VerticalLayout paddingTop="25" paddingLeft="15"
+									  gap="10"
+									  horizontalAlign="center"/>
+				</s:layout>
+				<s:HGroup  width="100%" gap="8" paddingBottom="15" fontFamily="宋体">
+					<s:Label text="放大镜半径:" paddingLeft="20" styleName="WidgetText"/>
+					<s:Label text="{spotlightRadius.value}" width="30" styleName="WidgetText"/>
+					<s:HSlider id="spotlightRadius" minimum="25" maximum="200" value="75" 
+							   snapInterval="25" liveDragging="true" showDataTip="false" skinClass="widgets.LayerList.LayerAlphaSliderSkin"/>
+				</s:HGroup>
+			<customskinbutton:CheckButton normalImage="@Embed('assets/images/swipe/magnifier.png')"
+										  overImage="@Embed('assets/images/swipe/magnifierOverSkin.png')"
+										  id="magnifierButton"
+										  selectedImage="@Embed('assets/images/swipe/magnifierOverSkin.png')" 
+										  checkChange="checkbutton1_checkChangeHandler(event)"/>
+			<s:Image source="assets/images/swipe/line.png"/>
+			<customskinbutton:CheckButton normalImage="@Embed('assets/images/swipe/roller.png')"
+										  id="rollerButton"
+										  overImage="@Embed('assets/images/swipe/rollerOverSkin.png')"
+										  selectedImage="@Embed('assets/images/swipe/rollerOverSkin.png')" 
+										  checkChange="checkbutton2_checkChangeHandler(event)"/>
+			<s:Image source="assets/images/swipe/line.png"/>
+				
+			<customskinbutton:ClickButton label="清 空" height="26" width="65"
+										  click="clear()" toolTip="释放当前工具" buttonType="normalTowState"/>
+				
+			</s:Group>
+		</s:VGroup>	
+
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

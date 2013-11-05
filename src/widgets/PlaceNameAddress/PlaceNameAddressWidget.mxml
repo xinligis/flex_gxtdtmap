@@ -1,0 +1,904 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 兴趣点和地名地址查询展示结果
+* @author 胡国营
+* @ver 1.0
+* @created 05-02-2012 09:00:46
+*/
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*" 
+				   xmlns:components="com.esri.viewer.components.*"
+				   xmlns:sho="com.esri.viewer.components.sho.ui.*"
+				   xmlns:componet="com.esrichina.om.componet.*"
+				   width="100%" height="100%"
+				   widgetConfigLoaded="onWidgetConfigLoaded()"
+				   initialize="basewidget1_initializeHandler(event)"
+				   xmlns:PlaceNameAddress="widgets.PlaceNameAddress.*"
+				   >
+	<fx:Declarations>
+		<esri:SimpleMarkerSymbol id="pointSymbol" color="0xFF0000" size="10" style="circle"/>
+	</fx:Declarations>
+<fx:Script>
+	<![CDATA[
+		import com.esri.ags.FeatureSet;
+		import com.esri.ags.Graphic;
+		import com.esri.ags.Units;
+		import com.esri.ags.geometry.MapPoint;
+		import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+		import com.esri.ags.layers.GraphicsLayer;
+		import com.esri.ags.symbols.*;
+		import com.esri.ags.tasks.QueryTask;
+		import com.esri.ags.tasks.supportClasses.Query;
+		import com.esri.ags.tools.NavigationTool;
+		import com.esri.ags.utils.GraphicUtil;
+		import com.esri.viewer.AppEvent;
+		import com.esri.viewer.IInfowindowTemplate;
+		import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryEvent;
+		import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryParameters;
+		import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryResult;
+		import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryTask;
+		import com.esri.viewer.components.FlowLayout;
+		import com.esrichina.om.componet.DottedLine;
+		
+		import mx.collections.ArrayCollection;
+		import mx.containers.accordionClasses.AccordionHeader;
+		import mx.controls.Alert;
+		import mx.controls.scrollClasses.ScrollBar;
+		import mx.core.UIComponent;
+		import mx.events.FlexEvent;
+		import mx.events.IndexChangedEvent;
+		import mx.rpc.AsyncResponder;
+		import mx.rpc.Fault;
+		
+		import spark.components.Group;
+		import spark.components.Image;
+		import spark.components.supportClasses.ItemRenderer;
+		
+		[Bindable]
+		private var _resultsLayer:GraphicsLayer;
+		
+		private var _queryTask:QueryTask;
+		private var _queryTaskCQ:QueryTask;
+		private var _poiQueryUrl:String;
+		private var _placeNameAddressQueryUrl:String;
+		
+		private var _poiOIDField:String = "";//FID
+		
+		private var _poiAsPlaceNameAddressFIDField:String = "";
+		
+		/**
+		 * POI的显示名字字段
+		 **/
+		private var _poiTitleField:String;
+		
+		/**
+		 * 地名地址的显示名字字段
+		 **/
+		private var _placeNameTitleField:String;
+		
+		/**
+		 * poiAsPlaceNameAddress的显示名字字段
+		 **/
+		private var _poiAsPlaceNameAddressTitleField:String;
+		
+		
+		private var _queryType:int = -1;
+		
+		/**
+		 * POI的查询类型
+		 **/
+		private const POITYPENUMBER:int = 0;
+		
+		/**
+		 * 地名地址的查询类型
+		 **/
+		private const PLACENAMETYPENUMBER:int = 1;
+		
+		private var _symbolsPerPage:Array=new Array();
+		
+		private const PAGESIZE:int = 8;
+		
+		private var infoUrl:String;
+		
+		private var zoomScale:Number = 5;
+		
+		
+		
+		private function onWidgetConfigLoaded():void
+		{
+			if (configXML)
+			{
+				_poiQueryUrl = configXML.poi.url;
+				_placeNameAddressQueryUrl = configXML.placeNameAddress.url;
+				
+				_queryTask = new QueryTask(_poiQueryUrl);
+				_queryTaskCQ = new QueryTask(configXML.poiAsPlaceNameAddress.url);
+							
+				const ICON:String = configXML.compositesymbol.picturemarkersymbol.@source || this.widgetIcon;
+				const WIDTH:Number = configXML.compositesymbol.picturemarkersymbol.@width || 20;
+				const HEIGHT:Number = configXML.compositesymbol.picturemarkersymbol.@height || 20;
+				const XOFFSET:Number = configXML.compositesymbol.picturemarkersymbol.@xoffset || 0;
+				const YOFFSET:Number = configXML.compositesymbol.picturemarkersymbol.@yoffset || 0;
+				var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON, WIDTH, HEIGHT, XOFFSET, YOFFSET);
+				const COLOR_TEXT:Number = configXML.compositesymbol.textsymbol.@color || 0x000000;
+				const XOFFSET_TEXT:Number = configXML.compositesymbol.textsymbol.@xoffset || 0;
+				const YOFFSET_TEXT:Number = configXML.compositesymbol.textsymbol.@yoffset || 0;
+				const SIZE_TEXT:Number = configXML.compositesymbol.textsymbol.@size || 20;
+				var textFormat:TextFormat = new TextFormat("Arial", SIZE_TEXT, COLOR_TEXT);
+				
+				_poiOIDField = String(configXML.poi.oidfield);
+				_poiAsPlaceNameAddressFIDField = String(configXML.poiAsPlaceNameAddress.oidfield)
+				
+				
+				for(var index:int = 0; index < PAGESIZE; ++index)
+				{
+					var textSymbol:TextSymbol = new TextSymbol((index + 1).toString(), null, COLOR_TEXT, 1,false, 0, false, 0, "middle", 
+						0, XOFFSET_TEXT, YOFFSET_TEXT, textFormat);
+					var composite:CompositeSymbol = new CompositeSymbol([pictureSymbol, textSymbol]);
+					this._symbolsPerPage.push(composite);
+				}
+				textSymbol.textFormat = textFormat;
+				
+				zoomScale = Number(configXML.zoomlevel);
+			}
+			
+			var infoConfig:String = configXML.infoConfig;
+			infoUrl = configXML.info;
+			var data:Object =
+				{
+					id: String(this.widgetId),
+					url: infoUrl,
+					config: infoConfig
+				};	
+			AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET, data, infoReady);
+		}
+		
+		private var infoTemplate:IInfowindowTemplate;
+		
+		private function infoReady(event:AppEvent):void
+		{
+			var id:Number = Number(event.data.id);
+			if (id == this.widgetId)
+			{
+				infoTemplate = event.data.infoWidget;
+				infoTemplate.infoConfig = configXML;
+				var bWidget:BaseWidget = infoTemplate as BaseWidget;
+				if(bWidget)
+				{
+					bWidget.configData = this.configData;
+				}
+				//模块加载完成之后，再查询，避免WidgetManager无法加载InfoWindow.swf而导致的错误，王红亮，2012-5-22
+				if(this._postEvent)
+				{
+					onPostprocess(this._postEvent);
+				}
+			}
+		}
+		
+		private var _addresses:Array;
+		private function queryPlaceNameAddressPartialName(prefix: String) : void 
+		{
+			if(!configXML || !(configXML.placeNameAddress[0]))
+			{	
+				return ;
+			}
+			
+			loader.show();
+			
+			_placeNameTitleField = configXML.placeNameAddress.titlefield;
+			
+			var url:String = configXML.placeNameAddress.url;
+			var strExpr:String = configXML.placeNameAddress.expression;
+			
+			var placeNameQueryParameters:PlaceNameAddressQueryParameters = new PlaceNameAddressQueryParameters();
+			placeNameQueryParameters.keyword = prefix;
+			
+			var placeNameQueryTask:PlaceNameAddressQueryTask = new PlaceNameAddressQueryTask(url);
+			placeNameQueryTask.queryPlaceNameAddress(placeNameQueryParameters,new AsyncResponder(onResult, onFault));
+			
+			// on result
+			function onResult(featureSet:PlaceNameAddressQueryResult, token:Object = null):void
+			{
+				try
+				{
+					_addresses = featureSet.features;
+					if(!_addresses)
+					{
+						return;
+					}
+					var ids:Array = [];
+					for (var index:int = 0; index < _addresses.length - 1; ++index)
+					{
+						ids.push(index);
+					}
+					validPanel.poiIds = ids;
+					
+					if(_addresses.length < 1)
+					{
+						loader.hide();
+					}
+				}
+				catch (error:Error)
+				{
+					loader.hide();
+				}
+			}
+		}
+			
+		/*
+		*功能：查询名称中以name开头的所有地物
+		*参数：name,名称的开头部分；
+		作者：
+		返回：无
+		*/
+		private function queryPOIPartialName(prefix: String) : void 
+		{
+			if(!configXML || !(configXML.poi[0]))
+			{	
+				return ;
+			}
+			
+			loader.show();
+			
+			_poiTitleField = configXML.poi.titlefield;
+			
+			var url:String = configXML.poi.url;
+			//var displayField:String = configXML.poi.displayfield;
+			var strExpr:String = configXML.poi.expression;
+			var queryTask:QueryTask = new QueryTask(url);
+			queryTask.useAMF = true;
+			var query:Query = new Query();
+			query.returnGeometry = false;
+			query.outFields = [_poiOIDField];
+			strExpr = strExpr.toLowerCase();
+			query.where = strExpr.replace("[value]", prefix);
+			queryTask.execute(query, new AsyncResponder(onResult, onFault));
+			
+			// on result
+			function onResult(featureSet:com.esri.ags.FeatureSet, token:Object = null):void
+			{
+				try
+				{
+					var resultArray:Array = [];
+					var len:uint = featureSet.features.length;
+					var graphic:Graphic;
+					for(var index:uint = 0; index < len; ++index)
+					{
+						graphic = featureSet.features[index];
+						resultArray.push(graphic.attributes[_poiOIDField]);
+					}
+					
+					if(resultArray.length >= 0)
+					{
+						validPanel.poiIds = resultArray;
+					}
+					else
+					{
+						loader.hide();
+					}
+				
+					validPanel.requestStateFlag +=1;
+					
+					//胡国营20120904
+					if(_queryDetailEvent == null)
+					{
+						if(validPanel.requestStateFlag == 2)
+						{
+						   validPanel_queryDetailHandler(_queryDetailEvent);
+						}
+					}
+					
+					if(_queryDetailEvent)
+					{
+						validPanel_queryDetailHandler(_queryDetailEvent);
+					}
+				}
+				catch (error:Error)
+				{
+					loader.hide();
+				}
+			} 
+		}
+		
+		/*
+		*功能：查询名称中以name开头的所有地物
+		*参数：name,名称的开头部分；
+		作者：
+		返回：无
+		*/
+		private function queryPoiAsPlaceNameAddressPartialName(prefix: String) : void 
+		{
+			if(!configXML || !(configXML.poiAsPlaceNameAddress[0]))
+			{	
+				return ;
+			}
+			
+			loader.show();
+			
+			_poiAsPlaceNameAddressTitleField = configXML.poiAsPlaceNameAddress.titlefield;
+			
+			var url:String = configXML.poiAsPlaceNameAddress.url;
+			//var displayField:String = configXML.poiAsPlaceNameAddress.displayfield;
+			var strExpr:String = configXML.poiAsPlaceNameAddress.expression;
+			var queryTask:QueryTask = new QueryTask(url);
+			queryTask.useAMF = true;
+			var query:Query = new Query();
+			query.returnGeometry = false;
+			query.outFields = [_poiAsPlaceNameAddressFIDField];
+			strExpr = strExpr.toLowerCase();
+			query.where = strExpr.replace("[value]", prefix);
+			queryTask.execute(query, new AsyncResponder(onResult, onFault));
+			
+			// on result
+			function onResult(featureSet:com.esri.ags.FeatureSet, token:Object = null):void
+			{
+				try
+				{
+					var resultArray:Array = [];
+					var len:uint = featureSet.features.length;
+					var graphic:Graphic;
+					for(var index:uint = 0; index < len; ++index)
+					{
+						graphic = featureSet.features[index];
+						resultArray.push(graphic.attributes[_poiAsPlaceNameAddressFIDField]);
+					}
+					
+					if(resultArray.length >= 0)
+					{
+						validPanel.poiIdsCQ = resultArray;
+					}
+					else
+					{
+						loader.hide();
+					}
+					
+					validPanel.requestStateFlag +=1;
+					
+					//胡国营20120904
+					if(_queryDetailEvent == null ) 
+					{
+						if(validPanel.requestStateFlag == 2)
+						{
+						   validPanel_queryDetailHandler(_queryDetailEvent);
+						}
+					}
+					
+					if(_queryDetailEvent)
+					{
+						validPanel_queryDetailHandler(_queryDetailEvent);
+					}
+				}
+				catch (error:Error)
+				{
+					loader.hide();
+				}
+			} 
+		}
+		
+		private function onFault(result:Fault, token:Object = null):void
+		{
+			loader.hide();
+		}
+		
+		protected function basewidget1_initializeHandler(event:FlexEvent):void
+		{
+			AppEvent.addListener(AppEvent.POST_PROCESS,onPostprocess);
+		}
+		
+		private function widgetClosedHandler(event:Event):void
+		{
+			map.removeLayer(_resultsLayer);
+			showInfoWindow(null);
+			loader.hide();
+			setMapNavigation(null, null);
+		}
+		
+		private function widgetOpenedHandler(event:Event):void
+		{
+			if(_resultsLayer == null)
+			{
+				_resultsLayer = new GraphicsLayer();
+			}
+			map.addLayer(_resultsLayer);
+		}
+		
+		/**
+		 * 等待要处理的事件，2012-5-7
+		 */
+		private var _postEvent:AppEvent;
+		private function onPostprocess(event:AppEvent):void
+		{
+			if(this.widgetId != event.data.postprocessor)
+			{
+				return;
+			}
+			if(!configXML)
+			{
+				this._postEvent = event;
+				return;
+			}
+			else
+			{
+				this._postEvent = null;
+			}
+			var queryData:Object = event.data;
+			_queryType = queryData.queryType;
+			var queryName:String = queryData.queryName;
+			
+			validPanel.setPagerNumberNull();
+			
+			if(_queryType == POITYPENUMBER)
+			{
+				validPanel.requestStateFlag = 0;
+				queryPOIPartialName(queryName);
+				queryPoiAsPlaceNameAddressPartialName(queryName);
+			}
+			else if(_queryType == PLACENAMETYPENUMBER)
+			{
+				queryPlaceNameAddressPartialName(queryName);
+			}
+		}
+		
+		public function queryDetailPoisByIds():void
+		{
+			var ids:Array = validPanel.currentPoiIds;
+			if(!ids || ids.length < 1)
+			{
+				//国营20120904  是否显示完POI
+				validPanel.isShowPoiDatas = true;
+				
+				//胡国营20120904 当前不包含POI要素
+				validPanel.isContainPoiDatasInCurrentPage = false;
+				return;
+			}
+			
+			validPanel.isShowPoiDatas = false;
+			validPanel.isContainPoiDatasInCurrentPage = true;
+			
+			var query:Query = new Query();
+			query.returnGeometry = true;
+
+			query.outFields = [_poiOIDField,_poiTitleField];
+			
+			var fieldXMLList:XMLList = configXML.poi.displayfields.field;
+			for(var i:uint = 0; i < fieldXMLList.length(); ++i)
+			{
+				var fieldname:String = fieldXMLList[i].@name;
+				//避免重复字段输出，王红亮，2012-5-22
+				if(fieldname == _poiOIDField || fieldname == _poiTitleField)
+				{
+					continue;
+				}
+				query.outFields.push(fieldname);
+			}
+			
+			//query.outFields = [_poiOIDField,_poiTitleField,"STOP_ID"];
+			/* if(_poiAddressField != "")
+			{
+				query.outFields.push(_poiAddressField);
+			} */
+			query.objectIds = ids;
+			_queryTask.execute(query,
+				new AsyncResponder(queryDetailPoisByIds_resultHandler,queryDetailPoisByIds_faultHandler,null));
+		}
+		
+		public function queryDetailPoisByIdsCQ():void
+		{
+			//第二图层
+			var idsCQ:Array = validPanel.currentPoiIdsCQ;
+			if(!idsCQ || idsCQ.length < 1)
+			{
+				return;
+			}
+			var queryCQ:Query = new Query();
+			queryCQ.returnGeometry = true;
+			
+			queryCQ.outFields = [_poiAsPlaceNameAddressFIDField,_poiAsPlaceNameAddressTitleField];
+			
+			var fieldXMLListCQ:XMLList = configXML.poiAsPlaceNameAddress.displayfields.field;
+			for(var j:uint = 0; j < fieldXMLListCQ.length(); ++j)
+			{
+				var fieldnameCQ:String = fieldXMLListCQ[j].@name;
+				//避免重复字段输出
+				if(fieldnameCQ == _poiAsPlaceNameAddressFIDField || fieldnameCQ == _poiAsPlaceNameAddressTitleField)
+				{
+					continue;
+				}
+				queryCQ.outFields.push(fieldnameCQ);
+			}
+			
+			queryCQ.objectIds = idsCQ;
+			_queryTaskCQ.execute(queryCQ,
+				new AsyncResponder(queryDetailPoisByIdsCQ_resultHandler,queryDetailPoisByIdsCQ_faultHandler,null));
+		}
+		
+		private function queryDetailPoisByIds_resultHandler(featureSet:FeatureSet,token:Object = null):void
+		{
+			queryValidPoisDetail(featureSet);
+		}
+		
+		private function queryDetailPoisByIds_faultHandler(fault:Fault,token:Object = null):void
+		{
+			loader.hide();
+			trace("queryPoiIdsByName_faultHandler");
+		}
+		
+		private function queryDetailPoisByIdsCQ_resultHandler(featureSet:FeatureSet,token:Object = null):void
+		{
+			queryValidPoisDetailCQ(featureSet);
+		}
+		
+		private function queryDetailPoisByIdsCQ_faultHandler(fault:Fault,token:Object = null):void
+		{
+			loader.hide();
+			trace("queryPoiIdsByName_faultHandler");
+		}
+		
+		
+		/**
+		 * 等待要处理的事件，2012-7-9
+		 */
+		private var _queryDetailEvent:Event;
+		//queryDetail
+		protected function validPanel_queryDetailHandler(event:Event):void
+		{
+			if(_queryType == POITYPENUMBER)
+			{
+				_resultsLayer.clear();
+				showInfoWindow(null);
+				
+				if(validPanel.requestStateFlag != 2)
+				{
+					_queryDetailEvent = event;
+					return;
+				}
+				else
+				{
+					_queryDetailEvent = null;
+				}
+				
+				//胡国营20120822 解决查询不到结果情况
+				if(validPanel.poiIds.length ==0 && validPanel.poiIdsCQ.length ==0)
+				{
+					loader.hide();
+					setMapNavigation(null, null);
+					validPanel.titleLabelContent = "没有符合查询条件的结果！";
+					
+					return;
+				}
+				
+				validPanel.titleLabelContent = "结果列表";
+				
+			    queryDetailPoisByIds();
+				queryDetailPoisByIdsCQ();
+			}
+			else if(_queryType == PLACENAMETYPENUMBER)
+			{
+				queryAddressDetail(validPanel.currentPoiIds);
+			}
+		}
+		
+		/**
+		 *地名地址 
+		 */
+		private function queryAddressDetail(ids:Array):void
+		{
+			this._resultsLayer.clear();
+			showInfoWindow(null);
+			
+			var placeNameAddFieldArray:Array = new Array();
+			
+			var fieldXMLList:XMLList = configXML.placeNameAddress.displayfields.field;
+			for(var i:uint = 0; i < fieldXMLList.length(); ++i)
+			{
+				var displayFieldObject:Object = new Object();
+				displayFieldObject.name = fieldXMLList[i].@name;
+				displayFieldObject.aliasname = fieldXMLList[i].@aliasname;
+				
+				placeNameAddFieldArray.push(displayFieldObject);
+			}
+			
+			validPanel.poiTitleField = _placeNameTitleField;
+			validPanel.poiDisplayFieldArra = placeNameAddFieldArray;
+			
+			var array:Array = _addresses.slice(ids[0], ids[ids.length - 1] + 1);
+			var featureSet:FeatureSet = new FeatureSet(array);
+			//map.extent = com.esri.ags.utils.GraphicUtil.getGraphicsExtent(array);
+			
+			var len:uint = featureSet.features.length;
+			
+			for(var j:uint = 0;j < len ;j++)
+			{
+				var featureArray:Array = featureSet.features;
+				var graphic:Graphic = featureArray[j];
+				graphic.symbol = _symbolsPerPage[j];
+				
+				var infoData:Object = new Object;
+				
+				infoData.title = graphic.attributes[_poiTitleField];
+				infoData.content = "";
+				var point:MapPoint = graphic.geometry as MapPoint;
+				infoData.point = point;
+				
+				if(placeNameAddFieldArray.length > 0 )
+				{
+					for(var k:int = 0; k<placeNameAddFieldArray.length;k++)
+					{
+						var tempField:String = placeNameAddFieldArray[k].name;
+						var tempFieldAlias:String = placeNameAddFieldArray[k].aliasname;
+						var tempFieldValue:String = graphic.attributes[tempField];
+						if(tempFieldValue == "")
+						{
+							continue;
+						}
+						
+						infoData.content += tempFieldAlias + "：" + tempFieldValue + "\n";
+					}
+					infoData.content = String(infoData.content).slice(0,infoData.content.length -1);
+				}
+				else
+				{
+					infoData.content = "";
+				}
+				
+				/* 
+				infoData.link = link;
+				*/
+				graphic.attributes.infoData = infoData;
+				
+				infoData.graphic = graphic;
+				
+				graphic.addEventListener(MouseEvent.CLICK, mouseClickrGraphic)
+				
+				//显示到地图
+				this._resultsLayer.add(graphic);
+			}
+			
+			loader.hide();
+			
+			validPanel.setPoiDatas(featureSet);
+		}
+		
+		/**
+		 *兴趣点 
+		 */
+		private function queryValidPoisDetail(featureSet:FeatureSet):void
+		{
+			var poiAddFieldArray:Array = new Array();
+			
+			var fieldXMLList:XMLList = configXML.poi.displayfields.field;
+			for(var i:uint = 0; i < fieldXMLList.length(); ++i)
+			{
+				var displayFieldObject:Object = new Object();
+				displayFieldObject.name = fieldXMLList[i].@name;
+				displayFieldObject.aliasname = fieldXMLList[i].@aliasname;
+				
+				poiAddFieldArray.push(displayFieldObject);
+			}
+			
+			validPanel.poiTitleField = _poiTitleField;
+			
+			validPanel.poiDisplayFieldArra = poiAddFieldArray;
+			
+			var len:uint = featureSet.features.length;
+		
+			for(var j:uint = 0;j < len ;j++)
+			{
+				var featureArray:Array = featureSet.features;
+				var graphic:Graphic = featureArray[j];
+				graphic.symbol = _symbolsPerPage[j];
+				
+				var infoData:Object = new Object;
+				
+				infoData.title = graphic.attributes[_poiTitleField];
+				infoData.content = "";
+				var point:MapPoint = graphic.geometry as MapPoint;
+				infoData.point = point;
+				
+				if(poiAddFieldArray.length > 0 )
+				{
+					for(var k:int = 0; k<poiAddFieldArray.length;k++)
+					{
+						var tempField:String = poiAddFieldArray[k].name;
+						var tempFieldAlias:String = poiAddFieldArray[k].aliasname;
+						var tempFieldValue:String = "";
+						if(graphic.attributes[tempField] != null)
+						{
+						
+							tempFieldValue = graphic.attributes[tempField];
+						}
+						
+						if(tempFieldValue == "")
+						{
+							continue;
+						}
+						
+						infoData.content += tempFieldAlias + "：" + tempFieldValue + "\n";
+					}
+					infoData.content = String(infoData.content).slice(0,infoData.content.length -1);
+				}
+				else
+				{
+					infoData.content = "";
+				}
+				
+				/* 
+				infoData.link = link;
+				 */
+				graphic.attributes.infoData = infoData;
+				
+				infoData.graphic = graphic;
+				
+				graphic.addEventListener(MouseEvent.CLICK, mouseClickrGraphic)
+					
+				//显示到地图
+				_resultsLayer.add(graphic);
+			}
+			
+			loader.hide();
+			
+			validPanel.setPoiDatas(featureSet);
+		}
+		
+		/**
+		 *兴趣点 
+		 */
+		private function queryValidPoisDetailCQ(featureSet:FeatureSet):void
+		{
+			var poiAddFieldArray:Array = new Array();
+			
+			var fieldXMLList:XMLList = configXML.poiAsPlaceNameAddress.displayfields.field;
+			for(var i:uint = 0; i < fieldXMLList.length(); ++i)
+			{
+				var displayFieldObject:Object = new Object();
+				displayFieldObject.name = fieldXMLList[i].@name;
+				displayFieldObject.aliasname = fieldXMLList[i].@aliasname;
+				
+				poiAddFieldArray.push(displayFieldObject);
+			}
+			
+			validPanel.poiTitleFieldCQ = _poiAsPlaceNameAddressTitleField;
+			
+			validPanel.poiDisplayFieldArraCQ = poiAddFieldArray;
+			
+			var len:uint = featureSet.features.length;
+			
+			//胡国营20120907
+			var curPoiCount:int;
+			if(!validPanel.currentPoiIds || validPanel.currentPoiIds.length < 1)
+			{
+				curPoiCount = 0;
+			}
+			else
+			{
+				curPoiCount = validPanel.currentPoiIds.length;
+			}
+				
+				
+			for(var j:uint = 0;j < len ;j++)
+			{
+				var featureArray:Array = featureSet.features;
+				var graphic:Graphic = featureArray[j];
+				graphic.symbol = _symbolsPerPage[j + curPoiCount];//胡国营20120907修改下标
+				
+				var infoData:Object = new Object; 
+				
+				infoData.title = graphic.attributes[_poiTitleField];
+				infoData.content = "";
+				var point:MapPoint = graphic.geometry as MapPoint;
+				infoData.point = point;
+				
+				if(poiAddFieldArray.length > 0 )
+				{
+					for(var k:int = 0; k<poiAddFieldArray.length;k++)
+					{
+						var tempField:String = poiAddFieldArray[k].name;
+						var tempFieldAlias:String = poiAddFieldArray[k].aliasname;
+						var tempFieldValue:String = "";
+						if(graphic.attributes[tempField] != null)
+						{
+						   tempFieldValue = graphic.attributes[tempField];
+						}
+						if(tempFieldValue == "")
+						{
+							continue;
+						}
+						
+						infoData.content += tempFieldAlias + "：" + tempFieldValue + "\n";
+					}
+					infoData.content = String(infoData.content).slice(0,infoData.content.length -1);
+				}
+				else
+				{
+					infoData.content = "";
+				}
+				
+				/* 
+				infoData.link = link;
+				*/
+				graphic.attributes.infoData = infoData;
+				
+				infoData.graphic = graphic;
+				
+				graphic.addEventListener(MouseEvent.CLICK, mouseClickrGraphic)
+				
+				//显示到地图
+				_resultsLayer.add(graphic);
+			}
+			
+			loader.hide();
+			
+			validPanel.setPoiDatasCQ(featureSet);
+		}
+		
+		//mouse over graphic
+		private function mouseClickrGraphic(event:MouseEvent):void
+		{
+			var gra:com.esri.ags.Graphic = event.currentTarget as com.esri.ags.Graphic;
+			var infoData:Object = gra.attributes.infoData;
+			
+			showInfoWindow(infoData);
+		}			
+		
+		override public function showInfoWindow(infoData:Object):void
+		{
+			if (infoData)
+			{
+				var infoWindowData:Object = {title:infoData.title, 
+					content:infoData.content,
+					graphic:infoData.graphic,
+					fromWidget:this};
+				
+				infoTemplate.data = infoWindowData;
+				map.infoWindow.content = infoTemplate as UIComponent;
+				map.infoWindow.label = infoData.title || "";
+				map.infoWindow.show(infoData.point);
+			}
+			else
+			{
+				map.infoWindow.hide();
+			}
+		}
+		
+		protected function clickRecord(event:Event):void
+		{
+			var infoData:Object = new Object;
+			
+			var itemData:Object = validPanel.selectedPOI;
+			
+			infoData.title = itemData.name;
+			infoData.content = itemData.address;
+			var point:MapPoint = itemData.graphic.geometry as MapPoint;
+			infoData.point = point;
+			infoData.graphic = itemData.graphic;
+			
+			showInfoWindow(infoData);
+			
+			//放大突出显示
+			if (map.level < zoomScale)
+				map.level = zoomScale;
+			
+			map.centerAt(point);
+		}			
+		
+		
+	]]>
+</fx:Script>
+	
+	<viewer:SplitWidgetTemplate id="wTemplate" 
+								width="100%" height="100%"
+								closed="widgetClosedHandler(event)" 
+								open="widgetOpenedHandler(event)">
+	<PlaceNameAddress:ValidPanel id="validPanel" top="10" bottom="0"
+							   queryDetail="validPanel_queryDetailHandler(event)"
+							   pageSize="{PAGESIZE}"
+							   selectPOI="clickRecord(event)"/>
+	<components:ViewerLoader loadingText="正在加载..."
+								 color="0x0000ff" id="loader"
+								 backGroundColor="0xff0000" backGroundAlpha="0"/>
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

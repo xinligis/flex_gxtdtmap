@@ -1,0 +1,71 @@
+<?xml version="1.0" ?>
+<configuration>
+	<!-- 坐标系类型；project：Web摩卡托投影坐标系；geodesic：地理经纬度坐标系 -->
+	<srtype>geodesic</srtype>
+    <distanceunit>
+    <!--单位显示界限（米），大于界限，用largeunit单位显示，小于则用smallunit单位显示-->
+    	<scale>10000</scale>
+    	<!--单位，米。precision小数点位数，label单位名称的显示，conversion该单位等于多少米，如果该单位是公里，那么1公里=1000米，则conversion为1000-->
+    	<smallunit label="米" conversion="1.0" precision="0"/>
+<!-- 		<largeunit label="公里" precision="1" conversion="1000"/> -->
+		<largeunit label="千米" precision="1" conversion="1000"/>
+    </distanceunit>
+    <areaunit>
+    	<scale>1000000</scale>
+    	<smallunit label="平方米" conversion="1.0" precision="0"/>
+		<largeunit label="平方公里" precision="1" conversion="1000000"/>
+    </areaunit>
+    <!--线测量控制器-->
+    <lineController>
+    	<!--在线段测量时，鼠标移动时弹出的tip显示-->
+    	<tooltip borderColor="0xff0000" borderWidth="2" width="140" backgroundColor="0xffffff"
+    		height="40" text="&amp;ltfont color='0x000000'&amp;gt总长：&amp;lt/font&amp;gt&amp;ltfont color='0xff0000'&amp;gt%length%&amp;lt/font&amp;gt&amp;ltfont color='0x000000'&amp;gt%unit%&amp;lt/font&amp;gt&amp;ltbr /&amp;gt&amp;ltfont color='0x555555'&amp;gt单击确定点，双击结束&amp;lt/font&amp;gt" 
+    		starttext="&amp;ltfont color='0x000000'&amp;gt单击确定起点&amp;lt/font&amp;gt"></tooltip>
+    	<line color="0xff0000" size="2"></line>
+    </lineController>
+    
+    <!--线测量控制器-->
+    <polygonContrller>
+    	<border color="0x0000ff" size="1.5"></border>
+    	<fillsymbol color="0x00ffff" alpha="0.5"></fillsymbol>
+    </polygonContrller>
+    
+    <!--一条测量完毕的线段的展示-->
+    <polylineElement>
+    	<line color="0xff0000" size="2"></line>
+    	
+    	<!--起点-->
+    	<startPoint>
+    		<symbol source="assets/images/measure/start.png" xoffset="0" yoffset="10"></symbol>
+    		<displayLabel borderColor='0x0000ff' backgroundColor='0xffffff' xoffset='25' yoffset='20' text="起点" color="0xff0000"></displayLabel>
+    	</startPoint>
+    	
+    	<!--节点-->
+    	<vertex>
+    		<symbol color="0xffffff" size="10" borderSize="1.5" borderColor="0xff0000"></symbol>
+    		<displayLabel borderColor='0x0000ff' backgroundColor='0xffffff' xoffset='40' yoffset='0' text="%length%%unit%"></displayLabel>
+    	</vertex>
+    	
+    	<!--终点-->
+    	<endPoint>
+    		<symbol source="assets/images/measure/end.png" xoffset="0" yoffset="10"></symbol>
+    		<displayLabel borderColor='0xff0000' backgroundColor='0xffffff' xoffset='0' yoffset='-20' text="总长：%length%%unit%"></displayLabel>
+    	</endPoint>
+    	
+    	<!--删除按钮-->
+    	<deleteButton>
+    		<symbol source="assets/images/measure/delete.png" xoffset="25" yoffset="15" tooltip="点击清除"></symbol>
+    	</deleteButton>
+    </polylineElement>
+    
+    <!--面测量完的展示-->
+    <polygonElement>
+    	<border color="0x0000ff" size="1.5"></border>
+    	<fillsymbol color="0x00ffff" alpha="0.5"></fillsymbol>
+    	<!--删除按钮-->
+    	<deleteButton>
+    		<symbol source="assets/images/measure/delete.png" xoffset="25" yoffset="15" tooltip="点击清除"></symbol>
+    	</deleteButton>
+    	<displayLabel borderColor='0xff0000' backgroundColor='0xffffff' xoffset='0' yoffset='-20' text="面积：%area%%unit%" color="0xff0000"></displayLabel>
+    </polygonElement>
+</configuration>

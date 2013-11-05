@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false"
+				xmlns:ui="widgets.ToolBar.ui.*" buttonMode="true">
+	
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.utils.clearTimeout;
+			import flash.utils.setTimeout;
+			
+			import mx.events.FlexEvent;
+			
+			import widgets.ToolBar.Tools.ITool;
+			
+			private var _hideDgTimeHandle:int;
+			
+			[Bindable]
+			private var _currentTool:ITool;
+			
+			[Bindable]
+			private var dgVisible:Boolean=false;
+			
+			protected function toolbardatagroup1_ToolActiveHandler(event:Event):void
+			{
+				_currentTool=event.target.tool;
+				toolLabel.setStyle("color","0xffffff");
+				bgColor.alpha=1;
+				dgVisible=false;
+			}
+			
+			
+			protected function hgroup1_clickHandler(event:MouseEvent):void
+			{
+				if(_currentTool==null)
+				{
+					//选择工具
+					dgVisible=!dgVisible;
+					//5秒后自动隐藏子项
+					clearTimeout(_hideDgTimeHandle);
+					_hideDgTimeHandle = setTimeout(function():void
+					{
+						dgVisible = false;
+					},5000);
+					event.stopPropagation();
+				}
+				if(_currentTool!=null&&_currentTool.activated==false)
+				{
+					_currentTool.activate();
+				}
+				else if(_currentTool!=null&&_currentTool.activated)
+				{
+					_currentTool.deactivate();
+				}
+			}
+			
+			private function toolDeavtive_handler(event:Event):void
+			{
+				var tool:ITool=event.target.tool;
+				if(_currentTool==tool)
+				{
+					toolLabel.setStyle("color","0x000000");
+					bgColor.alpha=0;
+				}
+			}
+			
+			protected function image1_clickHandler(event:MouseEvent):void
+			{
+				dgVisible=!dgVisible;
+				//5秒后自动隐藏子项
+				clearTimeout(_hideDgTimeHandle);
+				_hideDgTimeHandle = setTimeout(function():void
+				{
+					dgVisible = false;
+				},5000);
+				event.stopPropagation();
+			}
+			
+			protected function dg_mouseMoveHandler(event:MouseEvent):void
+			{
+				clearTimeout(_hideDgTimeHandle);
+			}
+			
+			protected function dg_mouseOutHandler(event:MouseEvent):void
+			{
+				//5秒后自动隐藏子项
+				clearTimeout(_hideDgTimeHandle);
+				_hideDgTimeHandle = setTimeout(function():void
+				{
+					dgVisible = false;
+				},5000);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:Fade duration="600" id="fadeShow" alphaFrom="0" alphaTo="1"/>
+		<s:Fade duration="600" id="fadeHide" alphaFrom="1" alphaTo="0"/>
+	</fx:Declarations>
+	<s:VGroup>
+		<s:HGroup verticalAlign="middle" click="hgroup1_clickHandler(event)" toolTip="{_currentTool!=null?_currentTool.tooltip:data.tooltip}">
+			<!--分隔符-->
+			<s:Group width="5" visible="{data.spacer}" includeInLayout="{data.spacer}">
+				<s:Line x="2" height="{icon.height-2}" width="1" verticalCenter="0">
+					<s:stroke>
+						<s:RadialGradientStroke>
+							<s:GradientEntry color="#3457B3"/>
+							<s:GradientEntry color="#D7D7D7"/>
+						</s:RadialGradientStroke>
+					</s:stroke>
+				</s:Line>
+			</s:Group>
+			<!--图标-->
+			<mx:Image source="{data.icon}" id="icon"/>
+			<s:Group>
+				<s:Rect top="-2" left="-2" bottom="-2" right="-2">
+					<s:fill>
+						<s:SolidColor color="#0176be" id="bgColor" alpha="0"/>
+					</s:fill>
+				</s:Rect>
+				<s:Label text="{_currentTool!=null?_currentTool.toolLabel:data.label}" color="#000000" id="toolLabel"/>
+			</s:Group>
+			<mx:Image source="@Embed('assets/images/toolbar/down.png')" click="image1_clickHandler(event)" toolTip="选择工具"/>
+		</s:HGroup>
+		<!--子项-->
+		<s:HGroup width="{this.width}" paddingLeft="10">
+			<s:Group id="dg" visible="{dgVisible}" width="100%" showEffect="{fadeShow}" 
+					 hideEffect="{fadeHide}"
+					 includeInLayout="{dgVisible}" mouseMove="dg_mouseMoveHandler(event)" mouseOut="dg_mouseOutHandler(event)">
+				<s:Rect top="-3" left="-5" bottom="0" right="-5">
+					<s:fill>
+						<s:SolidColor color="0xffffff" id="bgcolor" alpha="0.7"/>
+					</s:fill>
+					<s:stroke>
+						<s:SolidColorStroke color="#003AFF" alpha="0.7"/>
+					</s:stroke>
+				</s:Rect>
+				<ui:ToolbarDataGroup dataProvider="{data.items}" 
+									 ToolActive="toolbardatagroup1_ToolActiveHandler(event)"
+									 ToolDeactive="toolDeavtive_handler(event)">
+					<ui:layout>
+						<s:VerticalLayout gap="5"/>
+					</ui:layout>
+				</ui:ToolbarDataGroup>
+			</s:Group>
+		</s:HGroup>
+	</s:VGroup>
+</s:ItemRenderer>

@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+  <routeTaskURL>http://124.205.245.98:8181/OneMapServer/rest/services/CQRoadNetwork/NAServer/Route</routeTaskURL>
+  <costs>
+  	<time>Minutes</time>
+  	<distance>Meters</distance>
+  </costs>
+  <restrictions>
+  	<oneway>Oneway</oneway>
+  	<highway>Highway</highway>
+  	<turn>TurnRestriction</turn>
+  </restrictions>
+  <poi>
+  	<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+  	<displayfield>NAME</displayfield>
+  	<oidfield>OBJECTID</oidfield>
+  	<addressfield>ADDNAME</addressfield>
+  	<expression>NAME LIKE '[VALUE]%'</expression>
+  </poi>
+  
+  <distanceunit>
+    <!--单位显示界限（米），大于界限，用largeunit单位显示，小于则用smallunit单位显示-->
+    	<scale>5000</scale>
+    	<!--单位，米。precision小数点位数，label单位名称的显示，conversion该单位等于多少米，如果该单位是公里，那么1公里=1000米，则conversion为1000-->
+    	<smallunit label="米" conversion="1.0" precision="0"/>
+		<largeunit label="公里" precision="1" conversion="1000"/>
+  </distanceunit>
+  
+  <startsymbol source="assets/images/networkanalyst/start.png" width="21" height="25" xoffset="0" yoffset="12"/>
+  <endsymbol source="assets/images/networkanalyst/end.png" width="21" height="25" xoffset="0" yoffset="12"/>
+  <passsymbol source="assets/images/networkanalyst/pass.png" width="17" height="21" xoffset="0" yoffset="10"/>
+</configuration>

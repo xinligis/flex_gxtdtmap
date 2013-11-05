@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--公交站牌上的站点itemrenderer-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" width="100%" height="100%"
+				dataChange="itemrenderer_dataChangeHandler(event)"
+				rollOver="itemrenderer1_rollOverHandler(event)"
+				rollOut="itemrenderer1_rollOutHandler(event)">
+	<fx:Metadata>
+		[Event(name="busStopOver",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			[Bindable]
+			private var item:RouteStopInfoItem;
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				item = data as RouteStopInfoItem;
+				if(item.selected)
+				{
+					rtext.setStyle("color",0xff0000);
+				}
+				else
+				{
+					rtext.setStyle("color",0x000000);
+				}
+			}
+			
+			
+			protected function itemrenderer1_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(item.selected == false)
+				{
+					rtext.setStyle("color",0x0000ff);
+					dispatchEvent(new Event("busStopOver",true));
+				}
+			}
+			
+			protected function itemrenderer1_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(item.selected == false)
+				{
+					rtext.setStyle("color",0x000000);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<!--<s:states>
+		<s:State name="normal"/>
+		<s:State name="hovered"/>
+		<s:State name="selected"/>
+	</s:states>-->
+	<s:RichText blockProgression="rl" height="100" verticalAlign="middle" maxDisplayedLines="1"
+				color="0x000000" id="rtext"
+				text="{item.name}" toolTip="{item.name}"/>
+	
+</s:ItemRenderer>

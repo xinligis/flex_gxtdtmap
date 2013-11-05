@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="154" height="54" left="-80" top="-45"
+		 implements="mx.core.IDataRenderer">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.controls.Alert;
+			import mx.core.IDataRenderer; //click="group1_clickHandler(event)"
+			private var _data:Object;
+			
+			[Bindable]
+			// implement IDataRenderer
+			public function get data():Object
+			{
+				return _data;
+			}
+			
+			public function set data(value:Object):void
+			{
+				_data = value;
+				if(value)
+				{
+					img.source = value.weatherIcon;
+					lblCity.text = value.cityName;
+					tempratureLabel.text = value.temprature;
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Rect top="0" left="0" right="0" bottom="0">
+		<s:fill>
+			<s:BitmapFill source="@Embed('assets/images/weather/infoSymbolBK.png')"/>
+		</s:fill>
+	</s:Rect>
+	<s:Group width="100%" top="0" left="0" height="35">
+		<mx:Image width="20" height="20" id="img" top="10" left="13"/>
+		<s:Label id="lblCity" color="#FFFFFF" fontFamily="微软雅黑" top="12" left="40" fontSize="14"/>
+		<s:Label id="tempratureLabel" fontSize="14" color="#FFFFFF" top="12" right="16" fontFamily="微软雅黑"/>
+	</s:Group>
+</s:Group>

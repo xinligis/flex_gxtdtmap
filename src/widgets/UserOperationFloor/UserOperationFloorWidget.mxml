@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 用户相关操作台Widget类
+// 王红亮，2012-3-10
+// 界面修改，温杨彪，2012-3-27
+// 添加登录、注销等控制；温杨彪，2012-4-10
+// 添加用户注册功能；温杨彪，2012-12-11
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:viewer="com.esri.viewer.*" 
+					xmlns:popup="com.esri.viewer.components.customTitleWindow.*"
+					currentState="loging"
+					widgetConfigLoaded="onWidgetConfigLoaded()"
+					xmlns:ui="com.esri.viewer.components.sho.ui.*" 
+					xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*" 
+					xmlns:UserOperationFloor="widgets.UserOperationFloor.*">
+	<viewer:states>
+		<s:State name="loging"/>
+		<s:State name="normal"/>
+	</viewer:states>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.LoginUser;
+			import com.esri.viewer.components.Toast;
+			import com.esri.viewer.remote.RemoteHandler;
+			import com.esri.viewer.remote.RemoteResult;
+			import com.esri.viewer.utils.UrlConstructor;
+			
+			import flash.net.navigateToURL;
+			
+			import mx.controls.Alert;
+			import mx.core.FlexGlobals;
+			import mx.core.IFlexDisplayObject;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.Fault;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			private var aboutURL:String = "";
+			/**
+			 * 登录窗体是否正在显示
+			 **/
+			private var _showLoginDialog:Boolean = false;
+			private const ICON_URL:String = "assets/images/useroperationfloor/";
+			
+			/**
+			 * 当前登录的用户
+			 **/
+			[Bindable]
+			private var _currentLoginUser:LoginUser = null;
+			
+			/**
+			 * 注销窗体是否正在显示
+			 **/
+			private var _showLogoutDialog:Boolean = false;
+			
+			/**
+			 * 系统第一次加载时，自动向门户请求用户信息，如果请求到用户信息，则不显示登录窗体
+			 **/
+			private var _isLoading:Boolean = true;
+			
+			private function onWidgetConfigLoaded():void
+			{
+				RemoteHandler.invoke("UserService.getLoginUser",null,new AsyncResponder
+						(getLoginUser_resultHandler,getLoginUser_faultHandler));
+				registryWnd.url = String(configXML.loginurl);
+				aboutURL = String(configXML.abouturl);
+			}
+			
+			/**
+			 * 显示隐藏登录窗体的开关方法
+			 * @param flag true:打开登录窗体；false：隐藏登录窗体
+			 **/
+			private function switchLoginWindow(flag:Boolean):void
+			{
+				if(!flag&&_showLoginDialog)
+				{
+					//隐藏登录框
+					PopUpManager.removePopUp(loginWindow);
+					_showLoginDialog = false;
+				}
+				else if(flag && _showLoginDialog == false)
+				{
+					//显示登陆框
+					loginWindow.x = FlexGlobals.topLevelApplication.stage.stageWidth/2;  
+					loginWindow.y = 300;
+					
+					PopUpManager.addPopUp(loginWindow,this,true);
+					_showLoginDialog = true;
+				}
+			}
+			
+			private function switchLogoffWindow(flag:Boolean):void
+			{
+				if(!flag&&_showLogoutDialog)
+				{
+					//隐藏注销窗体
+					PopUpManager.removePopUp(logoutWindow);
+					_showLogoutDialog = false;
+				}
+				else if(flag && _showLogoutDialog == false)
+				{
+					//显示注销窗体
+					loginWindow.x = FlexGlobals.topLevelApplication.stage.stageWidth/2;  
+					loginWindow.y = 300;  
+					
+					PopUpManager.addPopUp(logoutWindow,this);
+					_showLogoutDialog = true;
+				}
+			}
+			
+			private function logoff_handler(event:AppEvent):void
+			{
+				if(configData.loginUser == null)
+				{
+					return;
+				}
+				Alert.show("当期用户已经注销，请重新登录！");
+					configData.loginUser = null;
+					loginLink.text = "用户登录";
+					loginLink.toolTip = "";
+					switchLogoffWindow(false);
+					//打开登录窗口
+					switchLoginWindow(true);
+			}
+			private function loginLink_clickHandler(event:MouseEvent):void
+			{
+				if(configData.loginUser == null)
+				{
+					if(_showLoginDialog)
+					{
+						switchLoginWindow(false);
+					}
+					else
+					{
+						switchLoginWindow(true);
+					}
+				}
+				else
+				{
+					if(_showLogoutDialog)
+					{
+						switchLogoffWindow(false);
+					}
+					else
+					{
+						switchLogoffWindow(true);
+					}
+				}
+			}
+			
+			private function commitImage_clickHandler(event:MouseEvent):void
+			{
+				var userName:String = userInput.text;
+				var password:String = passwordInput.text;
+				
+				userName = StringUtil.trim(userName);
+				password = StringUtil.trim(password);
+				
+				if(userName == "" || password == "")
+				{
+					Alert.show("用户名密码不可为空！");
+					return;
+				}
+				
+				var url:String = String(configXML.loginurl);
+				var obj:Object = new Object();
+				obj.username = userName;
+				obj.password = password;
+				obj.command = "logIn";
+				obj.commandId = "PortalLoginCommand";
+				currentState = "loging";
+				loginHttpService.url = UrlConstructor.getUrl(url);
+				loginHttpService.send(obj); 
+				
+			}
+			
+			private function registryImage_clickHandler(event:MouseEvent):void
+			{
+				PopUpManager.addPopUp(registryWnd,map,true);
+				PopUpManager.centerPopUp(registryWnd);
+				registryWnd.reset();
+			}
+			
+			private function getUiAbsolutePosition(ui:DisplayObject):Point//获取组件的绝对位置 
+			{ 
+				var point:Point=new Point(); 
+				point.x=ui.x; 
+				point.y=ui.y; 
+				var temp:DisplayObject=ui; 
+				do 
+				{ 
+					var parent:DisplayObject = temp.parent; 
+					if(parent!=null) 
+					{ 
+						point.x+=parent.x; 
+						point.y+=parent.y; 
+						temp=parent; 
+					} 
+					
+				}while(parent!==this.parentApplication && parent!=null ) 
+				
+				return point; 
+			} 
+			
+			protected function loginHttpService_resultHandler(event:ResultEvent):void
+			{
+				var resultObj:Object = com.esri.ags.utils.JSON.decode(String(event.result));
+				if(resultObj!=null&&resultObj.result == "loginOk")
+				{
+					//获取用户信息
+					RemoteHandler.invoke("UserService.getLoginUser",null,new AsyncResponder
+						(getLoginUser_resultHandler,getLoginUser_faultHandler));
+				}
+				else
+				{
+					Alert.show("登录失败！用户名密码错误");
+					currentState = "normal";
+				}
+			}
+			
+			private function getLoginUser_resultHandler(result:RemoteResult,token:Object = null):void
+			{
+				if(result!=null&&result.code == RemoteResult.RESULT_OK)
+				{
+					_currentLoginUser = result.content as LoginUser;
+					if(_isLoading == false)
+					{
+						switchLoginWindow(false);
+						userInput.text = "";
+						passwordInput.text = "";
+					}
+					
+					configData.loginUser = _currentLoginUser;
+					if(_currentLoginUser!=null)
+					{
+						loginLink.text = _currentLoginUser.fullName;//+"用户";
+						loginLink.toolTip = loginLink.text;
+					}
+					AppEvent.dispatch(AppEvent.USER_LOG_IN);
+				}
+				else if(_isLoading == false)
+				{
+					Alert.show("登录失败！信息：获取用户信息失败。Code：" + result.code + "\nMessage：" + result.errorMessage);
+				}
+				if(_isLoading)
+				{
+					//第一次加载会向后台请求用户信息，此时如果还未登录，会在RemoteHandler中触发一次USER_LOG_OFF事件，为了避开第一次加载的这个事件，所以
+					//这个事件的监听加在这个地方
+					AppEvent.addListener(AppEvent.USER_LOG_OFF,logoff_handler);
+				}
+				_isLoading = false;
+				currentState = "normal";
+			}
+			
+			private function getLoginUser_faultHandler(event:Fault,token:Object = null):void
+			{
+				Alert.show("登录失败！信息：获取用户信息失败。\nfaultDetail：" + event.faultDetail + "。\nfaultString：" + event.faultString);
+				currentState = "normal";
+			}
+			
+			protected function loginHttpService_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("登录失败！信息："+event.fault.faultDetail);
+				currentState = "normal";
+			}
+			
+			protected function logout_clickHandler(event:MouseEvent):void
+			{
+				var url:String = String(configXML.loginurl);
+				var obj:Object = new Object();
+				obj.command = "logOut";
+				obj.commandId = "PortalLoginCommand";
+				logoutHttpService.url = UrlConstructor.getUrl(url);
+				logoutHttpService.send(obj); 
+			}
+			
+			protected function logoutHttpService_resultHandler(event:ResultEvent):void
+			{
+				var resultObj:Object = com.esri.ags.utils.JSON.decode(String(event.result));
+				if(resultObj!=null&&resultObj.result == "ok")
+				{
+					configData.loginUser = null;
+					_currentLoginUser = null;
+					switchLogoffWindow(false);
+					AppEvent.dispatch(AppEvent.USER_LOG_OFF);
+					
+					Toast.show("注销成功");
+					
+					loginLink.text = "用户登录";
+					loginLink.toolTip = "";
+				}
+				else
+				{
+					Alert.show("注销失败！");
+				}
+			}
+			private function toast_effectEndHandler(event:Event):void
+			{
+				var toast:IFlexDisplayObject = event.target as IFlexDisplayObject;
+				PopUpManager.removePopUp(toast);
+			}
+			protected function logoutHttpService_faultHandler(event:FaultEvent):void
+			{
+				Alert.show("注销失败！信息："+event.fault.faultDetail);
+			}
+			
+			protected function loginWindow_keyDownHandler(event:KeyboardEvent):void
+			{
+				if(event.keyCode == Keyboard.ENTER)
+				{
+					commitImage_clickHandler(null);
+				}
+			}
+			
+			protected function cancleBtn_clickHandler(event:MouseEvent):void
+			{
+				loginLink_clickHandler(null);
+			}
+			
+			protected function about_clickHandler(event:MouseEvent):void
+			{
+				navigateToURL(new URLRequest(aboutURL), "_blank");    
+			}
+			
+			protected function link_mouseOverHandler(event:MouseEvent):void
+			{
+				event.currentTarget.styleName = "linkLableOver";
+			}
+			
+			protected function link_mouseOutHandler(event:MouseEvent):void
+			{
+				event.currentTarget.styleName = "linkLable";
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!--登录窗体-->
+		<popup:PopUpWindow id="loginWindow" width="240" height="126" backgroundColor="0xf7f7f7"
+						   closeButtonVisible="false" keyDown="loginWindow_keyDownHandler(event)">
+			<popup:layout>
+				<s:VerticalLayout gap="15" horizontalAlign="center" verticalAlign="middle"/>
+			</popup:layout>
+				<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center"
+						  includeIn="normal">
+					<s:Label text="用户名："/>
+					<s:TextInput id="userInput" prompt="点击输入用户名" contentBackgroundColor="0xffffff"
+										skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+				</s:HGroup>
+				<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center"
+						  includeIn="normal">
+					<s:Label text="密    码："/>
+					<s:TextInput id="passwordInput" prompt="点击输入密码" contentBackgroundColor="0xffffff"
+										displayAsPassword="true" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+				</s:HGroup>
+			<s:HGroup includeIn="normal" gap="8">
+				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/login_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/login_over.png')"
+											  click="commitImage_clickHandler(event)"/>
+				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/regist_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/regist_over.png')"
+											  click="registryImage_clickHandler(event)"/>
+				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/cancle_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/cancle_over.png')"
+											  id="cancleBtn"
+											  click="cancleBtn_clickHandler(event)"/>
+			</s:HGroup>
+			<s:Label text="正在登陆，请等候...." includeIn="loging"/>
+		</popup:PopUpWindow>
+		
+		<popup:PopUpWindow id="logoutWindow" width="240" height="126" backgroundColor="0xf7f7f7"
+						   closeButtonVisible="false">
+			<popup:layout>
+				<s:BasicLayout />
+			</popup:layout>
+			<s:HGroup width="100%" top="0" gap="0">
+				<s:Group width="75" height="100%">
+					<s:Image source="@Embed('assets/images/userspace/head.png')" top="15" left="15"/>
+				</s:Group>
+				<s:VGroup width="165" height="100%" gap="0">
+					<s:Spacer height="15"/>
+					<s:HGroup width="100%" horizontalAlign="center" height="40" verticalAlign="middle">
+						<s:Label id="userSpaceNameLabel" fontSize="16" fontFamily="微软雅黑" color="#111f72" textAlign="left"
+								 text="{_currentLoginUser.fullName}" maxWidth="120" lineBreak="toFit" maxDisplayedLines="2"/>
+						<s:Label fontSize="12" fontFamily="宋体" color="#436590" text="您好！"/>
+					</s:HGroup>
+					<s:Spacer height="5"/>
+					<s:Line width="98%">
+						<s:stroke>
+							<s:SolidColorStroke color="0xd5d5d5" weight="1"/>
+						</s:stroke>
+					</s:Line>
+					<s:Line width="98%">
+						<s:stroke>
+							<s:SolidColorStroke color="0xffffff" weight="1"/>
+						</s:stroke>
+					</s:Line>
+					<s:Spacer height="10"/>
+				</s:VGroup>
+			</s:HGroup>
+			
+			<s:HGroup horizontalAlign="center" verticalAlign="middle" width="100%" bottom="10" gap="10">
+				<customskinbutton:ClickButton click="logout_clickHandler(event)" 
+											  normalImage="@Embed('assets/images/useroperationfloor/unregist_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/unregist_over.png')"/>
+				<customskinbutton:ClickButton click="cancleBtn_clickHandler(event)" 
+											  normalImage="@Embed('assets/images/useroperationfloor/cancle_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/cancle_over.png')"/>
+			</s:HGroup>
+		</popup:PopUpWindow>
+		
+		<UserOperationFloor:UserRegistryWindow id="registryWnd"/>
+		
+		<!--注销窗体-->
+		<s:HTTPService id="loginHttpService" result="loginHttpService_resultHandler(event)" 
+					   method="POST" fault="loginHttpService_faultHandler(event)" />
+		<s:HTTPService id="logoutHttpService" result="logoutHttpService_resultHandler(event)" method="POST"
+					   fault="logoutHttpService_faultHandler(event)"/>
+	</fx:Declarations>
+	<s:Group height="66">
+		<s:HGroup width="100%" height="30" gap="0"
+				  verticalAlign="middle">
+			<s:Label id="loginLink" text="用户登录" styleName="linkLable" buttonMode="true" 
+ 					 click="loginLink_clickHandler(event)"
+					 mouseOver="link_mouseOverHandler(event)"
+					 mouseOut="link_mouseOutHandler(event)"/>
+			<s:Label text="关于我们" buttonMode="true" styleName="linkLable" 
+					 paddingLeft="10" click="about_clickHandler(event)"
+					 mouseOver="link_mouseOverHandler(event)"
+					 mouseOut="link_mouseOutHandler(event)"/>
+		</s:HGroup>	
+	</s:Group>
+</viewer:BaseWidget>	

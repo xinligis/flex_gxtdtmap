@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" 
+		 height="100%"  
+		 xmlns:pageSelector="com.esri.viewer.components.pageSelector.*" 
+		 xmlns:PlaceNameAddress="widgets.PlaceNameAddress.*"
+		>
+	<fx:Metadata>
+		/**
+		 * 查询POI的详细信息
+		 **/
+		[Event(name="queryDetail",type="flash.events.Event")]
+		/**
+		* 选择POI事件
+		**/
+		[Event(name="selectPOI",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.viewer.components.pageSelector.PageChangeEvent;
+			
+			import mx.collections.ArrayCollection;
+			
+			public var requestStateFlag:int = 0;
+			
+			[Bindable]
+			public var titleLabelContent:String = "结果列表";
+			
+			private var _poiIds:Array = [];
+			/**
+			 * 设置所有需要展示的POI的Ids，组件会根据这些ID进行分页查询
+			 **/
+			public function get poiIds():Array
+			{
+				return _poiIds;
+			}
+			public function set poiIds(value:Array):void
+			{
+				_poiIds = value;
+				countPages();
+			}
+			
+			private var _poiIdsCQ:Array = [];
+			/**
+			 * 设置所有需要展示的POI的Ids，组件会根据这些ID进行分页查询
+			 **/
+			public function get poiIdsCQ():Array
+			{
+				return _poiIdsCQ;
+			}
+			public function set poiIdsCQ(value:Array):void
+			{
+				_poiIdsCQ = value;
+				countPages();
+			}
+			private function countPages():void
+			{
+				if(this._poiIds == null && _poiIdsCQ == null)
+				{
+					//说明没有结果
+					return;
+				}
+				var	count:int = (this._poiIds ? _poiIds.length : 0 ) + (this._poiIdsCQ ? _poiIdsCQ.length : 0);
+				var pageNumber:int = Math.ceil(count * 1.0 / _pageSize);
+				pager.set_TotalCount(pageNumber);
+				if(pageNumber > 0)
+				{
+					pager.currentPage = 1;
+				}
+				else
+				{
+					trace("no records");
+				}
+			}
+			private var _pageSize:int;
+			
+			/**
+			 * 一页显示多少条记录
+			 **/
+			public function get pageSize():int
+			{
+				return _pageSize;
+			}
+			public function set pageSize(value:int):void
+			{
+				_pageSize = value;
+			}
+			
+			private var _currentPoiIds:Array = [];
+			/**
+			 * 当前需要查询的POI的ID
+			 **/
+			public function get currentPoiIds():Array
+			{
+				return _currentPoiIds;
+			}
+			
+			//第二层poi
+			private var _currentPoiIdsCQ:Array = [];
+			/**
+			 * 当前需要查询的第二层POI的ID
+			 **/
+			public function get currentPoiIdsCQ():Array
+			{
+				return _currentPoiIdsCQ;
+			}
+			
+			//hugy 20120709
+			public function setPagerNumberNull():void
+			{
+				pager.set_TotalCount(0);
+			}
+			
+			protected function pager_PageChangedHandler(event:PageChangeEvent):void
+			{
+				var count:Number = (_poiIds != null ? _poiIds.length : 0) + (this._poiIdsCQ != null ? this._poiIdsCQ.length : 0);
+				var pageNumber:int;
+				var remainderItemNumber:int;
+				if(count%_pageSize == 0)
+				{
+					remainderItemNumber = 0;
+				    pageNumber = count/_pageSize;
+				}
+				else
+				{
+					remainderItemNumber = count%_pageSize;
+				    pageNumber = count/_pageSize + 1;
+				}
+				
+				var startIndex:int = (event.currentPage -1)*this._pageSize;
+				var endIndex:int = startIndex + this._pageSize - 1;
+				endIndex = endIndex < count ? endIndex : count - 1;
+				_currentPoiIds = [];
+				if(_poiIds && startIndex < _poiIds.length) 
+				{
+					_currentPoiIds = _poiIds.slice(startIndex, endIndex + 1);
+				}
+				_currentPoiIdsCQ = [];
+				if(!this._poiIds)
+				{
+					_currentPoiIdsCQ = _poiIdsCQ.slice(startIndex, endIndex + 1);
+				}
+				else if(startIndex >= _poiIds.length)
+				{
+					_currentPoiIdsCQ = _poiIdsCQ.slice(startIndex - _poiIds.length, endIndex - _poiIds.length + 1);
+				}
+				else if(endIndex >= _poiIds.length)
+				{
+					_currentPoiIdsCQ = _poiIdsCQ.slice(0, endIndex - _poiIds.length + 1);
+				}
+
+				_items = new ArrayCollection();
+				validDataGroup.dataProvider = null;
+				
+				dispatchEvent(new Event("queryDetail"));
+			}
+			
+			/**
+			 * POI的显示名字字段
+			 **/
+			private var _poiTitleField:String;
+			
+			public function get poiTitleField():String
+			{
+				return _poiTitleField;
+			}
+			
+			public function set poiTitleField(value:String):void
+			{
+				_poiTitleField = value;
+			}
+			
+			/**
+			 * POI的属性字段
+			 **/
+			private var _poiDisplayFieldArray:Array = [];
+			
+			public function set poiDisplayFieldArra(value:Array):void
+			{
+				_poiDisplayFieldArray = value;
+			}
+			
+			public function get poiDisplayFieldArra():Array
+			{
+				return _poiDisplayFieldArray;
+			}
+			
+			/**
+			 * 第二层POI的显示名字字段
+			 **/
+			private var _poiTitleFieldCQ:String;
+			
+			public function get poiTitleFieldCQ():String
+			{
+				return _poiTitleFieldCQ;
+			}
+			
+			public function set poiTitleFieldCQ(value:String):void
+			{
+				_poiTitleFieldCQ = value;
+			}
+			
+			/**
+			 * 第二层的属性字段
+			 **/
+			private var _poiDisplayFieldArrayCQ:Array = [];
+			
+			public function set poiDisplayFieldArraCQ(value:Array):void
+			{
+				_poiDisplayFieldArrayCQ = value;
+			}
+			
+			public function get poiDisplayFieldArraCQ():Array
+			{
+				return _poiDisplayFieldArrayCQ;
+			}
+			
+			
+			/**
+			 * 用户确定后选择的POI
+			 **/
+			private var _selectedPOI:Object;
+			/**
+			 * 用户确定后选择的POI
+			 **/
+			public function get selectedPOI():Object
+			{
+				return _selectedPOI;
+			}
+			[Bindable]
+			public var _items:ArrayCollection;
+			
+			//是否显示完POI
+			public var isShowPoiDatas:Boolean = false;
+			
+			//当前页是否有POI要素
+			public var isContainPoiDatasInCurrentPage:Boolean = true;
+			
+			/**
+			 * 设置显示的POI 实际的featureSet。
+			 **/
+			public function setPoiDatas(featureSet:FeatureSet):void
+			{
+				isShowPoiDatas = false;
+
+				if(featureSet == null)
+				{
+					isShowPoiDatas = true;
+					return;
+				}
+				var len:int = featureSet.features.length;
+				var ac:ArrayCollection = new ArrayCollection();
+				for(var i:int = 0;i<len;i++)
+				{
+					var feature:Graphic = featureSet.features[i];
+					var data:Object = new Object();
+					//data.index = i + 1;
+					data.name = feature.attributes[_poiTitleField];
+					data.address = "";
+					/* if(_poiAddField != "")
+					{
+						data.address = feature.attributes[_poiAddField];
+					} */
+					if(_poiDisplayFieldArray.length > 0 )
+					{
+						for(var j:int = 0; j<_poiDisplayFieldArray.length;j++)
+						{
+							var tempField:String = "";
+							tempField = _poiDisplayFieldArray[j].name;
+							var tempFieldAlias:String = "";
+							tempFieldAlias = _poiDisplayFieldArray[j].aliasname;
+							var tempFieldValue:String = "";
+							if(feature.attributes[tempField] != null)
+							{
+							   tempFieldValue = feature.attributes[tempField];
+							}
+							
+							if(tempFieldValue == "")
+							{
+								continue;
+							}
+							
+							data.address += tempFieldAlias + "：" + tempFieldValue + "\n";
+						}
+						data.address = String(data.address).slice(0,data.address.length -1);
+					}
+					else
+					{
+						data.address = "";
+					}
+					data.graphic = feature;
+					
+					ac.addItem(data);
+				}
+				i = 1;
+				for each(var item:Object in ac)
+				{
+					item.index = i;
+					i += 1;
+				}
+				i = ac.length + 1;
+				for each(item in this._items)
+				{
+					item.index = i;
+					i += 1;
+				}
+				_items.addAllAt(ac, 0);
+				
+
+				validDataGroup.dataProvider = _items;
+
+				isShowPoiDatas = true;
+				
+				if(poiDatasCQFeatureSet != null)
+				{
+				   setPoiDatasCQ(poiDatasCQFeatureSet);
+				}
+			}
+			
+			protected function validDataGroup_selectPOIHandler(event:Event):void
+			{
+				var itemRender:ValidItemRenderer = event.target as ValidItemRenderer;
+				_selectedPOI = itemRender.data;
+				dispatchEvent(new Event("selectPOI"));
+			}
+			
+			
+			private var poiDatasCQFeatureSet:FeatureSet = null;
+			/**
+			 * 设置显示的POI 实际的featureSet。
+			 **/
+			public function setPoiDatasCQ(featureSet:FeatureSet):void
+			{
+				poiDatasCQFeatureSet = null;
+				
+				if(featureSet == null)
+				{
+					return;
+				}
+				
+				if(isShowPoiDatas == false)
+				{
+					//胡国营20120904 当前包含POI要素
+					if(isContainPoiDatasInCurrentPage == true)
+					{
+						poiDatasCQFeatureSet = featureSet;
+						return;
+					}
+					else//胡国营20120904 当前不包含POI要素
+					{
+						isContainPoiDatasInCurrentPage = true;
+						return;
+					}
+				}
+					
+				var len:int = featureSet.features.length;
+				var ac:ArrayCollection = new ArrayCollection();
+				for(var i:int = 0;i<len;i++)
+				{
+					var feature:Graphic = featureSet.features[i];
+					var data:Object = new Object();
+					
+					data.name = feature.attributes[_poiTitleFieldCQ];
+					data.address = "";
+					/* if(_poiAddField != "")
+					{
+					data.address = feature.attributes[_poiAddField];
+					} */
+					if(_poiDisplayFieldArrayCQ.length > 0 )
+					{
+						for(var j:int = 0; j<_poiDisplayFieldArrayCQ.length;j++)
+						{
+							var tempField:String = "";
+							tempField = _poiDisplayFieldArrayCQ[j].name;
+							var tempFieldAlias:String = "";
+							tempFieldAlias = _poiDisplayFieldArrayCQ[j].aliasname;
+							var tempFieldValue:String ="";
+							if(feature.attributes[tempField] != null)
+							{
+							   tempFieldValue = feature.attributes[tempField];
+							}
+							
+							if(tempFieldValue == "")
+							{
+								continue;
+							}
+							
+							data.address += tempFieldAlias + "：" + tempFieldValue + "\n";
+						}
+						data.address = String(data.address).slice(0,data.address.length -1);
+					}
+					else
+					{
+						data.address = "";
+					}
+					data.graphic = feature;
+					
+					ac.addItem(data);
+				}
+
+				i = this._items.length + 1;
+				for each(var item:Object in ac)
+				{
+					item.index = i;
+					i += 1;
+				}
+				this._items.addAll(ac);
+
+				validDataGroup.dataProvider = _items;
+				
+				isShowPoiDatas = false;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label id="titleLable" text="{titleLabelContent}" top="5" left="20" fontFamily="宋体" color="#ff8400" fontSize="12"/>
+	<s:Scroller top="30" left="20" right="20" horizontalScrollPolicy="off" bottom="65">
+		<PlaceNameAddress:ValidDataGroup width="100%" id="validDataGroup"
+								   itemSelect="validDataGroup_selectPOIHandler(event)">
+			<PlaceNameAddress:layout>
+				<s:VerticalLayout gap="0" horizontalAlign="center"/>
+			</PlaceNameAddress:layout>
+		</PlaceNameAddress:ValidDataGroup>
+	</s:Scroller>
+	<pageSelector:PagesSelector id="pager" bottom="5" horizontalCenter="0" 
+								PageChanged="pager_PageChangedHandler(event)"/>
+</s:Group>

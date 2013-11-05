@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:Weather="widgets.Weather.*"
+				   xmlns:viewer="com.esri.viewer.*" layout="absolute" 
+				   height="377" width="315"
+				   creationComplete="init()"
+				   implements="com.esri.viewer.IInfowindowTemplate">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.IInfowindowTemplate;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.utils.StringUtil;
+			
+			private var _infoConfig:XML;
+			
+			private var _infoClass:Class;
+			private const ICON_WEATHER:String = "assets/images/weather/weatherIcon/";
+			private const DAYS:Array = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
+			[Bindable]
+			private var _weatherInfo:WeatherInfo;
+			public function get infoClass():Class
+			{
+				return this._infoClass;
+			}
+			
+			public function set infoClass(value:Class):void
+			{
+				this._infoClass=value;
+			}
+			
+			public function set infoConfig(value:XML):void
+			{
+				this._infoConfig=value;
+			}
+			
+			public override function set data(value:Object):void
+			{
+				super.data = value;
+				this._weatherInfo = value as WeatherInfo;
+			}
+			
+			/**创建成功之后，对data的设置进行监听，并且设置类名称，用以DI
+			 * @author 王红亮，2011-08-01
+			 * @return 无
+			 */
+			private function init():void
+			{
+				this.addEventListener(FlexEvent.DATA_CHANGE, setInfoParameters);
+				infoClass = WeatherInfoWidget;//用于DI
+				setInfoParameters(null);
+			}
+			
+			/**
+			 * 根据数据的信息更新界面显示
+			 * 王红亮，2012-4-20
+			 */
+			private function setInfoParameters(event:FlexEvent):void
+			{
+				if(this.data == null)
+					return;
+				var index:int;
+				this._weatherInfo = this.data as WeatherInfo;
+				//当前的天气情况
+				if(this._weatherInfo.weathers && this._weatherInfo.weathers.length > 0)
+				{
+					index = this._weatherInfo.weathers[0] != null ? this._weatherInfo.weathers[0] as int :-1;
+					if(index > -1 && index < WeatherInfo.weatherNames.length)
+					{
+						todayIconImage.source = ICON_WEATHER + "a_" + index + ".gif";
+						todayIconLabel.text = WeatherInfo.weatherNames[index];
+					}
+				}
+				var date:Date = new Date();
+				date.fullYear = _weatherInfo.currentDate[0];
+				date.month = _weatherInfo.currentDate[1]-1;
+				date.date = _weatherInfo.currentDate[2];
+				todayDateLabel.text = mx.utils.StringUtil.substitute("{0}.{1}.{2}  {3}",
+					date.fullYear, date.month+1, date.date, DAYS[date.day]);
+				todayTLabel.text = mx.utils.StringUtil.substitute("{0}℃/{1}℃",
+					_weatherInfo.mintempratures[0], _weatherInfo.maxtempratures[0]);
+				todayWindLabel.text = _weatherInfo.wind ? _weatherInfo.wind[0] : "";
+				todayHumidityLable.text = _weatherInfo.humidity ? _weatherInfo.humidity[0] : "";
+				//第二天的天气情况
+				date.date += 1;
+				if(this._weatherInfo.weathers && this._weatherInfo.weathers.length > 1)
+				{
+					index = this._weatherInfo.weathers[1] != null ? this._weatherInfo.weathers[1] as int :-1;
+					if(index > -1 && index < WeatherInfo.weatherNames.length)
+					{
+						secondIconImage.source = ICON_WEATHER + index + ".gif";
+						secondWeatherLabel.text = mx.utils.StringUtil.substitute("{0}  {1}",
+							DAYS[date.day], WeatherInfo.weatherNames[index]);
+					}
+					else
+					{
+						secondIconImage.source = ICON_WEATHER + "nothing.png";
+						secondWeatherLabel.text = mx.utils.StringUtil.substitute("{0}  {1}",
+							DAYS[date.day], "未知");
+					}
+				}
+				secondTLabel.text = mx.utils.StringUtil.substitute("{0}℃/{1}℃",
+					_weatherInfo.mintempratures[1], _weatherInfo.maxtempratures[1]);
+				//第三天的天气情况
+				date.date += 1;
+				if(this._weatherInfo.weathers && this._weatherInfo.weathers.length > 2)
+				{
+					index = this._weatherInfo.weathers[2] != null ? this._weatherInfo.weathers[2] as int :-1;
+					if(index > -1 && index < WeatherInfo.weatherNames.length)
+					{
+						thirdIconImage.source = ICON_WEATHER + index + ".gif";
+						thirdWeatherLabel.text = mx.utils.StringUtil.substitute("{0}  {1}",
+							DAYS[date.day], WeatherInfo.weatherNames[index]);
+					}
+					else
+					{
+						thirdIconImage.source = ICON_WEATHER + "nothing.png";
+						thirdWeatherLabel.text = mx.utils.StringUtil.substitute("{0}  {1}",
+							DAYS[date.day], "未知");
+					}
+				}
+				thirdTLabel.text = mx.utils.StringUtil.substitute("{0}℃/{1}℃",
+					_weatherInfo.mintempratures[2], _weatherInfo.maxtempratures[2]);
+				
+				var weatherIndexAC:ArrayCollection = new ArrayCollection();
+				var weatherIndex:WeatherIndex;
+				if(this._weatherInfo.dessingIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "穿衣";
+					weatherIndex.value = this._weatherInfo.dessingIndex;
+					weatherIndex.description = this._weatherInfo.dessing || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.coldIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "感冒";
+					weatherIndex.value = this._weatherInfo.coldIndex;
+					weatherIndex.description = this._weatherInfo.cold || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.sportIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "运动";
+					weatherIndex.value = this._weatherInfo.sportIndex;
+					weatherIndex.description = this._weatherInfo.sport || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.carwashIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "洗车";
+					weatherIndex.value = this._weatherInfo.carwashIndex;
+					weatherIndex.description = this._weatherInfo.carwash || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.dryingIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "晾晒";
+					weatherIndex.value = this._weatherInfo.dryingIndex;
+					weatherIndex.description = this._weatherInfo.drying || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.travelIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "旅游";
+					weatherIndex.value = this._weatherInfo.travelIndex;
+					weatherIndex.description = this._weatherInfo.travel || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.traficIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "路况";
+					weatherIndex.value = this._weatherInfo.traficIndex;
+					weatherIndex.description = this._weatherInfo.trafic || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.cozyIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "舒适度";
+					weatherIndex.value = this._weatherInfo.cozyIndex;
+					weatherIndex.description = this._weatherInfo.cozy || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.airIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "空气";
+					weatherIndex.value = this._weatherInfo.airIndex;
+					weatherIndex.description = this._weatherInfo.air || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				if(this._weatherInfo.uvIndex)
+				{
+					weatherIndex = new WeatherIndex();
+					weatherIndex.name = "紫外线";
+					weatherIndex.value = this._weatherInfo.uvIndex;
+					weatherIndex.description = this._weatherInfo.uv || "";
+					weatherIndexAC.addItem(weatherIndex);
+				}
+				
+				weatherIndexDG.dataProvider = weatherIndexAC; 
+			}
+
+			protected function basewidget_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(this.data == null)
+				{
+					//trace("data is null");
+				}
+				else
+				{
+					//trace("data is valid");
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Group left="0" top="37" right="0" bottom="0">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:LinearGradient rotation="90.0">
+					<s:entries>
+						<s:GradientEntry color="0xf7f7f7" ratio="0.00"/>
+						<s:GradientEntry color="0xf3f3f3" ratio="0.50"/>
+						<s:GradientEntry color="0xebebeb" ratio="1.00"/>
+					</s:entries>
+				</s:LinearGradient>
+			</s:fill>
+		</s:Rect>
+	</s:Group>
+	<s:VGroup left="0" top="0" right="0" bottom="0" minHeight="30"
+			  gap="0"
+			  fontFamily="宋体" color="0x31455d" fontSize="12">
+		<s:HGroup width="100%" height="37" paddingLeft="25" verticalAlign="middle">
+			<s:Label id="nameLabel" fontSize="14" fontWeight="bold" text="{this._weatherInfo.cityName}"/>
+		</s:HGroup>
+		<s:Group width="100%" height="92">
+<!--			<s:Rect width="100%" height="100%">
+				<s:fill>
+					<s:LinearGradient rotation="90.0">
+						<s:entries>
+							<s:GradientEntry color="0xebebeb" ratio="0.00"/>
+							<s:GradientEntry color="0xf3f3f3" ratio="0.50"/>
+							<s:GradientEntry color="0xf7f7f7" ratio="1.00"/>
+						</s:entries>
+					</s:LinearGradient>
+				</s:fill>
+			</s:Rect>-->
+			<s:VGroup id="todayIconGroup" left="0" top="0"
+					width="75" height="100%"
+					paddingLeft="0" gap="3" horizontalAlign="center">
+				<s:Image id="todayIconImage" width="70" height="65" fillMode="scale"/>
+				<s:Label id="todayIconLabel" color="0x205e90"/>
+			</s:VGroup>
+			<s:VGroup id="todayDescriptionGroup" left="80" top="0"
+					 width="120" height="100%"
+					 paddingLeft="0" gap="8" verticalAlign="middle">
+				<s:Label id="todayDateLabel"/>
+				<s:Label id="todayTLabel" fontWeight="bold" fontSize="22" fontFamily="Tahoma"/>
+				<s:Label id="todayWindLabel"/>
+				<s:Label id="todayHumidityLable"/>
+			</s:VGroup>
+			<s:HGroup id="secondGroup" left="200" width="103"
+					  top="0" height="45" verticalAlign="middle">
+				<s:Image id="secondIconImage" width="20" height="20" fillMode="scale"/>
+				<s:VGroup gap="10">
+					<s:Label id="secondWeatherLabel"/>
+					<s:Label id="secondTLabel"/>
+				</s:VGroup>
+			</s:HGroup>
+			<s:HGroup id="thirdGroup" left="200" width="103"
+					  bottom="0" height="45" verticalAlign="middle">
+				<s:Image id="thirdIconImage" width="20" height="20" fillMode="scale"/>
+				<s:VGroup gap="10">
+					<s:Label id="thirdWeatherLabel"/>
+					<s:Label id="thirdTLabel"/>
+				</s:VGroup>
+			</s:HGroup>
+		</s:Group>
+		<s:Scroller width="100%" height="100%">
+			<Weather:WeatherIndexDataGroup id="weatherIndexDG" height="100%">
+				<Weather:layout>
+					<s:VerticalLayout gap="2" paddingLeft="5" paddingTop="5" paddingBottom="5"/>
+				</Weather:layout>
+			</Weather:WeatherIndexDataGroup>
+		</s:Scroller>
+	</s:VGroup>
+</viewer:BaseWidget>

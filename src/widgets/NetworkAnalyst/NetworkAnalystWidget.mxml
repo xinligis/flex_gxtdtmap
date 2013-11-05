@@ -1,0 +1,524 @@
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:sho="com.esri.viewer.components.sho.ui.*"
+				   width="100%" height="100%"
+				   widgetConfigLoaded="init()" xmlns:ui="sho.ui.*" 
+				   xmlns:uiPanels="widgets.NetworkAnalyst.uiPanels.*" 
+				   xmlns:validPanel="com.esri.viewer.components.validPanel.*"
+				   currentState = "inputState"
+				   initialize="basewidget1_initializeHandler(event)"
+				   xmlns:mx="library://ns.adobe.com/flex/mx">
+	<!--xmlns:mx="library://ns.adobe.com/flex/mx" -->
+	<viewer:states>
+		<s:State name="inputState"/>
+		<s:State name="validState"/>
+		<s:State name="excuteState"/>
+		<s:State name="resultState"/>
+	</viewer:states>
+	
+	<!--<viewer:transitions>
+		<s:Transition autoReverse="true" toState="*">
+			<s:Fade targets="{[networkState,resultsList]}"/>
+		</s:Transition>
+	</viewer:transitions>-->
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Map;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.SimpleFillSymbol;
+			import com.esri.ags.symbols.SimpleLineSymbol;
+			import com.esri.ags.symbols.SimpleMarkerSymbol;
+			import com.esri.ags.tasks.supportClasses.RouteSolveResult;
+			import com.esri.ags.tools.NavigationTool;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.components.sho.ui.CompletionInput;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.controls.Button;
+			import mx.controls.List;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import spark.components.Image;
+			import spark.components.SkinnableContainer;
+			import spark.components.supportClasses.ItemRenderer;
+			import spark.components.supportClasses.SkinnableComponent;
+			import spark.layouts.HorizontalLayout;
+			
+			/**
+			 * Graphic的类型，起点类型
+			 **/
+			public static const GRAPHIC_TYPE_START:String="startPoint";
+			
+			/**
+			 * Graphic的类型，终点类型
+			 **/
+			public static const GRAPHIC_TYPE_END:String = "endPoint";
+			
+			/**
+			 * Graphic的类型，途径点类型
+			 **/
+			public static const GRAPHIC_TYPE_PASS:String = "passPoint";
+			
+			/**
+			 * Graphic的类型，障碍类型
+			 **/
+			public static const GRAPHIC_TYPE_BARRIER:String = "barrierPolygon";
+			private const ICON_URL:String = "assets/images/networkanalyst/";
+			
+			
+			private var _NAWorker:NAWorker;
+			
+			[Bindable]
+			private var _graphicsLayer:GraphicsLayer;
+			
+			/**
+			 * 通过PostProcess传过来的起点和终点，格式：{startname:<String>,startgraphic:<Graphic>,endname:<String>,endgraphic:<Graphic>}
+			 **/
+			private var _postGraphics:Object;
+			
+			/**
+			 * 初始化完毕后的回调方法
+			 **/
+			private var _initCompeleteHandler:Function;
+			
+			//不同的类型的接入点使用不同的图标			
+			private function init():void
+			{				
+				if(configData.urlParam.hasOwnProperty("operation"))
+				{
+					//说明widget是从url中调用的。
+					if(this.widgetId == configData.urlParam.widgetId)
+					{
+						var startName:String = String(configData.urlParam.start);
+						var endName:String = String(configData.urlParam.end);
+						
+						if(endName!="")
+						{
+							inputPanel.endInput.text = endName;
+						}
+						
+						if(startName!="")
+						{
+							inputPanel.startInput.text = startName;
+						}
+					}
+				}
+				
+				if (configXML)
+				{
+					_graphicsLayer = new GraphicsLayer();
+					map.addLayer(_graphicsLayer);
+					
+					_NAWorker = new NAWorker;
+					_NAWorker.routeTaskUrl = String(configXML.routeTaskURL);
+					_NAWorker.assetQueryExpression = String(configXML.poi.expression);
+					_NAWorker.poiDisplayField = String(configXML.poi.displayfield);
+					_NAWorker.queryAssetTaskUrl = String(configXML.poi.url);
+					_NAWorker.poiAddField = String(configXML.poi.addressfield);
+					_NAWorker.poiOIDField = String(configXML.poi.oidfield);
+					_NAWorker.graphicsLayer = _graphicsLayer;
+					_NAWorker.map = map;
+					_NAWorker.noHighWayAttrName = String(configXML.restrictions.highway) || "Highway";
+					
+					_NAWorker.timeImpedance = String(configXML.costs.time) || "Minutes";
+					_NAWorker.distanceImpedance = String(configXML.costs.distance) || "Meters";
+					
+					_NAWorker.addEventListener(NAEvent.VALID_START_EVENT,naWorker_validStartHandler);
+					_NAWorker.addEventListener(NAEvent.VALID_PASS_EVENT,naWorker_validPassHandler);
+					_NAWorker.addEventListener(NAEvent.VALID_END_EVENT,naWorker_validEndHandler);
+					_NAWorker.addEventListener(NAEvent.START_EXCUTE_EVENT,function(event:NAEvent):void
+					{
+						currentState = "excuteState";
+						inputPanel.lockInput(_currentSubmitInfo);
+					});
+					
+					_NAWorker.addEventListener(NAEvent.EXCUTE_COMPELETE_EVENT,naWorker_excuteCompeleteEndHandler);
+					_NAWorker.addEventListener(NAEvent.EXCUTE_FAULT_EVENT,naWorker_excuteFaultEndHandler);
+					//symbols
+					var startSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(
+						String(configXML.startsymbol.@source), 
+						Number(configXML.startsymbol.@width),
+						Number(configXML.startsymbol.@height), 
+						Number(configXML.startsymbol.@xoffset),
+						Number(configXML.startsymbol.@yoffset));
+					_NAWorker.startSymbol = startSymbol;
+					
+					var endSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(
+						String(configXML.endsymbol.@source), 
+						Number(configXML.endsymbol.@width),
+						Number(configXML.endsymbol.@height), 
+						Number(configXML.endsymbol.@xoffset),
+						Number(configXML.endsymbol.@yoffset));
+					_NAWorker.endSymbol = endSymbol;
+					
+					_NAWorker.barrierSymbol = barrierSymbol;
+					
+					var passSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(
+						String(configXML.passsymbol.@source), 
+						Number(configXML.passsymbol.@width),
+						Number(configXML.passsymbol.@height), 
+						Number(configXML.passsymbol.@xoffset),
+						Number(configXML.passsymbol.@yoffset));
+					_NAWorker.passSymbol = passSymbol;
+					
+					if(_initCompeleteHandler != null)
+					{
+						_initCompeleteHandler();
+					}
+				}
+			}
+			
+			private function naWorker_validStartHandler(event:NAEvent):void
+			{
+				_NAWorker.queryPoiIdsByName(event.validInfo.invalidName,queryStartIdsResultHandler);
+			}
+			
+			private function naWorker_validPassHandler(event:NAEvent):void
+			{
+				_NAWorker.queryPoiIdsByName(event.validInfo.invalidName,queryPassIdsResultHandler);
+			}
+			
+			private function naWorker_validEndHandler(event:NAEvent):void
+			{
+				_NAWorker.queryPoiIdsByName(event.validInfo.invalidName,queryEndIdsResultHandler);
+			}
+			
+			private function naWorker_excuteCompeleteEndHandler(event:NAEvent):void
+			{
+				currentState = "resultState";
+				setResult(event.routeSolveResult);
+				
+//				if(resultPanel == null)
+//				{
+//					resultPanel
+//				}
+//				resultPanel.routeSolveResult = event.routeSolveResult;
+			}
+			
+			private function setResult(result:RouteSolveResult):void
+			{
+				if(resultPanel == null)
+				{
+					setTimeout(setResult,100,result);
+				}
+				else
+				{
+					resultPanel.routeSolveResult = result;
+				}
+			}
+			
+			private function naWorker_excuteFaultEndHandler(event:NAEvent):void
+			{
+				currentState = "inputState";
+				inputPanel.faultLabel.text = "执行失败："+event.routeFault.faultDetail;
+			}
+			
+			
+			
+			private function queryStartIdsResultHandler(ids:Array):void
+			{
+				if(ids.length<1)
+				{
+					//没有结果
+					currentState = "inputState";
+					inputPanel.invalidStartKeyWords();
+					return;
+				}
+				currentState = "validState";
+				if(validPanel == null)
+				{
+					validPanel.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Object):void
+					{
+						validPanel.invalidType = ValidPanel.INVALID_TYPE_START;
+						validPanel.poiIds = ids;
+					});
+					return;
+				}
+				validPanel.invalidType = ValidPanel.INVALID_TYPE_START;
+				validPanel.poiIds = ids;
+			}
+			
+			private function queryPassIdsResultHandler(ids:Array):void
+			{
+				if(ids.length<1)
+				{
+					//没有结果
+					currentState = "inputState";
+					inputPanel.invalidPassKeyWords(_currentSubmitInfo.passInfos);
+					return;
+				}
+				currentState = "validState";
+				if(validPanel == null)
+				{
+					validPanel.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Object):void
+					{
+						validPanel.invalidType = ValidPanel.INVALID_TYPE_PASS;
+						validPanel.poiIds = ids;
+					});
+					return;
+				}
+				validPanel.invalidType = ValidPanel.INVALID_TYPE_PASS;
+				validPanel.poiIds = ids;
+			}
+			
+			private function queryEndIdsResultHandler(ids:Array):void
+			{
+				if(ids.length<1)
+				{
+					//没有结果
+					currentState = "inputState";
+					inputPanel.invalidEndKeyWords();
+					return;
+				}
+				currentState = "validState";
+				if(validPanel == null)
+				{
+					validPanel.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Object):void
+					{
+						validPanel.invalidType = ValidPanel.INVALID_TYPE_END;
+						validPanel.poiIds = ids;
+					});
+					return;
+				}
+				validPanel.invalidType = ValidPanel.INVALID_TYPE_END;
+				validPanel.poiIds = ids;
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				map.removeLayer(_graphicsLayer);
+//				this.showInfoWindow(null);
+				inputPanel.releaseDrawTool();
+				setMapNavigation(null, null);
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				if(map!=null && _graphicsLayer!=null)
+				{
+					map.addLayer(_graphicsLayer);
+				}
+			}
+			
+			/**
+			*功能：响应其它widget的需要进行路径分析的请求
+			*@parame event 其余widget请求路径查询的消息，data:Ojbect{postprocessor:id, name:起点名称,graphic:起点，name1:终点名称，graphic1:终点}
+			*@author 王红亮，2011-04-13
+			*@return 无
+			*/
+			private function onPostprocess(event:AppEvent):void
+			{
+				if(this.widgetId != event.data.postprocessor)
+				{
+					return;
+				}
+				if(event.data.startGraphic == null && event.data.toGraphic == null)
+					return;
+//				clear();
+				if(event.data == null)
+					return;
+				_postGraphics = {startname:event.data.startName,startgraphic:event.data.startGraphic,
+					endname:event.data.toName,endgraphic:event.data.toGraphic};
+				if(_NAWorker == null)
+				{
+					_initCompeleteHandler = postProcess;
+				}
+				else
+				{
+					postProcess();
+				}
+			}
+			
+			/**
+			 * 处理POST_Process
+			 **/
+			private function postProcess():void
+			{
+				_NAWorker.resetAndCleanAll();
+				if(resultPanel !=null)
+				{
+					resultPanel.clean();
+				}
+				_NAWorker.setStartGraphic(_postGraphics.startgraphic);
+				_NAWorker.setEndGraphic(_postGraphics.endgraphic);
+				if(inputPanel == null || inputPanel.initialized == false)
+				{
+					inputPanel.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Object):void
+					{
+						inputPanel.startInput.text = _postGraphics.startname;
+						inputPanel.endInput.text = _postGraphics.endname;
+						inputPanel.submitSearch();
+					});
+				}
+				else
+				{
+					inputPanel.startInput.text = _postGraphics.startname;
+					inputPanel.endInput.text = _postGraphics.endname;
+					inputPanel.submitSearch();
+				}
+			}
+			
+			
+
+			protected function inputPanel_assetWordQueryHandler(event:NAEvent):void
+			{
+				_NAWorker.queryAssetWords(event.inputPrefix,
+					function(resultArray:Array,featureSet:FeatureSet):void
+					{
+						event.completionInput.completions = resultArray;
+						event.completionInput.displayCompletions(0);
+						inputPanel.assetsFeatureSet = featureSet;
+					});
+			}
+			
+			protected function inputPanel_queryGraphicHandler(event:NAEvent):void
+			{
+				_NAWorker.queryGraphicEntity(event.queryGraphic,event.queryGraphicType);
+			}
+			
+			protected function inputPanel_drawGraphicHandler(event:NAEvent):void
+			{
+				
+				_NAWorker.setDrawGraphic(event.drawGraphic,event.drawType);
+			}
+			
+			protected function inputPanel_deletePassGraphicHandler(event:NAEvent):void
+			{
+				// TODO Auto-generated method stub
+				_NAWorker.deletePassGraphic(event.deletePassGraphicId);
+			}
+			
+			protected function inputPanel_resetAndCleanAllHandler(event:NAEvent):void
+			{
+				// TODO Auto-generated method stub
+				_NAWorker.resetAndCleanAll();
+				if(resultPanel != null)
+				{
+					resultPanel.clean();
+				}
+//				inputPanel.
+			}
+			
+			private var _currentSubmitInfo:SubmitInfo;
+			
+			protected function inputPanel_submitHandler(event:NAEvent):void
+			{
+				trace("inputPanel_submitHandler");
+				_currentSubmitInfo = event.submitInfo;
+				_NAWorker.validSubmitInfo(event.submitInfo);
+			}
+			
+			protected function validPanel_queryDetailHandler(event:Event):void
+			{
+				_NAWorker.queryDetailPoisByIds(validPanel.currentPoiIds,queryValidPoisDetailHandler)
+			}
+			
+			private function queryValidPoisDetailHandler(featureSet:FeatureSet):void
+			{
+				trace("ok");
+				validPanel.setPoiDatas(featureSet);
+			}
+			
+			protected function validPanel_creationCompleteHandler(event:FlexEvent):void
+			{
+				validPanel.poiAddField = _NAWorker.poiAddField;
+				validPanel.poiDisplayField = _NAWorker.poiDisplayField;
+			}
+			
+			protected function validPanel_selectPOIHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				switch(validPanel.invalidType)
+				{
+					case ValidPanel.INVALID_TYPE_START:
+						_NAWorker.setValidStart(validPanel.selectedPOI);
+						//同时更改输入panel中的起点文本中的内容，与选择的一致
+						inputPanel.startInput.text = validPanel.selectedPOI.attributes[String(configXML.poi.displayfield)];
+						break;
+					case ValidPanel.INVALID_TYPE_PASS:
+						_NAWorker.setValidPass(validPanel.selectedPOI);
+						break;
+					case ValidPanel.INVALID_TYPE_END:
+						_NAWorker.setValidEnd(validPanel.selectedPOI);
+						inputPanel.endInput.text = validPanel.selectedPOI.attributes[String(configXML.poi.displayfield)];
+						break;
+				}
+			}
+			
+			protected function resultPanel_initializeHandler(event:FlexEvent):void
+			{
+				resultPanel.smallUnitConversion = Number(configXML.distanceunit.smallunit.@conversion);
+				resultPanel.smallUnitLabel = String(configXML.distanceunit.smallunit.@label);
+				resultPanel.smallUnitPrecision = int(configXML.distanceunit.smallunit.@precision);
+				resultPanel.unitScale = Number(configXML.distanceunit.scale);
+				resultPanel.largeUnitConversion = Number(configXML.distanceunit.largeunit.@conversion);
+				resultPanel.largeUnitLabel = String(configXML.distanceunit.largeunit.@label);
+				resultPanel.largeUnitPrecision = int(configXML.distanceunit.largeunit.@precision);
+			}
+			
+			protected function resultPanel_cleanAddResetHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				currentState = "inputState";
+			}
+			
+			protected function basewidget1_initializeHandler(event:FlexEvent):void
+			{
+				AppEvent.addListener(AppEvent.POST_PROCESS,onPostprocess);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		
+		<esri:SimpleFillSymbol id="barrierSymbol" color="0xFF0000"/>
+		
+		<esri:SimpleLineSymbol id="routeSymbol" color="0x0000FF" alpha="0.5" width="4"/>
+		<esri:SimpleLineSymbol id="segmentSymbol" color="0xFF0000" alpha="0.5" width="8"/>
+	</fx:Declarations>
+	
+	<viewer:SplitWidgetTemplate id="wTemplate" 
+						   width="100%" height="100%"
+						   closed="widgetClosedHandler(event)" 
+						   open="widgetOpenedHandler(event)">
+		<uiPanels:InputPanel top="30" width="100%" id="inputPanel" map="{map}"
+							 assetWordQuery="inputPanel_assetWordQueryHandler(event)"
+							 queryGraphic="inputPanel_queryGraphicHandler(event)"
+							 drawGraphic="inputPanel_drawGraphicHandler(event)"
+							 deletePassGraphic="inputPanel_deletePassGraphicHandler(event)"
+							 resetAndCleanAll="inputPanel_resetAndCleanAllHandler(event)"
+							 submit="inputPanel_submitHandler(event)" includeIn="inputState"/>
+		<validPanel:ValidPanel id="validPanel" top="0" bottom="0" includeIn="validState"
+							   queryDetail="validPanel_queryDetailHandler(event)"
+							   pageSize="8"
+							   creationComplete="validPanel_creationCompleteHandler(event)"
+							   selectPOI="validPanel_selectPOIHandler(event)" map="{map}"/>
+		
+		<s:VGroup horizontalAlign="center" gap="15" includeIn="excuteState"
+				  horizontalCenter="0" verticalCenter="0">
+			<s:SWFLoader source="assets/images/loading.swf"/>
+			<s:Label text="正在搜索..." fontFamily="宋体" fontSize="12" color="#4061ad"/>
+		</s:VGroup>
+		
+		
+		<uiPanels:ResultPanel id="resultPanel" left="10" right="10" top="10" bottom="10"
+							  includeIn="resultState" graphicsLayer="{_graphicsLayer}"
+							  initialize="resultPanel_initializeHandler(event)"
+							  cleanAddReset="resultPanel_cleanAddResetHandler(event)">
+			
+		</uiPanels:ResultPanel>
+		
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

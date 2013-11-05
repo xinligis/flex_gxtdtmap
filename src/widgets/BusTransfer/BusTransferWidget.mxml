@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 公交换乘模块
+* @author 胡国营
+* @ver 1.0
+* @created 02-17-2012 17:00:46
+*/
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*" 
+				   width="100%" height="100%"
+				   widgetConfigLoaded="onWidgetConfigLoaded()"
+				   xmlns:Transfer="widgets.BusTransfer.Transfer.*"
+				   initialize="basewidget1_initializeHandler(event)"
+				   xmlns:BusStop="widgets.BusTransfer.BusStop.*" xmlns:BusRoute="widgets.BusTransfer.BusRoute.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IInfowindowTemplate;
+			
+			import mx.events.FlexEvent;
+			
+			private const ICON_URL:String = "assets/images/transfer/";
+			
+			private function onWidgetConfigLoaded():void
+			{
+				transferTab.configXML = this.configXML;
+				if(configData.urlParam.hasOwnProperty("operation"))
+				{
+					//说明widget是从url中调用的。
+					if(this.widgetId == configData.urlParam.widgetId)
+					{
+						var startName:String = String(configData.urlParam.start);
+						var endName:String = String(configData.urlParam.end);
+						var data:Object = 
+						{
+							startGraphic:null,
+							startName:startName,
+							toGraphic:null,
+							toName:endName
+						}
+						transferTab.postProcess(data);
+					}
+				}
+			}
+
+			protected function busTransferLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				currentState = "busTransferState";
+			}
+			
+			protected function busRouteSearchLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				currentState = "busRouteQueryState";
+			}
+			
+			protected function stopSearchLabel_clickHandler(event:MouseEvent):void
+			{
+				currentState = "busStopQueryState";
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				showInfoWindow(null);
+				setMapNavigation(null, null);
+				map.removeLayer(_transferLayer);
+				map.removeLayer(_routeferLayer);
+				map.removeLayer(_busstopLayer);
+				transferTab.widgetClose();
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				trace("widgetOpenedHandler");
+				map.addLayer(_transferLayer);
+				map.addLayer(_routeferLayer);
+				map.addLayer(_busstopLayer);
+				transferTab.widgetOpen();
+			}
+			
+			private function transferTab_initializeHandler(event:FlexEvent):void
+			{
+				transferTab.map = map;
+				transferTab.configXML = configXML;
+				transferTab.resultsLayer = _transferLayer;
+			}
+			
+			protected function busRouteTab_initializeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				busRouteTab.map = map;
+				busRouteTab.configXML = configXML;
+				busRouteTab.resultsLayer = _routeferLayer;
+			}
+			
+			protected function busStopTab_initializeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				busStopTab.map = map;
+				busStopTab.configXML = configXML;
+				busStopTab.resultsLayer = _busstopLayer;
+			}
+			
+			
+			private function postProcessHandler(event:AppEvent):void
+			{
+				if(event.data.postprocessor == widgetId)
+				{
+					trace("ok");
+					currentState = "busTransferState";
+					var data:Object = event.data;
+					if(transferTab == null)
+					{
+						addEventListener("widgetConfigLoaded",function(event:Object):void
+						{
+							transferTab.postProcess(data);
+						});
+						return;
+					}
+					transferTab.postProcess(data);
+				}
+			}
+			
+			protected function basewidget1_initializeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				AppEvent.addListener(AppEvent.POST_PROCESS,postProcessHandler);
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widgetStateChangedHandler);
+			}
+			
+			protected function widgetStateChangedHandler(event:AppEvent):void
+			{
+				if(event.data.id == widgetId)
+				{
+					map.infoWindow.hide();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<viewer:states>
+		<s:State name="busTransferState"/>
+		<s:State name="busRouteQueryState"/>	
+		<s:State name="busStopQueryState"/>
+	</viewer:states>
+	<fx:Declarations>
+		<esri:GraphicsLayer id="_transferLayer" visible="false" visible.busTransferState="true"/>
+		<esri:GraphicsLayer id="_routeferLayer" visible="false" visible.busRouteQueryState="true"/>
+		<esri:GraphicsLayer id="_busstopLayer" visible="false" visible.busStopQueryState="true"/>
+	</fx:Declarations>
+	
+
+	<!-- 胡国营 20120220 -->
+	<viewer:SplitWidgetTemplate id="wTemplate" fontFamily="宋体"
+								width="100%" top="0" bottom="0"
+							    backgroundAlpha="0.0"
+								closed="widgetClosedHandler(event)" 
+								open="widgetOpenedHandler(event)">
+		<s:VGroup width="100%" height="100%" gap="5">
+			<s:HGroup width="100%" gap="10" paddingLeft="30" paddingRight="5">
+				<s:Label id="busTransferLabel" text="换乘查询" textDecoration="underline"
+						 color="#0028A4" textDecoration.busTransferState="none"
+						 fontWeight="normal" fontWeight.busTransferState="bold"
+						 buttonMode="true" click="busTransferLabel_clickHandler(event)"/>
+				<s:Line height="100%">
+					<s:stroke>
+						<s:SolidColorStroke color="0x000000"/>
+					</s:stroke>
+				</s:Line>
+				<s:Label id="busRouteSearchLabel" text="线路查询" textDecoration="underline"
+						 color="#0028A4" textDecoration.busRouteQueryState="none"
+						 fontWeight="normal" fontWeight.busRouteQueryState="bold"
+						 buttonMode="true" click="busRouteSearchLabel_clickHandler(event)"/>
+				<s:Line height="100%">
+					<s:stroke>
+						<s:SolidColorStroke color="0x000000"/>
+					</s:stroke>
+				</s:Line>
+				<s:Label id="stopSearchLabel" text="站点查询" textDecoration="underline"
+						 color="#0028A4" textDecoration.busStopQueryState="none"
+						 fontWeight="normal" fontWeight.busStopQueryState="bold"
+						 buttonMode="true" click="stopSearchLabel_clickHandler(event)"/>
+			</s:HGroup>
+			<s:VGroup width="100%" gap="0" horizontalAlign="center">
+				<s:Line left="0" right="0" width="95%">
+					<s:stroke>
+						<s:SolidColorStroke color="#DDDDDD"/>
+					</s:stroke>
+				</s:Line>
+				<s:Line left="0" right="0" width="95%">
+					<s:stroke>
+						<s:SolidColorStroke color="0xffffff"/>
+					</s:stroke>
+				</s:Line>
+			</s:VGroup>
+			
+			<Transfer:TransferTab id="transferTab" width="100%" height="100%" map="{map}"
+									 includeIn="busTransferState" initialize="transferTab_initializeHandler(event)"/>	
+			<BusRoute:BusRouteTab id="busRouteTab" width="100%" height="100%" map="{map}"
+									 includeIn="busRouteQueryState"
+									 initialize="busRouteTab_initializeHandler(event)"/>
+			<BusStop:BusStopTab id="busStopTab" width="100%" height="100%"
+									includeIn="busStopQueryState"
+								 initialize="busStopTab_initializeHandler(event)"/>
+		</s:VGroup>		
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

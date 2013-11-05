@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/License.txt
+// 打印功能，原来是放在Toolbar里面的。现在提取出来，作为单独的widget。在配置文件中，请把preload属性设置为“open”
+// 温杨彪；2012-3-27
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   widgetConfigLoaded="init()" >	
+	
+	<fx:Declarations>
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esrichina.om.componet.ResizeDragContainer;
+			
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			import spark.components.Panel;
+			import spark.components.TitleWindow;
+			
+			
+			private function init():void
+			{
+				if(configXML)
+				{
+					AppEvent.addListener(AppEvent.WIDGET_CHANGE_STATE,state_changehandler);
+				}
+			}
+			
+			private function state_changehandler(event:AppEvent):void
+			{
+				if(event.data.widgetId == widgetId)
+				{
+					excute(event.data.data);
+				}
+			}
+						
+			private var _settingPanel:Panel;
+			
+			private var _bmpData:BitmapData=null;
+			
+			private var _printExtent:ResizeDragContainer;
+			
+			
+			
+			private function excute(params:Object=null):void
+			{
+				if(params is BitmapData)
+				{
+					_bmpData=params as BitmapData;
+				}
+				else
+				{
+					_bmpData=null;
+				}
+				//添加拉框选取之前的代码
+				var printWnd:TitleWindow=PopUpManager.createPopUp(map.parentApplication as DisplayObject,PrintWindow,true) as TitleWindow;
+				printWnd.addEventListener(CloseEvent.CLOSE,printWnd_closeHandler);
+				printWnd.addEventListener(FlexEvent.CREATION_COMPLETE,printWnd_creationCompeleteHandler);
+				PopUpManager.centerPopUp(printWnd);
+				
+			}
+			
+			private function printWnd_closeHandler(event:Object):void
+			{
+				PopUpManager.removePopUp(event.target as TitleWindow);
+			}
+			
+			private function printWnd_creationCompeleteHandler(event:Object):void
+			{
+				var printWnd:PrintWindow=event.target as PrintWindow;
+				printWnd.setMap(map,_bmpData);
+			}
+			
+		]]>
+	</fx:Script>
+</viewer:BaseWidget>

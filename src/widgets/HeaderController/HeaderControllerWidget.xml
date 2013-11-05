@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" ?>
+<configuration>
+	<!-- POI查询首页 -->
+	<homepage>widgets/Search/SearchWidget.swf</homepage>
+	<centerLinkX>490</centerLinkX>
+	<portallink>http://www.baidu.com</portallink>
+	<newslink>http://www.sina.com.cn</newslink>
+	<applink>http://www.youku.com</applink>
+	<reslink>http://www.google.com.hk</reslink>
+</configuration>

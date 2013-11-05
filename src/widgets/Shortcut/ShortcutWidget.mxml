@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 功能Widget快速通道，其中的各个子项可以直接激发对应的功能Widget
+// 王红亮，2012-3-11
+
+//修改：增加了弹出和收回的动画效果，图标的更改。温杨彪，2012-3-26
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:viewer="com.esri.viewer.*"
+					widgetConfigLoaded="onWidgetConfigLoaded()" 
+					xmlns:Shortcut="widgets.Shortcut.*" creationComplete="basewidget1_creationCompleteHandler(event)">
+
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.components.customskinbutton.ClickButton;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.events.DragEvent;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			
+			import spark.components.Image;
+			
+			/**
+			 * 图层管理图标，normal
+			 **/
+			[Embed('assets/images/shortcut/imgLayer_up.png')]
+			private var layerManagerNormalIcon:Class;
+			
+			/**
+			 * 图层管理图标，over
+			 **/
+			[Embed('assets/images/shortcut/imgLayer_down.png')]
+			private var layerManagerOverIcon:Class;
+			
+			/**
+			 * 图例图标，over
+			 **/
+			[Embed('assets/images/shortcut/legend_down.png')]
+			private var legendOverIcon:Class;
+			
+			/**
+			 * 图例图标，normal
+			 **/
+			[Embed('assets/images/shortcut/legend_up.png')]
+			private var legendNormalIcon:Class;
+			
+			/**
+			 * 书签图标，normal
+			 **/
+			[Embed('assets/images/shortcut/bookmark_up.png')]
+			private var bookmarkNormalIcon:Class;
+			
+			/**
+			 * 书签图标，over
+			 **/
+			[Embed('assets/images/shortcut/bookmark_down.png')]
+			private var bookmarkOverIcon:Class;
+			
+			/**
+			 * 地图纠错，over
+			 **/
+			[Embed('assets/images/shortcut/mapCorrection_down.png')]
+			private var mapCorrectionOverIcon:Class;
+			
+			/**
+			 * 地图纠错，normal
+			 **/
+			[Embed('assets/images/shortcut/mapCorrection_up.png')]
+			private var mapCorrectionNormalIcon:Class;
+			
+			/**
+			 * 最近设施，normal
+			 **/
+			[Embed('assets/images/shortcut/facility_up.png')]
+			private var closestNormalIcon:Class;
+			
+			/**
+			 * 最近设施，over
+			 **/
+			[Embed('assets/images/shortcut/facility_down.png')]
+			private var closestOverIcon:Class;
+			
+			/**
+			 * 周边查询，over
+			 **/
+			[Embed('assets/images/shortcut/around_down.png')]
+			private var bufferOverIcon:Class;
+			
+			/**
+			 * 周边查询，normal
+			 **/
+			[Embed('assets/images/shortcut/around_up.png')]
+			private var bufferNormalIcon:Class;
+			
+			/**
+			 * 服务区分析，normal
+			 **/
+			[Embed('assets/images/shortcut/analysis_up.png')]
+			private var analysisNormalIcon:Class;
+			
+			/**
+			 * 服务区分析，over
+			 **/
+			[Embed('assets/images/shortcut/analysis_down.png')]
+			private var analysisOverIcon:Class;
+			
+			/**
+			 * 放大镜/卷帘，over
+			 **/
+			[Embed('assets/images/shortcut/blend_down.png')]
+			private var swipOverIcon:Class;
+			
+			/**
+			 * 放大镜/卷帘，normal
+			 **/
+			[Embed('assets/images/shortcut/blend_up.png')]
+			private var swipNormalIcon:Class;
+			
+			/**
+			 * 热点定位，over
+			 **/
+			[Embed('assets/images/shortcut/hotarea_over.png')]
+			private var hotareaOverIcon:Class;
+			
+			/**
+			 * 热点定位，normal
+			 **/
+			[Embed('assets/images/shortcut/hotarea_normal.png')]
+			private var hotareaNormalIcon:Class;
+			
+			private const ICON_BASE:String = "assets/images/shortcut/";
+			private var _proxyArray:Array;
+			private function onWidgetConfigLoaded():void
+			{
+				if(this.configXML)
+				{
+					_proxyArray = [];
+					//图层管理
+					var layerButton:ClickButton = new ClickButton();
+					layerButton.setStyle("normalImage",layerManagerNormalIcon);
+					layerButton.setStyle("overImage", layerManagerOverIcon);
+					layerButton.toolTip = "图层管理";
+					layerButton.width = 56;
+					layerButton.height = 56;
+					layerButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(layerButton);
+					layerButton.tag = "widgets/LayerList/LayerListWidget.swf";
+					var config:Object = 
+					{
+						url:"widgets/LayerList/LayerListWidget.swf"
+					}
+					var proxyObject:Object = {imageButton:layerButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//图例
+					var legendButton:ClickButton = new ClickButton();
+					legendButton.setStyle("normalImage",legendNormalIcon);
+					legendButton.setStyle("overImage", legendOverIcon);
+					legendButton.toolTip = "图例"
+					legendButton.width = 56;
+					legendButton.height = 56;
+					legendButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(legendButton);
+					legendButton.tag = "widgets/Legend/LegendWidget.swf";
+					config = 
+						{
+							url:"widgets/Legend/LegendWidget.swf"
+						}
+					proxyObject = {imageButton:legendButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//书签管理
+					var bookMarkerButton:ClickButton = new ClickButton();
+					bookMarkerButton.setStyle("normalImage",bookmarkNormalIcon);
+					bookMarkerButton.setStyle("overImage",bookmarkOverIcon);
+					bookMarkerButton.width = 56;
+					bookMarkerButton.height = 56;
+					bookMarkerButton.toolTip = "书签管理";
+					bookMarkerButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(bookMarkerButton);
+					bookMarkerButton.tag = "widgets/Bookmark/BookmarkWidget.swf";
+					config = 
+						{
+							url:"widgets/Bookmark/BookmarkWidget.swf"
+						}
+					proxyObject = {imageButton:bookMarkerButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//地图纠错
+					var mapCorrectionButton:ClickButton = new ClickButton();
+					mapCorrectionButton.setStyle("normalImage",mapCorrectionNormalIcon);
+					mapCorrectionButton.setStyle("overImage",mapCorrectionOverIcon);
+					mapCorrectionButton.width = 56;
+					mapCorrectionButton.height = 56;
+					mapCorrectionButton.toolTip = "地图纠错";
+					mapCorrectionButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(mapCorrectionButton);
+					mapCorrectionButton.tag = "widgets/MapCorrection/MapCorrectionWidget.swf";
+					config = 
+						{
+							url:"widgets/MapCorrection/MapCorrectionWidget.swf"
+						}
+					proxyObject = {imageButton:mapCorrectionButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//最近设施查询
+					var closestButton:ClickButton = new ClickButton();
+					closestButton.setStyle("normalImage",closestNormalIcon);
+					closestButton.setStyle("overImage",closestOverIcon);
+					closestButton.width = 56;
+					closestButton.height = 56;
+					closestButton.toolTip = "最近设施查询";
+					closestButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+//					widgetProxyGroup.addElement(closestButton);
+					closestButton.tag = "widgets/ClosestFacility/ClosestFacilityWidget.swf";
+					config = 
+						{
+							url:"widgets/ClosestFacility/ClosestFacilityWidget.swf"
+						}
+					proxyObject = {imageButton:closestButton, config:config, isON:false};
+//					_proxyArray.push(proxyObject);
+					
+					//周边查询
+					var bufferButton:ClickButton = new ClickButton();
+					bufferButton.setStyle("normalImage",bufferNormalIcon);
+					bufferButton.setStyle("overImage",bufferOverIcon);
+					bufferButton.width = 56;
+					bufferButton.height = 56;
+					bufferButton.toolTip = "周边查询"
+					bufferButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(bufferButton);
+					bufferButton.tag = "widgets/Buffer/BufferWidget.swf";
+					config = 
+						{
+							url:"widgets/Buffer/BufferWidget.swf"
+						}
+					proxyObject = {imageButton:bufferButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//服务区分析
+					var analysisButton:ClickButton = new ClickButton();
+					analysisButton.setStyle("normalImage",analysisNormalIcon);
+					analysisButton.setStyle("overImage",analysisOverIcon);
+					analysisButton.width = 56;
+					analysisButton.height = 56;
+					analysisButton.toolTip = "服务区分析";
+					analysisButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+//					widgetProxyGroup.addElement(analysisButton);
+					analysisButton.tag = "widgets/ServiceArea/ServiceAreaWidget.swf";
+					config = 
+						{
+							url:"widgets/ServiceArea/ServiceAreaWidget.swf"
+						}
+					proxyObject = {imageButton:analysisButton, config:config, isON:false};
+//					_proxyArray.push(proxyObject);
+					
+					//卷帘/放大镜
+					var swipButton:ClickButton = new ClickButton();
+					swipButton.setStyle("normalImage",swipNormalIcon);
+					swipButton.setStyle("overImage",swipOverIcon);
+					swipButton.width = 56;
+					swipButton.height = 56;
+					swipButton.toolTip = "卷帘/放大镜";
+					swipButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(swipButton);
+					swipButton.tag = "widgets/Swipe/SwipeWidget.swf";
+					config = 
+						{
+							url:"widgets/Swipe/SwipeWidget.swf"
+						}
+					proxyObject = {imageButton:swipButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					//热点定位
+					var hotareaButton:ClickButton = new ClickButton();
+					hotareaButton.setStyle("normalImage",hotareaNormalIcon);
+					hotareaButton.setStyle("overImage",hotareaOverIcon);
+					hotareaButton.width = 56;
+					hotareaButton.height = 56;
+					hotareaButton.toolTip = "热点查询";
+					hotareaButton.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					widgetProxyGroup.addElement(hotareaButton);
+					hotareaButton.tag = "widgets/HotSpot/HotSpotWidget.swf";
+					config = 
+						{
+							url:"widgets/HotSpot/HotSpotWidget.swf"
+						}
+					proxyObject = {imageButton:hotareaButton, config:config, isON:false};
+					_proxyArray.push(proxyObject);
+					
+					currentState = "hided";
+					
+					map.addEventListener(ResizeEvent.RESIZE,function (event:Object):void
+					{
+						if(map!=null && grp!=null)
+						{
+							left = map.width/2 - grp.width/2;
+						}
+					});
+					
+					AppEvent.addListener(AppEvent.POST_PROCESS,postProcess_handler);
+					
+				}
+			}
+			
+			private function postProcess_handler(event:AppEvent):void
+			{
+				//判断当前是否处于地图对比场景，如果是的话，隐藏自己
+				if(event.data != null && event.data.type == "AttachedMapStateChange")
+				{
+					if(event.data.state == "open")
+					{
+						grp.visible = false;
+					}
+					else
+					{
+						grp.visible = true;
+					}
+				}
+			}
+			
+			
+			private function image_clickHandler(event:MouseEvent):void
+			{
+				var button:ClickButton = event.currentTarget as ClickButton;
+				var proxyObject:Object;
+				for each(var proxy:Object in this._proxyArray)
+				{
+					if(proxy.config.url == button.tag)
+					{
+						proxyObject = proxy;
+						break;
+					}
+				}
+				var id:int = super.siblingWidgetId(proxyObject.config.url);
+				if(id < 0)
+				{
+					return;
+				}
+	/* 			if(proxyObject.isON == true)
+				{
+					//代理 的widget由开启转为关闭
+					AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+					image.source = proxyObject.config.@icon_off.toString();
+					proxyObject.isON = false;
+				}
+				else
+				{
+					//代理 的widget由关闭转为开启
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+					image.source = proxyObject.config.@icon_on.toString();
+					proxyObject.isON = true;
+				} */
+				AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+			}
+			protected function showImage_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+				if(this.currentState == "hided")
+				{
+					this.currentState = "shown";
+					showContentMoveEffect.play();
+					showButtonMoveEffect.play();
+				}
+				else
+				{
+					hideContentMoveEffect.play();
+					hideButtonMoveEffect.play();
+				}
+//				this.showImage.includeInLayout = false;
+			}
+			
+			protected function hideImage_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.currentState = "hided";
+				this.showImage.includeInLayout = true;
+			}
+			
+			protected function hideContentMoveEffect_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				currentState = "hided";
+//				hideButtonMoveEffect.play();
+//				rotateHideButtonEffect.play();
+			}
+			
+			protected function showButtonMoveEffect_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				setTimeout(function():void
+				{
+					rotateShowButtonEffect.play();
+				},100);
+			}
+						
+			protected function basewidget1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+//				setTimeout(function():void{showImage_clickHandler(null)},2000);
+				//使整个widget位于界面中间
+				left = map.width/2 - grp.width/2;
+//				showImage.y = 40;
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		
+		<s:Move target="{contentGroup}" yFrom="61" yTo="0" 
+				duration="1000" id="showContentMoveEffect"/>
+		<s:Move target="{showImage}" yBy="-40" duration="500" id="showButtonMoveEffect"
+				effectEnd="showButtonMoveEffect_effectEndHandler(event)"/>
+		<s:Move target="{showImage}" yBy="40" duration="500" id="hideButtonMoveEffect"
+				effectEnd="showButtonMoveEffect_effectEndHandler(event)"/>
+		<s:Rotate target="{showImage}" angleBy="180" duration="500" id="rotateShowButtonEffect" autoCenterTransform="true"/>
+		<s:Rotate target="{showImage}" angleBy="180" duration="500" id="rotateHideButtonEffect" autoCenterTransform="true"/>
+		<s:Move target="{contentGroup}" yFrom="0" yTo="61" 
+				duration="500" id="hideContentMoveEffect" 
+				effectEnd="hideContentMoveEffect_effectEndHandler(event)"/>
+	</fx:Declarations>
+	<!--<viewer:transitions>
+		<s:Transition fromState="*" toState="shown">
+			<s:Move target="{contentGroup}" yFrom="61" yTo="0" duration="1000"/>
+		</s:Transition>
+		<s:Transition fromState="shown" toState="hided">
+			<s:Move target="{contentGroup}" yFrom="0" yTo="61" duration="1000"/>
+		</s:Transition>
+	</viewer:transitions>-->
+	
+	<viewer:states>
+		<s:State name="hided"/>
+		<s:State name="shown"/>
+	</viewer:states>
+	
+	<s:Group width="470" id="grp" height="61"><!--height="61"-->
+		<s:Group id="contentGroup" width="470" height="61" visible="false" visible.shown="true" visible.hided="false">
+			<s:Rect width="27" height="61" left="0">
+				<s:fill>
+					<s:BitmapFill source="@Embed('assets/images/shortcut/back_left.png')" fillMode="scale"/>
+				</s:fill>
+			</s:Rect>
+			<s:Rect height="52" left="27" right="186" bottom="0">
+				<s:fill>
+					<s:BitmapFill source="@Embed('assets/images/shortcut/back_center.png')" fillMode="clip"/>
+				</s:fill>
+			</s:Rect>
+			<s:Rect width="186" height="61" right="0">
+				<s:fill>
+					<s:BitmapFill source="@Embed('assets/images/shortcut/back_right.png')" fillMode="scale"/>
+				</s:fill>
+			</s:Rect>
+			<s:HGroup id="widgetProxyGroup" bottom="20" width="100%" height="100%" visible="true"
+					  paddingLeft="15" gap="0"/>
+		</s:Group>
+		<s:Image right="10" id="showImage" source="@Embed('assets/images/shortcut/up.png')"
+				 visible="true" y="33"
+				 buttonMode="true" click="showImage_clickHandler(event)"/>
+	</s:Group>
+</viewer:BaseWidget>	

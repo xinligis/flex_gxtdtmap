@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/////////////////////////////////////////////////
+//通用的数字标签，通常用于搜索结果
+//王红亮，2012-5-2
+//////////////////////////////////////////////
+!-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 width="20" height="20">
+	<fx:Script>
+		<![CDATA[
+			[Bindable]
+			/**
+			 * 待显示的数字标签
+			 */
+			public var numberTag:Number = 0;
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+
+	<s:Rect left="2" top="2" right="2" bottom="2" radiusX="2" radiusY="2">
+		<s:fill>
+			<s:LinearGradient rotation="90">
+				<s:entries>
+					<s:GradientEntry color="#ebf0f6"/>
+					<s:GradientEntry color="#cdddf1"/>
+				</s:entries>
+			</s:LinearGradient>
+		</s:fill>
+	</s:Rect>
+	<s:Rect left="0" top="0" right="0" bottom="0" radiusX="2" radiusY="2">
+		<s:stroke>
+			<s:SolidColorStroke color="#89a6cb"/>
+		</s:stroke>
+	</s:Rect>
+	<s:Rect left="1" top="1" right="1" bottom="1" radiusX="2" radiusY="2">
+		<s:stroke>
+			<s:SolidColorStroke color="#f2f5f9"/>
+		</s:stroke>
+	</s:Rect>
+	<s:Label text="{numberTag.toString()}" verticalCenter="0" horizontalCenter="0" fontWeight="bold"/>
+</s:Group>

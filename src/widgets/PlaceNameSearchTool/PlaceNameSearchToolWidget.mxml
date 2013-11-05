@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 搜索工具
+* @author hugy
+* @ver 1.0
+* @created 03-12-2012 10:00:46
+*/
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:esri="http://www.esri.com/2008/ags"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:mx="library://ns.adobe.com/flex/mx"
+					xmlns:viewer="com.esri.viewer.*" 
+					xmlns:components="com.esri.viewer.components.*"
+					xmlns:sho="com.esri.viewer.components.sho.ui.*"
+					xmlns:componet="com.esrichina.om.componet.*"
+					xmlns:popup="com.esri.viewer.components.customTitleWindow.*"
+					keyDown="basewidget1_keyDownHandler(event)"
+					widgetConfigLoaded="onWidgetConfigLoaded()" >
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryEvent;
+			import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryParameters;
+			import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryResult;
+			import com.esri.viewer.PlaceNameAddressQueryTask.PlaceNameAddressQueryTask;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.collections.*;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.Fault;
+			import mx.utils.StringUtil;
+			
+			import spark.components.Group;
+			import spark.components.Image;
+			
+			private const ICON_URL:String = "assets/images/searchTool/";
+			
+			/**
+			 * POI的查询类型
+			 **/
+			private const PLACENAMETYPENUMBER:int = 1;
+			
+			private var _postprocessorWidgetID:Number = -1; //后处理功能WidgetID
+			
+			private function onWidgetConfigLoaded():void
+			{
+				if (configXML)
+				{
+					
+				}
+			}
+			
+			//智能提示的状态
+			private var _tipPrefix:String = "";
+//			private var _currentInput:CompletionInput;
+			/**
+			 *功能：查询名称中以name开头的所有地物
+			 *参数：name,名称的开头部分；
+			 作者：
+			 返回：无
+			 */
+//			private function queryPartialName(control: CompletionInput, prefix: String) : int
+//			{
+//				if(!configXML || !(configXML.placeNameAddress[0]))
+//				{	
+//					return CompletionInput.COMPLETION_FAILED;
+//				}
+//				
+//				if(_tipPrefix != "")
+//				{
+//					_tipPrefix = prefix;
+//					return CompletionInput.COMPLETION_ASYNC;
+//				}
+//				_tipPrefix = prefix;
+//				
+//				_currentInput = control;
+//				
+//				var displayField:String = configXML.placeNameAddress.displayfield;
+//				
+//				var url:String = configXML.placeNameAddress.url;
+//				//var strExpr:String = configXML.placeNameAddress.expression;
+//				
+//				var placeNameQueryParameters:PlaceNameAddressQueryParameters = new PlaceNameAddressQueryParameters();
+//				placeNameQueryParameters.keyword = prefix;
+//				
+//				var placeNameQueryTask:PlaceNameAddressQueryTask = new PlaceNameAddressQueryTask(url);
+//				placeNameQueryTask.queryPlaceNameAddress(placeNameQueryParameters,new AsyncResponder(onResult, onFault));
+//				
+//				return CompletionInput.COMPLETION_ASYNC;
+//				// on result
+//				function onResult(featureSet:PlaceNameAddressQueryResult, token:Object = null):void
+//				{
+//					if(_tipPrefix != prefix)
+//					{
+//						var strTemp:String = _tipPrefix;
+//						_tipPrefix = "";
+//						queryPartialName(_currentInput, strTemp);
+//						return;
+//					}
+//					try
+//					{
+//						var resultArray:Array = [];
+//						var len:uint = featureSet.features.length;
+//						if(len > 0)
+//						{
+//							len = len > 30 ? 30 : len;
+//							var graphic:Graphic;
+//							for(var index:uint = 0; index < len; ++index)
+//							{
+//								graphic = featureSet.features[index];
+//								resultArray.push(graphic.attributes[displayField]);
+//							}
+//							
+//							_currentInput.completions = resultArray;
+//							_currentInput.displayCompletions(0);
+//						}
+//					}
+//					catch (error:Error)
+//					{
+//						
+//					}
+//					_tipPrefix = "";
+//				}
+//			}
+			
+			private function onFault(result:Fault, token:Object = null):void
+			{
+				trace(result.toString());
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				
+				setMapNavigation(null, null);
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				
+			}
+			
+			protected function searchToolImage_click(event:MouseEvent):void
+			{
+				if (configXML)
+				{
+					if(nameCompletionInput.text == "")
+					{
+						mx.controls.Alert.show("查询名称不能为空！","提示");
+					}
+					
+					_postprocessorWidgetID = super.siblingWidgetId(configXML.resultWidget);
+					
+					//添加对widget打开状态的监听
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+					//开启需要进一步处理的widget
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+				}
+				
+			}
+			
+			//用于后处理的Widget加载并打开之后，向该widget发送要处理的数据
+			private function onOpenedPostprocessor(event:AppEvent):void
+			{
+				if(event.data.state as String == WidgetStates.WIDGET_OPENED && _postprocessorWidgetID == event.data.id as Number)
+				{
+					var data:Object = new Object();
+					data.postprocessor = _postprocessorWidgetID;
+					data.queryType = PLACENAMETYPENUMBER;
+					
+					data.queryName = StringUtil.trim(nameCompletionInput.text);
+					
+					AppEvent.dispatch(AppEvent.POST_PROCESS, data);
+					//源widget和目标widget不一致时，关闭源widget
+					/* if(_fromWidget && _fromWidget.widgetId != this._postprocessorWidgetID)
+					{
+					_fromWidget.setState(WidgetStates.WIDGET_CLOSED);
+					} */
+					
+					//已完成数据发送，不再对widget的打开状态进行监听
+					AppEvent.removeListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+				}
+			}
+			
+			private function nameCompletionInput_enterHandler(event:FlexEvent):void
+			{
+				searchToolImage_click(null);
+			}
+			
+			protected function nameCompletionInput_keyDownHandler(event:KeyboardEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace(event.keyCode);
+			}
+			
+			protected function basewidget1_keyDownHandler(event:KeyboardEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace(event.keyCode);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		
+	</fx:Declarations>
+	
+	<s:HGroup>
+		<s:Image source="{ICON_URL + 'searchZoom.png'}"/>
+		<!--圆角输入框-->
+		<!--<s:Group>
+			<s:Rect radiusX="15" radiusY="15" width="216" height="22">
+				<s:fill>
+					<s:SolidColor color="#ffffff"/>
+				</s:fill>
+			</s:Rect>
+			<sho:CompletionInput id="nameCompletionInput" left="10" top="1" right="10"  paddingTop="0" height="20" 
+								 fontSize="12" fontFamily="微软雅黑" 
+								 contentBackgroundColor="#ffffff" borderVisible="false" 
+								 focusColor="#ffffff" completionFunction="{queryPartialName}" keepLocalHistory="true"
+								 /> 
+		</s:Group>-->
+		
+		<s:TextInput id="nameCompletionInput" left="10" top="1" right="10"  paddingTop="0" height="25" 
+							 fontSize="12" fontFamily="微软雅黑" width="225"
+							 contentBackgroundColor="#ff0000" borderVisible="false"
+							 enter="nameCompletionInput_enterHandler(event)"
+							 keyDown="nameCompletionInput_keyDownHandler(event)" prompt="输入关键字"
+							 /> 
+		
+		<mx:Button id= "searchToolImage"
+				   click="searchToolImage_click(event)"
+				   skin="@Embed('assets/images/searchTool/searchNormal.png')"
+				   overSkin="@Embed('assets/images/searchTool/searchPress.png')" />
+	</s:HGroup>
+</viewer:BaseWidget>

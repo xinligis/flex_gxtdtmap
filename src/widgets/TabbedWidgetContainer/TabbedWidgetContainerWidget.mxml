@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:flexlib="flexlib.containers.*"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:widgetContainer="widgets.TabbedWidgetContainer.*"
+				   xmlns:controls="widgets.TabbedWidgetContainer.controls.*"
+				   width="0" height="100%"
+				   borderSkin="{null}"
+				   creationComplete="this_creationCompleteHandler()"
+				   implements="com.esri.viewer.IWidgetContainer"
+				   stateChangeComplete="basewidget_stateChangeCompleteHandler(event)" 
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.IWidgetContainer;
+			import com.esri.viewer.WidgetStates;
+			import com.esri.viewer.components.IconUtility;
+			
+			import flash.utils.getDefinitionByName;
+			
+			import mx.core.FlexGlobals;
+			import mx.managers.DragManager;
+			import mx.containers.Box;
+			import mx.core.IVisualElement;
+			import mx.core.ScrollPolicy;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.skins.halo.ButtonSkin;
+			
+			import widgets.TabbedWidgetContainer.events.ClosableTabEvent;
+			[Bindable]
+			private var _configParams:Object;
+			
+			private function this_creationCompleteHandler():void
+			{
+				var app:UIComponent = this.parentApplication as UIComponent;
+				AppEvent.addListener(AppEvent.POST_PROCESS,postProcess_handler);
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, widget_closeHandler);
+				AppEvent.addListener(AppEvent.WIDGET_CONTAINER_CHANGE_STATE, appEvent_widgetContainerChangeHandler);
+				//添加鼠标响应事件，实现鼠标对该容器的拖动，2012-8-10			
+				header.addEventListener(MouseEvent.MOUSE_DOWN, mouse_downHandler);
+				header.addEventListener(MouseEvent.MOUSE_UP, mouse_upHandler);
+				buttonScrollingCanvas.addEventListener(MouseEvent.MOUSE_DOWN, mouse_downHandler);
+				buttonScrollingCanvas.addEventListener(MouseEvent.MOUSE_UP, mouse_upHandler);
+				buttonScrollingCanvas.stage.addEventListener(MouseEvent.MOUSE_UP, mouse_upHandler);
+				buttonScrollingCanvas.stage.addEventListener(Event.MOUSE_LEAVE, stageout_Handler);
+			}
+			
+			private function postProcess_handler(event:AppEvent):void
+			{
+				//判断当前是否处于地图对比场景，如果是的话，隐藏自己
+				if(event.data != null && event.data.type == "AttachedMapStateChange")
+				{
+					if(event.data.state == "open")
+					{
+						this.currentState = "minimized"
+					}
+					else
+					{
+//						this.currentState = "normal"
+					}
+				}
+			}
+			private function widget_closeHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				if(data.state == WidgetStates.WIDGET_CLOSED)
+				{
+					var id:Number = event.data.id as Number;
+					var index:int = containWidgetId(id);
+					if(index < 0)
+					{
+						return;
+					}
+					widgetContainerStack.removeElementAt(index);
+					if(widgetContainerStack.numElements < 1)
+					{
+						this.visible = false;
+					}
+				}
+
+
+			}
+			private function appEvent_widgetContainerChangeHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				if(data.state == WidgetStates.WIDGET_MINIMIZED)
+				{
+					this.currentState = "minimized";
+				}
+			}
+			public function isBasicLayout():Boolean
+			{
+				return true;
+			}
+			/**
+			 * 判断是否拆分布局
+			 * 王红亮，2012-01-04
+			 */
+			public function isSplitLayout():Boolean
+			{
+				return false;
+			}
+			//private var _widgetToAdd:IBaseWidget;
+			public function addWidget(value:IBaseWidget):void
+			{
+				
+				if(this.visible == false)
+				{
+					this.visible = true;
+				}
+				const visualElement:IVisualElement = value as IVisualElement;
+				if (!visualElement)
+				{
+					return;
+				}
+				if(this.currentState != "normal")
+				{
+					this.currentState = "normal";
+				}
+				var index:int = containWidget(visualElement);
+				if(index > -1)
+				{
+					widgetContainerStack.selectedIndex = index;
+					return;
+				}
+				value.isDraggable = false;
+				var content:Box = new Box();
+				if(value.widgetIcon)
+				{
+					content.icon = IconUtility.getClass(content, value.widgetIcon, 18, 18);
+				}
+				content.label = value.widgetTitle;
+				content.percentWidth = 100;
+				content.percentHeight = 100;
+				content.clipContent = true;
+				content.horizontalScrollPolicy = ScrollPolicy.OFF;
+				content.verticalScrollPolicy = ScrollPolicy.OFF;
+				content.addElement(visualElement);
+				widgetContainerStack.addElement(content);
+				widgetContainerStack.selectedIndex = widgetContainerStack.numElements - 1;
+				AppEvent.dispatch(AppEvent.WIDGET_ADDED, visualElement);
+			}
+
+			/**
+			 * 容器中是否已经存在某个widget
+			 * 王红亮，2012-01-04
+			 * @return 存在，widget的所在tab的索引号；否则，-1
+			 */
+			private function containWidget(element:IVisualElement):int
+			{
+				var baseElm:IBaseWidget = element as IBaseWidget;
+				var id:int = baseElm.widgetId;
+				
+				var box:Box;
+				for (var i:int = 0; i < widgetContainerStack.numElements; i++)
+				{
+					box = widgetContainerStack.getElementAt(i) as Box;
+					var baseWidget:IBaseWidget = box.getElementAt(0) as IBaseWidget;
+					if (baseWidget.widgetId == id)
+					{
+						return i;
+					}
+				}
+				
+				return -1;
+			}
+			/**
+			 * 容器中是否已经存在某个widget
+			 * 王红亮，2012-01-04
+			 * @param widgetId 待查找的WidgetId
+			 * @return 存在，widget的所在tab的索引号；否则，-1
+			 */
+			private function containWidgetId(widgetId:Number):int
+			{
+		
+				var box:Box;
+				for (var i:int = 0; i < widgetContainerStack.numElements; i++)
+				{
+					box = widgetContainerStack.getElementAt(i) as Box;
+					var baseWidget:IBaseWidget = box.getElementAt(0) as IBaseWidget;
+					if (baseWidget.widgetId == widgetId)
+					{
+						return i;
+					}
+				}
+				
+				return -1;
+			}
+			
+			public function focusWidget(id:Number):void
+			{
+
+			}
+			
+			public function set configParams(value:Object):void
+			{
+				_configParams = value;
+				if(value.width)
+				{
+					this.width = value.width;
+				}
+			}
+
+			private var _normalLeft:Object;
+			private var _normalTop:Object;
+			protected function minimizeButton_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.currentState = "minimized";
+			}
+			
+			/**
+			 * 依次通知此容器中各个子widget进行关闭，最后关闭自身
+			 */
+			protected function closeButton_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				for (var index:int = widgetContainerStack.numElements - 1; index > -1; --index)
+				{
+					var box:Box = widgetContainerStack.getElementAt(index) as Box;
+					var baseWidget:IBaseWidget = box.getElementAt(0) as IBaseWidget;
+					baseWidget.setState(WidgetStates.WIDGET_CLOSED);
+				}
+				this.visible = false;
+			}
+			
+			protected function closabletabbar_tabCloseHandler(event:ClosableTabEvent):void
+			{
+				// TODO Auto-generated method stub
+				var box:Box;
+				box = widgetContainerStack.getElementAt(event.tabIndex) as Box;
+				var baseWidget:IBaseWidget = box.getElementAt(0) as IBaseWidget;
+				baseWidget.setState(WidgetStates.WIDGET_CLOSED);
+			}
+			
+			protected function thumbImage_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.currentState = "normal";
+			}
+					
+			protected function basewidget_stateChangeCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(this.currentState == "minimized")
+				{
+					_normalLeft = this.left;
+					_normalTop = this.top;
+					//this.top = 260;
+				}
+				else if(this.currentState == "normal" && _normalLeft != null && _normalTop != null)
+				{
+					//this.left = _normalLeft;
+					//this.top = _normalTop;
+				}
+			}
+			
+			[Bindable]
+			private var _draggable:Boolean = true;
+			public function mouse_downHandler(event:MouseEvent):void
+			{
+				if (_draggable)
+				{
+					buttonScrollingCanvas.addEventListener(MouseEvent.MOUSE_MOVE, mouse_moveHandler);
+					header.addEventListener(MouseEvent.MOUSE_MOVE, mouse_moveHandler);
+				}
+			}
+			
+			private var widgetMoveStarted:Boolean = false;
+			
+			private function mouse_moveHandler(event:MouseEvent):void
+			{
+				if (!widgetMoveStarted)
+				{
+					widgetMoveStarted = true;
+					
+					//TODO: not for V2.0
+					//ViewerContainer.dispatchEvent(new AppEvent(AppEvent.CHANGE_LAYOUT, LAYOUT_BASIC));
+					
+					this.alpha = 0.7;
+					
+					if (!DragManager.isDragging)
+					{
+						this.startDrag();
+					}
+				}
+			}
+			
+			private function mouse_upHandler(event:MouseEvent):void
+			{
+				buttonScrollingCanvas.removeEventListener(MouseEvent.MOUSE_MOVE, mouse_moveHandler);
+				header.removeEventListener(MouseEvent.MOUSE_MOVE, mouse_moveHandler);
+				this.alpha = 1;
+				
+				this.stopDrag();
+				
+				var appHeight:Number = FlexGlobals.topLevelApplication.height;
+				
+				if (this.y < 0)
+				{
+					this.y = 0;
+				}
+				if (this.y > (appHeight - 40))
+				{
+					this.y = appHeight - 40;
+				}
+				if (this.x < 0)
+				{
+					this.x = 20;
+				}
+				if (this.x > (systemManager.stage.width - this.width - 200))
+				{
+					this.x = systemManager.stage.width - this.width - 200;
+				}
+				
+				// clear constraints since x and y have been set
+				this.left = this.right = this.top = this.bottom = undefined;
+				
+				widgetMoveStarted = false;
+				
+				//CursorManager.removeCursor(CursorManager.currentCursorID);
+			}
+			
+			private function stageout_Handler(event:Event):void
+			{
+				if (widgetMoveStarted)
+				{
+					mouse_upHandler(null);
+				}
+				
+				//CursorManager.removeCursor(CursorManager.currentCursorID);
+			}
+		]]>
+	</fx:Script>
+	<fx:Style>
+		@namespace s "library://ns.adobe.com/flex/spark";
+		@namespace viewer "com.esri.viewer.*";
+		@namespace mx "library://ns.adobe.com/flex/mx";
+
+/* 		.leftButtonStyle
+		{
+			skin:Embed(source='assets/images/mainwidgets/left_button.png');
+			overSkin:Embed(source='assets/images/mainwidgets/left_button_over.png');
+		} 
+		.rightButtonStyle
+		{
+		skin:Embed(source='assets/images/mainwidgets/right_button.png');
+		overSkin:Embed(source='assets/images/mainwidgets/right_button_over.png');
+		}
+		*/
+		
+		/*仅仅用于投影演示
+		*/
+		.leftButtonStyle
+		{
+			skin:Embed(source='assets/images/mainwidgets/left_button_over.png');
+			overSkin:Embed(source='assets/images/mainwidgets/left_button_over.png');
+		}
+		.rightButtonStyle
+		{
+			skin:Embed(source='assets/images/mainwidgets/right_button_over.png');
+			overSkin:Embed(source='assets/images/mainwidgets/right_button_over.png');
+		}
+	</fx:Style>
+	<viewer:transitions>
+		<s:Transition fromState="normal" toState="minimized" autoReverse="true">
+			<s:Sequence>
+				<s:Resize duration="1000" target="{contentGroup}"/>
+				<s:SetAction targets="{[contentGroup, thumbImage]}" property="visible"/>
+				<s:SetAction targets="{[contentGroup, thumbImage]}" property="includeInLayout"/>
+				<s:Wipe duration="800" target="{thumbImage}" direction="right"/>
+			</s:Sequence>
+		</s:Transition>
+		<s:Transition fromState="*" toState="normal" autoReverse="true">
+			<s:Sequence>
+				<s:Wipe duration="800" target="{thumbImage}" direction="left"/>
+				<s:SetAction targets="{[thumbImage,contentGroup]}" property="visible"/>
+				<s:Resize duration="1000" target="{contentGroup}"/>
+				<s:SetAction target="{widgetVGroup}" property="visible"/>
+			</s:Sequence>
+		</s:Transition>
+	</viewer:transitions>
+	<viewer:states>
+		<s:State name="normal"/>
+		<s:State name="minimized"/>
+	</viewer:states>
+	<!--最小化后的缩略图按钮，王红亮，2012-5-31-->
+	<customskinbutton:ClickButton id="thumbImage" 	
+								  left="0" top="0" height="28"
+								  label="主功能区" toolTip="打开主功能区"
+								  buttonType="normalTowState"
+								  icon="@Embed('assets/images/tabcontainer/thumb.png')" 
+								 visible="false" visible.minimized="true"
+			 includeInLayout="false" includeInLayout.minimized="true"
+			 click="thumbImage_clickHandler(event)"/>
+	<s:Group id="contentGroup" width="380" height="100%" 
+			 width.minimized="0" height.minimized="0"
+			 visible="true" visible.minimized="false"
+			 includeInLayout="true" includeInLayout.minimized="false">
+		<!-- 投影展示效果，开始-->
+		<s:Rect left="3" top="16" right="14" bottom="0">
+			<s:fill>
+				<s:LinearGradient rotation="90">
+					<s:entries>
+						<s:GradientEntry color="#3a65b7" alpha="0.9"/>
+						<s:GradientEntry color="#274386" alpha="0.9"/>
+						<s:GradientEntry color="#3860b0" alpha="0.9"/>
+					</s:entries>
+				</s:LinearGradient>
+			</s:fill>
+		</s:Rect>
+		<s:Rect left="8" top="59" right="20" bottom="10">
+			<s:fill>
+				<s:SolidColor color="#f5f5f5" alpha="0.95"/>
+			</s:fill>
+		</s:Rect>
+		<!--投影展示效果，结束-->
+		
+<!--		<s:Rect left="0" top="13" right="13" bottom="0">
+			<s:fill>
+				<s:SolidColor color="0xf3f3f3" alpha="0.95"/>
+			</s:fill>
+		</s:Rect>-->
+		<s:Image left="0" right="13" bottom="4" alpha="0.5"
+				 source="assets/images/tabcontainer/back.png"/>
+		<!-- 各个子Widget的真正容器-->
+		<s:VGroup id="widgetVGroup" left="0" top="13" right="13" bottom="10"
+				  paddingLeft="5" paddingRight="5" gap="0"
+				  visible="true" visible.minimized="false">
+			<!--标题头，用于拖动-->
+			<s:Group id="header" width="360" height="43">
+			<flexlib:ButtonScrollingCanvas id="buttonScrollingCanvas" leftButtonStyleName="leftButtonStyle" rightButtonStyleName="rightButtonStyle"
+											   buttonWidth="13" top="15"
+										   width="100%" height="28"
+										   horizontalScrollPolicy="auto" verticalScrollPolicy="off">
+				<controls:ClosableTabBar id="closableTabBar" height="28"
+										 dataProvider="{widgetContainerStack}"
+										 fontFamily="微软雅黑,宋体" fontSize="14"
+										 skinClass="widgets.TabbedWidgetContainer.skins.ClosableTabBarSkin"
+										 tabClose="closabletabbar_tabCloseHandler(event)"/>
+			</flexlib:ButtonScrollingCanvas>
+			</s:Group>
+			<s:Line width="100%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xdddddd"/>
+				</s:stroke>
+			</s:Line>
+			<s:Line width="100%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xffffff"/>
+				</s:stroke>
+			</s:Line>
+			<s:Spacer height="15"/>
+			<mx:ViewStack id="widgetContainerStack" width="100%" height="100%" clipContent="true"
+						  visible="true" visible.minimized="false"/>
+		</s:VGroup>
+
+		<!--边框的修饰，达到阴影的效果-->
+		<s:Rect left="1" top="14" right="12" bottom="4">
+			<s:stroke>
+				<s:SolidColorStroke color="0xf9f9f9"/>
+			</s:stroke>
+		</s:Rect>
+		<s:Line right="13" top="13" bottom="3">
+			<s:stroke>
+				<s:SolidColorStroke color="0xdbdbdb"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line right="12" top="13" bottom="2">
+			<s:stroke>
+				<s:SolidColorStroke color="0xe6e6e6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line right="11" top="13" bottom="1">
+			<s:stroke>
+				<s:SolidColorStroke color="0xf6f6f6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line left="1" right="13" bottom="3">
+			<s:stroke>
+				<s:SolidColorStroke color="0xdbdbdb"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line left="2" right="12" bottom="2">
+			<s:stroke>
+				<s:SolidColorStroke color="0xe6e6e6"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line left="3" right="11" bottom="1">
+			<s:stroke>
+				<s:SolidColorStroke color="0xf6f6f6"/>
+			</s:stroke>
+		</s:Line>
+
+		<s:HGroup x="0" y="0" width="100%" height="26"
+				  paddingRight="0" paddingTop="0" gap="3"
+				  verticalAlign="middle" horizontalAlign="right">
+			<mx:Button id="minimizeButton" 
+					   skin="@Embed('assets/images/mainwidgets/minimize.png')" overSkin="@Embed('assets/images/mainwidgets/minimize_over.png')"
+					   click="minimizeButton_clickHandler(event);"/>
+			<mx:Button id="maxmizeButton" 
+					   skin="@Embed('assets/images/mainwidgets/close.png')" overSkin="@Embed('assets/images/mainwidgets/close_over.png')" 
+					   click="closeButton_clickHandler(event)"/>
+		</s:HGroup>
+	</s:Group>
+</viewer:BaseWidget>

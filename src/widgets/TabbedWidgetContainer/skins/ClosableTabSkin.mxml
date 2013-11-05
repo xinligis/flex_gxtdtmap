@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+带有关闭功能的Tab按钮的外观皮肤
+王红亮，2012-4-24
+-->
+
+<!--- 带有关闭功能的Tab按钮的外观皮肤.  
+
+     @see spark.components.ToggleButton
+        
+      @langversion 3.0
+      @playerversion Flash 10
+      @playerversion AIR 1.5
+      @productversion Flex 4
+-->
+<s:SparkButtonSkin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+                   xmlns:s="library://ns.adobe.com/flex/spark" 
+                   xmlns:fb="http://ns.adobe.com/flashbuilder/2009"
+                   minWidth="21" minHeight="21" autoIconManagement="false"
+                   alpha.disabledStates="0.5" xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Metadata>[HostComponent("widgets.TabbedWidgetContainer.controls.ClosableTab")]</fx:Metadata>
+    
+    <!-- host component -->
+    <fx:Script fb:purpose="styling">
+        /* Define the skin elements that should not be colorized. 
+           For toggle button, the graphics are colorized but the label is not. */
+        static private const exclusions:Array = ["labelDisplay"];
+
+        /**
+         * @private
+         */    
+        override public function get colorizeExclusions():Array {return exclusions;}
+        
+        /**
+         * @private
+         */
+        override protected function initializationComplete():void
+        {
+            useChromeColor = false;
+            super.initializationComplete();
+        }
+        
+        /**
+         * @private
+         */
+        override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number) : void
+        {
+            
+           super.updateDisplayList(unscaledWidth, unscaledHeight);
+        }
+        
+        private var cornerRadius:Number = 2;
+    </fx:Script>
+    
+    <!-- states -->
+    <s:states>
+        <s:State name="up" />
+        <s:State name="over" stateGroups="overStates" />
+        <s:State name="down" stateGroups="downStates" />
+        <s:State name="disabled" stateGroups="disabledStates" />
+        <s:State name="upAndSelected" stateGroups="selectedStates, selectedUpStates" />
+        <s:State name="overAndSelected" stateGroups="overStates" />
+        <s:State name="downAndSelected" stateGroups="downStates, selectedStates" />
+        <s:State name="disabledAndSelected" stateGroups="selectedUpStates, disabledStates, selectedStates" />
+    </s:states>
+    
+    <!-- layer 1: 边框实现阴影的效果 -->
+    <!--- @private -->
+    <s:Rect id="shadowBorder" left="0" right="1" top="0" bottom="0" 
+			topLeftRadiusX="5" topLeftRadiusY="5" topRightRadiusX="5" topRightRadiusY="5">
+        <s:stroke>
+			<s:SolidColorStroke color="0xcbcbcb"/>
+		</s:stroke>
+    </s:Rect>
+    
+    <!-- layer 2: fill -->
+    <!--- @private -->
+    <s:Rect id="fill" left="1" right="1" top="1" bottom="0" 
+			 topLeftRadiusX="5" topLeftRadiusY="5" topRightRadiusX="5" topRightRadiusY="5">
+        <s:fill>
+            <s:LinearGradient rotation="90">
+                <s:GradientEntry color="0xdcdcdc" 
+								 color.selectedStates="0xf5f5f5"
+                               color.overStates="0xf4f6f9"/>
+                <s:GradientEntry color="0xdcdcdc" color.selectedStates="0xf4f4f4"
+                               color.over="0xe1edf8"/>
+            </s:LinearGradient>
+        </s:fill>
+    </s:Rect>
+    <s:Line left="5" right="5" top="1">
+		<s:stroke>
+			<s:SolidColorStroke color="0xffffff" alpha="0.5" alpha.selectedStates="1.0"/>
+		</s:stroke>
+	</s:Line>  
+	<s:HGroup width="100%" height="100%"
+			  paddingLeft="5" paddingTop="5" paddingRight="5"
+			  gap="6" verticalAlign="middle">
+		<!--s:BitmapImage id="iconDisplay" left="5" top="5" width="18" height="18"/-->
+		<!-- layer 8: text -->
+		<!--- @copy spark.components.supportClasses.ButtonBase#labelDisplay -->
+		<s:Label id="labelDisplay" width="100%"
+				 textAlign="center" verticalAlign="middle" maxDisplayedLines="1"
+				 color="0x7e7e7e" color.selectedStates="0x2c3d83">
+		</s:Label>
+		<!-- close button-->
+		<mx:Button id="closeButton" 
+				   skin="@Embed('assets/images/mainwidgets/tab_close.png')" overSkin="@Embed('assets/images/mainwidgets/tab_close_over.png')"/>
+	</s:HGroup>
+
+</s:SparkButtonSkin>

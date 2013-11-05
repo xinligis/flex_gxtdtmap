@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2010 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:toc="com.esri.viewer.components.toc.*"
+				   widgetConfigLoaded="init()" xmlns:MapSwitch="widgets.MapSwitch.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.ViewerContainer;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.controls.ButtonBar;
+			import mx.core.FlexGlobals;
+			import mx.events.FlexEvent;
+			
+			import spark.components.ButtonBar;
+			import spark.components.Image;
+			import spark.events.IndexChangeEvent;
+			
+			private var hideTimer:Timer = new Timer(300, 1);
+			
+			/**
+			 * 当前选择的按钮的Index
+			 * @author 温杨彪 2011/7/22
+			 **/
+			private var _currentButtonIndex:int=0;
+			
+			[Bindable]
+			private var mapList:ArrayCollection;
+			
+			[Bindable]
+			private var groupList:ArrayCollection; //用于存储basemap组；王鑫；2010-11-25
+			
+			[Bindable]
+			private var opsLayerButtonLabel:String; // the label for the button showing the list of operational layers
+			
+			private var _switchItems:Array;
+			
+			/**
+			 * 当前选择的按钮的图片列表
+			 * @author 温杨彪 2011/7/22
+			 **/
+			private var _imgControls:Array = new Array();
+			
+			/**
+			 * 保存当前选择的按钮的图片的路径，是一个二维数组
+			 * @author 温杨彪 2011/7/22
+			 **/
+			private var _imgPaths:Array = new Array();
+			
+//			private var _currentImage:spark.components.Image = null;
+			
+			private function init():void
+			{
+				AppEvent.addListener(AppEvent.CURRENT_MAP_GROUP_REQUEST, appEvent_currentMapGroupRequestHandler);
+				AppEvent.addListener(AppEvent.BASEMAP_SWITCH, appEvent_baseMapSwitchHandler);
+				if (configXML)
+				{
+					//从配置文件中读取可选图层button显示名；王鑫；2010-11-25
+					opsLayerButtonLabel = configXML.layerlist.@label ;
+					
+					if (configXML.layerlist.@visible[0])
+					{
+						//optLabel.visible = configXML.layerlist.@visible == "true";
+					}
+					else
+					{
+						// check if there are any op layers
+						AppEvent.dispatch(AppEvent.DATA_OPT_LAYERS, null, getOplayers);
+					}
+				}
+				
+				// base maps
+//				mapList = new ArrayCollection(configData.basemaps);
+				groupList=new ArrayCollection(configData.grouplayers);//给basempa组赋值；王鑫；2010-11-25
+				
+				setTbbSelectedIndex();
+				
+				//                toc.map = map;
+				//                toc.isMapServiceOnly = false; //gotta get this from the config file
+				//                toc.excludeLayers = getExcludeLayers();
+				//                toc.excludeGraphicsLayers = true;
+				
+				hideTimer.addEventListener(TimerEvent.TIMER_COMPLETE, hideTimer_timerCompleteHandler, false, 0, true);
+			}
+			/**
+			 * 对其他模块的当前地图组id请求作出响应
+			 * 王红亮，2013-3-11
+			 */
+			private function appEvent_currentMapGroupRequestHandler(event:AppEvent):void
+			{
+				AppEvent.dispatch(AppEvent.CURRENT_MAP_GROUP_RESPONSE, customSwitchControl.currentLabel);
+			}
+			private function getOplayers(event:AppEvent):void
+			{
+				var oplList:Array = event.data as Array;
+				if (oplList.length > 0)
+				{
+					//optLabel.visible = true;
+				}
+			}
+			
+			private function getExcludeLayers():ArrayCollection
+			{
+				var result:ArrayCollection = new ArrayCollection();
+				
+				if (configData && configData.basemaps)
+				{
+					// exclude basemaps
+					for (var i:int = 0; i < configData.basemaps.length; i++)
+					{
+						result.addItem(configData.basemaps[i].label);
+					}
+				}
+				
+				if (configXML)
+				{
+					// exclude these layers
+					var layers:XMLList = configXML.layerlist.excludelayer as XMLList;
+					for (var j:int = 0; j < layers.length(); j++)
+					{
+						result.addItem(layers[j].toString());
+					}
+				}
+				
+				return result;
+			}
+			
+			private function tbb_creationCompleteHandler(event:FlexEvent):void
+			{
+				setTbbSelectedIndex();
+			}
+			
+			private var tbbSelectedIndexSet:Boolean; // make sure this only gets called once the tbb exists and the config has loaded
+			
+			private function setTbbSelectedIndex():void
+			{
+				//以basemap组方式生成button；王鑫；2010-11-25
+				//if (tbb && groupList && !tbbSelectedIndexSet)
+				//{
+				for (var i:int; i < groupList.length; i++)
+				{
+					if (groupList[i].visible)
+					{
+						//tbb.selectedIndex = i; // change the index of the toggle button bar to reflect the current base map.
+						_currentButtonIndex = i;
+					}
+				}
+				//tbbSelectedIndexSet = true;
+				//}
+				//根据配置文件生成转换按钮
+				createMainGroupControls();
+			}
+			/** 根据配置文件，创建地图切换的按钮，如果配置文件中配置了按钮的图片，则使用图片方式，如果没有配置，则使用默认配置
+			 * author 温杨彪 2011/7/22
+			 **/
+			private function createMainGroupControls():void
+			{
+				var bUseImage:Boolean = true;
+				_switchItems = [];
+				//如果有一个按钮没有配置图片，则使用默认样式
+				for(var i:int;i<groupList.length;i++)
+				{
+					if(!groupList[i].selectedIcon || !groupList[i].unselectedIcon)
+					{
+						bUseImage=false;
+						break;
+					}
+					//保存按钮图片路径
+//					_imgPaths.push([groupList[i].unselectedIcon,groupList[i].selectedIcon]);
+					_switchItems.push(
+						{
+							selectedIcon:groupList[i].selectedIcon,
+							unselectedIcon:groupList[i].unselectedIcon,
+							label:groupList[i].label
+						})
+				}
+				
+				if(bUseImage)
+				{
+					mainGroup.visible = false;
+					mainGroup.includeInLayout = false;
+//					_currentImage = new Image();
+//					imgGroup.addElement(_currentImage);
+					//使用图片
+//					for(var t:int=0;t<_imgPaths.length;t++)
+//					{
+//						var imgCtrl:Image = new Image();
+//						imgCtrl.toolTip=groupList[t].label;
+//						imgCtrl.source = _imgPaths[t][0];
+//						imgCtrl.addEventListener(MouseEvent.CLICK,imgCtrl_ClickHandler);
+//						imgCtrl.id = t.toString();
+//						imgCtrl.visible = false;
+//						imgCtrl.includeInLayout = false;
+//						_imgControls.push(imgCtrl);
+//						imgGroup.addElement(imgCtrl);
+//					}
+//					_imgControls[0].source = _imgPaths[0][1];
+//					_imgControls[0].visible = true;
+//					_imgControls[0].includeInLayout = true;
+					customSwitchControl.datas = _switchItems
+				}
+				else
+				{
+					customSwitchControl.visible = false;
+					customSwitchControl.includeInLayout = false;
+					//使用默认控件
+					var ttb:spark.components.ButtonBar = new spark.components.ButtonBar();
+					ttb.dataProvider=groupList;
+					ttb.requireSelection=true;
+					ttb.addEventListener(IndexChangeEvent.CHANGE,tbb_changeHandler);
+					ttb.selectedIndex = _currentButtonIndex;
+					mainGroup.addElement(ttb);
+				}
+				
+			}
+			/**
+			 * 每个图片被单击的事件处理方法
+			 * @author 温杨彪
+			 */
+			private function imgCtrl_ClickHandler(event:MouseEvent):void
+			{
+				var currentIndex:int = _imgControls.indexOf(event.currentTarget)
+				//如果点击的是原来的图片则返回
+				if(_currentButtonIndex == currentIndex)
+				{
+					//显示其他的图片
+					for each(var tmpimg:Image in _imgControls)
+					{
+						tmpimg.visible = true;
+						tmpimg.includeInLayout = true;
+					}
+					_currentButtonIndex = -1;
+					return;
+				}
+				//设置现在的图片为selected状态
+				_imgControls[currentIndex].source = _imgPaths[currentIndex][1];
+				//设置原来的图片为unselected状态
+				_imgControls[_currentButtonIndex].source=_imgPaths[_currentButtonIndex][0];
+				_currentButtonIndex = currentIndex;
+				//只显示当前选中的图片
+				for each(var img:Image in _imgControls)
+				{
+					if(img != _imgControls[_currentButtonIndex])
+					{
+						img.visible = false;
+						img.includeInLayout = false;
+					}
+				}
+				AppEvent.dispatch(AppEvent.BASEMAP_SWITCH, groupList[_currentButtonIndex].label);
+			}
+			
+			private function tbb_changeHandler(event:IndexChangeEvent):void
+			{
+				trace(groupList[event.newIndex].label);
+				//派发组切换的事件；王鑫；2010-11-25
+				AppEvent.dispatch(AppEvent.BASEMAP_SWITCH, groupList[event.newIndex].label);
+				
+			}
+			
+			private function optLabel_rollOverHandler(event:MouseEvent):void
+			{
+				//opBox.visible = true;
+				hideTimer.reset();
+				
+				// make sure there's enough room for the opBox
+				var appWidth:Number = FlexGlobals.topLevelApplication.width;
+				//var globalPt:Point = opBox.parent.localToGlobal(new Point(opBox.width, 0));
+				//if (globalPt.x > appWidth)
+				//{
+				//globalPt = optLabel.parent.localToGlobal(new Point(optLabel.width, 0));
+				//var localPt:Point = opBox.parent.globalToLocal(globalPt);
+				//opBox.x = -opBox.width + localPt.x;
+				//}
+				//else
+				//{
+				//opBox.x = 0;
+				//}
+			}
+			
+			
+			private function hideTimer_timerCompleteHandler(event:TimerEvent):void
+			{
+				//opBox.visible = false;
+			}
+			
+			private function startHideTimer():void
+			{
+				hideTimer.reset();
+				hideTimer.start();
+			}
+			
+			protected function opBox_creationCompleteHandler(event:FlexEvent):void
+			{
+				//opBox.setStyle("backgroundColor", getStyle("contentBackgroundColor"));
+				//Alpha doesnt seem to have effect.
+				//opBox.setStyle("backgroundAlpha", FlexGlobals.topLevelApplication.getStyle("backgroundAlpha"));
+				//opBox.setStyle("skinClass", FlexGlobals.topLevelApplication.getStyle("skinClass"));
+			}
+			
+			private function nlsString(nlsToken:String):String
+			{
+				return resourceManager.getString("ViewerStrings", nlsToken);
+			}
+			private function mapImg_ClickHandler(event:MouseEvent):void
+			{
+				if(_currentButtonIndex == 0)
+					return;
+				_currentButtonIndex=0;
+				//mapImg.source = map_down_Icon;
+				//imageImg.source = image_up_Icon;
+				AppEvent.dispatch(AppEvent.BASEMAP_SWITCH, groupList[0].label);
+			}
+			
+			private function imageImg_ClickHandler(event:MouseEvent):void
+			{
+				if(_currentButtonIndex==1)
+					return;
+				_currentButtonIndex=1
+				//mapImg.source = map_up_Icon;
+				//imageImg.source = image_down_Icon;
+				AppEvent.dispatch(AppEvent.BASEMAP_SWITCH, groupList[1].label);
+			}
+			
+			protected function customSwitchControl_switchMapHandler(event:SwitchMapEvent):void
+			{
+				// TODO Auto-generated method stub
+				AppEvent.dispatch(AppEvent.BASEMAP_SWITCH, event.label);
+			}
+			
+			private function appEvent_baseMapSwitchHandler(event:AppEvent):void
+			{
+				customSwitchControl.switchImage(event.data.toString());
+			}
+		]]>
+	</fx:Script>
+	
+	<!--温杨彪 2011/7/22-->
+	<s:HGroup gap="0" id="mainGroup">
+	</s:HGroup>
+	<MapSwitch:MapSwitchControl id="customSwitchControl" switchMap="customSwitchControl_switchMapHandler(event)">
+	</MapSwitch:MapSwitchControl>	
+</viewer:BaseWidget>

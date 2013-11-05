@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<configuration>
+	<proxy name="天气" icon_off="assets/images/01.png" icon_on="assets/images/02.png" widget="widgets/SplitExample/SplitWidget.swf"/>
+	<proxy name="路况" icon_off="assets/images/03.png" icon_on="assets/images/04.png" widget=""/>
+	<proxy name="摄像头" icon_off="assets/images/05.png" icon_on="assets/images/06.png" widget=""/>
+	<proxy name="" icon_off="assets/images/07.png" icon_on="assets/images/08.png" widget=""/>
+</configuration>

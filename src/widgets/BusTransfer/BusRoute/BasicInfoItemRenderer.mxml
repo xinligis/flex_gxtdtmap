@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--公交线路的基本信息项-->
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" height="26" width="100%"
+			    contentBackgroundAlpha="0"
+				dataChange="itemrenderer_dataChangeHandler(event)">
+	<s:layout>
+		<s:HorizontalLayout gap="1"/>
+	</s:layout>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			[Bindable]
+			private var _basicInfoItem:BasicInfoItem;
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				_basicInfoItem = data as BasicInfoItem;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group width="77" height="100%">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="#CA0000"/>
+			</s:fill>
+		</s:Rect>
+		<s:Label text="{_basicInfoItem.label}" color="0xffffff" fontWeight="bold" fontFamily="宋体" verticalCenter="0" horizontalCenter="0"/>
+	</s:Group>
+	<s:Group width="100%" height="100%">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="#EEEEEE"/>
+			</s:fill>
+		</s:Rect>
+		<s:Label id="valueLabel" text="{_basicInfoItem.value}" color="#4B5360" fontFamily="宋体" verticalCenter="0" left="20"/>
+	</s:Group>
+</s:ItemRenderer>

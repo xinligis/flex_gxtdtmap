@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="true" rollOverColor="#E8F2FE"
+				click="itemrenderer1_clickHandler(event)"
+				mouseOver="itemrenderer1_mouseOverHandler(event)"
+				mouseOut="itemrenderer1_mouseOutHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			[Bindable]
+			public override function set selected(value:Boolean):void
+			{
+				super.selected=value;
+			}
+			protected function itemrenderer1_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event("compassItemClick",true));
+			}
+
+			protected function itemrenderer1_mouseOverHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event("compassItemMouseOver",true));
+			}
+
+
+			protected function itemrenderer1_mouseOutHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event("compassItemMouseOut",true));
+			}
+
+		]]>
+	</fx:Script>
+	<s:Rect width="50" height="50" visible="{selected}">
+		<s:fill>
+			<s:SolidColor color="#D4D4D4"/>
+		</s:fill>
+	</s:Rect>
+	<s:Image source="{data.img}" height="50" width="50" scaleMode="stretch" smooth="true"/>
+	
+</s:ItemRenderer>

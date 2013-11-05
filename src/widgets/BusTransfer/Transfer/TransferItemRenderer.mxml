@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" minHeight="10"
+			    dataChange="itemrenderer_dataChangeHandler(event)"
+			 width="100%" height="100%">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import spark.events.IndexChangeEvent;
+			[Bindable]
+			private var transferItem:TransferItem;
+			protected function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				transferItem = data as TransferItem;
+			}
+			/**
+			 * 当前选择的换乘站点
+			 */
+			public var segmentItem:SegmentItem;
+			protected function list_changeHandler(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				segmentItem = list.selectedItem;
+				event.stopImmediatePropagation();
+				dispatchEvent(new Event("showTransferStop", true));
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="selected"/>
+	</s:states>
+	<s:BorderContainer width="100%" height="100%" 
+					  borderVisible="true"  borderColor="0xf7f7f7"
+					   backgroundColor="0xfbfbfb">
+		<s:layout>
+			<s:VerticalLayout gap="10"/>
+		</s:layout>
+
+		<s:HGroup width="100%" height="30" verticalAlign="middle" paddingLeft="5" gap="5">
+			<s:Image source="assets/images/transfer/expand.png" source.selected="assets/images/transfer/coll.png"/>
+			<s:Label id="titleLabel" text="{transferItem.transfers}" fontSize="12" width="290" maxDisplayedLines="1" 
+					 fontSize.selected="14" color="#4A545E" color.selected="#425FAB"/>
+		</s:HGroup>
+		<s:HGroup width="100%" paddingTop="5">
+			<s:Line width="95%" includeIn="selected">
+				<s:stroke>
+					<s:SolidColorStroke color="#4061AE"/>
+				</s:stroke>
+			</s:Line>
+		</s:HGroup>
+		<s:VGroup width="100%" height="100%" paddingLeft="7" includeIn="selected">
+			<s:Label id="generalInfoLabel" text="{transferItem.generalInfo}"/>
+			<s:HGroup width="100%" verticalAlign="middle" gap="5">
+				<s:BitmapImage source="assets/images/transfer/iStartpoint.png"/>
+				<s:Label id="startStopLabel" fontFamily="宋体" fontSize="14" color="0x1d3f8b"
+						 text="{transferItem.startName}"/>
+			</s:HGroup>
+			<s:List id="list" width="100%" height="100%" borderVisible="false"
+				   itemRenderer="widgets.BusTransfer.Transfer.SegmentItemRenderer"
+					dataProvider="{transferItem.segments}"
+				 change="list_changeHandler(event)">
+				<s:layout>
+					<s:VerticalLayout gap="8" paddingRight="5"/>
+				</s:layout>
+			</s:List>
+			<s:HGroup width="100%" verticalAlign="middle" gap="5">
+				<s:BitmapImage source="assets/images/transfer/iEndpoint.png"/>
+				<s:Label id="endStopLabel" fontFamily="宋体" fontSize="14" color="0x1d3f8b"
+						 text="{transferItem.endName}"/>
+			</s:HGroup>
+		</s:VGroup>
+	</s:BorderContainer>
+</s:ItemRenderer>

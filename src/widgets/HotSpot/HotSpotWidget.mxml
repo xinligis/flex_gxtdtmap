@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	热点定位widget
+	马红涛  2012-02-17
+
+	温杨彪 2012-05-22修改
+-->
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:components="com.esri.viewer.components.*"
+				   widgetConfigLoaded="init()" 
+				   width="100%" height="100%"
+				   xmlns:HotSpot="widgets.HotSpot.*">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.geometry.Extent;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.LinkButton;
+			import mx.events.FlexEvent;
+			
+			private var _hashTable:Hashtable = new Hashtable();
+			
+			private function init():void
+			{
+				if(configXML)
+				{
+					//读取配置文件信息。2012-5-22
+					var hotAreaRootArray:Array = [];
+					var hotAreaRootXmlList:XMLList = configXML.HotSpots.area;
+					//第一个默认展开
+					var first:Boolean = true;
+					for each(var hotAreaRootXml:XML in hotAreaRootXmlList)
+					{
+						var hotAreaRoot:Object = new Object();
+						hotAreaRoot.name = String(hotAreaRootXml.@name);
+						hotAreaRoot.first = first;
+						if(first)
+						{
+							first = false;
+						}
+						hotAreaRoot.items = [];
+						var hotAreaXmlList:XMLList = hotAreaRootXml.HotSpot;
+						for each(var hotAreaXml:XML in hotAreaXmlList)
+						{
+							var hotSpotItem:HotSpotItem = new HotSpotItem();
+							hotSpotItem.name = String(hotAreaXml.@name);
+							hotSpotItem.imageUrl = String(hotAreaXml.@image);
+							hotSpotItem.extent = new Extent(
+								Number(hotAreaXml.@xmin),Number(hotAreaXml.@ymin),Number(hotAreaXml.@xmax),Number(hotAreaXml.@ymax));
+							hotAreaRoot.items.push(hotSpotItem);
+						}
+						hotAreaRootArray.push(hotAreaRoot);
+					}
+					rootDataGroup.dataProvider = new ArrayCollection(hotAreaRootArray);
+//					rootDataGroup.itemRendererFunction = dgitemRendererFunction;
+//					var child:Object = rootDataGroup.getChildAt(0);
+				}
+				
+			}
+			
+//			protected function dgitemRendererFunction(item:Object):void
+//			{
+//				trace("dgitemRendererFunction");
+//			}
+			
+			protected function rootDataGroup_itemClickHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var itemRenderer:HotSpotChildItemRenderer = event.target as HotSpotChildItemRenderer;
+				var hotSpotItem:HotSpotItem = itemRenderer.data as HotSpotItem;
+				map.extent = hotSpotItem.extent;
+			}
+			
+			/**
+			 * 当前展开的根项
+			 **/
+			private var _currentExpandRootItem:HotSpotRootItemRenderer = null;
+			
+			protected function rootDataGroup_expandChildrenHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var item:HotSpotRootItemRenderer = event.target as HotSpotRootItemRenderer;
+				if(_currentExpandRootItem != null && item != _currentExpandRootItem)
+				{
+					_currentExpandRootItem.hideChildren();
+				}
+				_currentExpandRootItem = item;
+			}
+			
+			protected function rootDataGroup_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("rootDataGroup_creationCompleteHandler");
+			}
+			
+			protected function rootDataGroup_updateCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				trace("rootDataGroup_updateCompleteHandler");
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<viewer:SplitWidgetTemplate id="wTemplate" width="100%" height="100%">
+		<viewer:layout>
+			<s:BasicLayout/>
+		</viewer:layout>
+		<s:Scroller top="0" bottom="0" left="0" right="0">
+			<HotSpot:HotSpotDataGroup id="rootDataGroup" horizontalCenter="0" type="root"
+									  itemClick="rootDataGroup_itemClickHandler(event)"
+									  creationComplete="rootDataGroup_creationCompleteHandler(event)"
+									  updateComplete="rootDataGroup_updateCompleteHandler(event)"
+									  expandChildren="rootDataGroup_expandChildrenHandler(event)">
+				<HotSpot:layout>
+					<s:VerticalLayout gap="10"  horizontalAlign="center"/> <!--paddingBottom="10" paddingTop="10"-->
+				</HotSpot:layout>
+			</HotSpot:HotSpotDataGroup>
+		</s:Scroller>
+	</viewer:SplitWidgetTemplate>
+	
+</viewer:BaseWidget>

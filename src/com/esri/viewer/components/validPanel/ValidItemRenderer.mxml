@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" dataChange="itemrenderer1_dataChangeHandler(event)"
+				fontFamily="宋体" rollOver="itemrenderer1_rollOverHandler(event)" minWidth="300"
+				rollOut="itemrenderer1_rollOutHandler(event)" xmlns:componet="com.esrichina.om.componet.*" xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*" xmlns:components="com.esri.viewer.components.*">
+	<fx:Metadata>
+		[Event(name="itemSelect",type="flash.events.Event")]
+		
+		[Event(name="itemRollOver",type="flash.events.Event")]
+		
+		[Event(name="certerAtItem",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			[Embed('assets/images/validpanel/setstart_normal.png')]
+			private var startNormalClass:Class;
+			
+			[Embed('assets/images/validpanel/setstart_over.png')]
+			private var startOverClass:Class;
+			
+			[Embed('assets/images/validpanel/setend_normal.png')]
+			private var endNormalClass:Class;
+			
+			[Embed('assets/images/validpanel/setend_over.png')]
+			private var endOverClass:Class;
+			
+			[Embed('assets/images/validpanel/setpass_normal.png')]
+			private var passNormalClass:Class;
+			
+			[Embed('assets/images/validpanel/setpass_over.png')]
+			private var passOverClass:Class;
+			
+			protected function itemrenderer1_dataChangeHandler(event:FlexEvent):void
+			{
+				if(data!=null)
+				{
+					nameLabel.text = data.name;
+					numtag.numberTag = data.index + 1;
+					if(data.address!="")
+					{
+						addressGroup.includeInLayout = true;
+						addressGroup.visible = true;
+						addressLabel.text = data.address;
+					}
+					else
+					{
+						addressGroup.includeInLayout = false;
+						addressGroup.visible = false;
+					}
+					switch(data.type)
+					{
+						case ValidPanel.INVALID_TYPE_START:
+							okButton.setStyle("normalImage",startNormalClass);
+							okButton.setStyle("overImage",startOverClass);
+							break;
+						case ValidPanel.INVALID_TYPE_PASS:
+							okButton.setStyle("normalImage",passNormalClass);
+							okButton.setStyle("overImage",passOverClass);
+							break;
+						case ValidPanel.INVALID_TYPE_END:
+							okButton.setStyle("normalImage",endNormalClass);
+							okButton.setStyle("overImage",endOverClass);
+							break;
+					}
+				}
+			}
+			
+			protected function itemrenderer1_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				bgRect.visible = true;
+				buttonGroup.includeInLayout = true;
+				buttonGroup.visible = true;
+				dottedLine.visible = false;
+				
+				dispatchEvent(new Event("itemRollOver",true));
+			}
+			
+			protected function itemrenderer1_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				bgRect.visible = false;
+				buttonGroup.includeInLayout = false;
+				buttonGroup.visible = false;
+				dottedLine.visible = true;
+			}
+			
+			protected function okButton_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event("itemSelect",true));
+				event.stopImmediatePropagation();
+			}
+			
+			protected function vgroup1_clickHandler(event:MouseEvent):void
+			{
+				trace("vgroup1_clickHandler");
+				//定位
+				dispatchEvent(new Event("certerAtItem",true));
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<s:Fade id="showFade" alphaFrom="0" alphaTo="1" duration="500"/>
+		<s:Fade id="hideFade" alphaFrom="1" alphaTo="0" duration="1500"/>
+	</fx:Declarations>
+	
+	<s:Group width="100%" height="100%">
+		<s:Group id="bgRect" visible="false" showEffect="{showFade}"
+				 left="0" right="0" bottom="0" top="0">
+			<s:Rect left="0" right="0" bottom="0" top="0">
+				<s:fill>
+					<s:SolidColor color="#fbfbfb"/>
+				</s:fill>
+				<s:stroke >
+					<s:SolidColorStroke color="#dedede"/>
+				</s:stroke>
+			</s:Rect>
+		</s:Group>
+		<s:VGroup top="1" bottom="1" left="1" right="1" gap="5" horizontalAlign="left" 
+				  paddingTop="15" paddingBottom="15" paddingLeft="10" click="vgroup1_clickHandler(event)">
+			<s:HGroup width="100%" gap="8" verticalAlign="middle">
+				<!--<s:BitmapImage source="@Embed('assets/images/validpanel/expend.png')"/>-->
+				<components:CommonNumTag id="numtag"/>
+				<s:Label id="nameLabel" fontSize="14" fontWeight="bold" color="#4061ad"/>
+			</s:HGroup>
+			
+			<s:HGroup width="100%" id="addressGroup" fontSize="12" color="#4a535f">
+				<s:Label text="   地址："/>
+				<s:Label width="235" id="addressLabel"/>
+			</s:HGroup>
+			<s:HGroup width="100%" horizontalAlign="right" id="buttonGroup" 
+					  showEffect="{showFade}"
+					  includeInLayout="false" visible="false">
+				<customskinbutton:ClickButton id="okButton" click="okButton_clickHandler(event)"/>
+				<s:Spacer width="5"/>
+			</s:HGroup>
+		</s:VGroup>
+		<s:Line width="100%" bottom="0" left="0" right="0" id="dottedLine">
+			<s:stroke>
+				<s:SolidColorStroke color="#dedede"/>
+			</s:stroke>
+		</s:Line>
+	</s:Group>
+</s:ItemRenderer>

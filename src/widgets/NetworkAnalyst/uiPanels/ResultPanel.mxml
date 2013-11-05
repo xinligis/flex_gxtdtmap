@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:esri="http://www.esri.com/2008/ags"
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<esri:SimpleLineSymbol id="segmentSymbol" color="0xFF0000" alpha="0.5" width="8"/>
+		<esri:SimpleLineSymbol id="routeSymbol" color="0x0000FF" alpha="0.5" width="4"/>
+	</fx:Declarations>
+	<fx:Metadata>
+		[Event(name="cleanAddReset",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.tasks.supportClasses.DirectionsFeatureSet;
+			import com.esri.ags.tasks.supportClasses.RouteResult;
+			import com.esri.ags.tasks.supportClasses.RouteSolveResult;
+			
+			import spark.components.TextArea;
+			private var _routeSolveResult:RouteSolveResult;
+			
+			[Bindable]
+			private var _lastRoute:Graphic = null;
+			
+			[Bindable]
+			private var _directionsFS:DirectionsFeatureSet;
+			
+			public var graphicsLayer:GraphicsLayer;
+			
+			private var _segmentGraphic:Graphic;
+			
+			private const NL:String = "\n";
+			
+			
+			/**
+			 * 单位界限
+			 **/
+			public var unitScale:Number;
+			
+			/**
+			 * 大单位的精度
+			 **/
+			public var largeUnitPrecision:int;
+			
+			/**
+			 * 小单位的精度
+			 **/
+			public var smallUnitPrecision:int;
+			
+			/**
+			 * 大单位的显示
+			 **/
+			public var largeUnitLabel:String;
+			
+			/**
+			 * 小单位的显示
+			 **/
+			public var smallUnitLabel:String;
+			
+			/**
+			 * 大单位与米的转换系数。比如1公里==1000米，那么系数就是1000
+			 **/
+			public var largeUnitConversion:Number;
+			
+			/**
+			 * 小单位与米的转换系数。比如1公里==1000米，那么系数就是1000
+			 **/
+			public var smallUnitConversion:Number;
+			
+			
+			public function set routeSolveResult(value:RouteSolveResult):void
+			{
+				_routeSolveResult = value;
+				
+				theDirections.toolTip = "";
+				
+				var routeResult:RouteResult = _routeSolveResult.routeResults[0];
+				if(routeResult == null)
+				{
+					return;
+				}
+				//需网络模型中包含Total_Time属性
+//				graphicsLayer.add(_lastRoute);
+				
+				writeDirections(routeResult.directions);
+			}
+			
+			private function label_rollOverHandler(event:MouseEvent):void
+			{
+				var label:Label = event.target as Label;
+				label.setStyle("color","0xff8400");
+			}
+			
+			private function label_rollOutHandler(event:MouseEvent):void
+			{
+				var label:Label = event.target as Label;
+				label.setStyle("color","0x4a535f");
+			}
+			
+			private function writeDirections(directions:DirectionsFeatureSet):void
+			{
+				_directionsFS = directions;
+				if(_directionsFS == null)
+					return ;
+				
+				if(_lastRoute == null)
+				{
+					_lastRoute = new Graphic();
+					_lastRoute.symbol = routeSymbol;
+					graphicsLayer.add(_lastRoute);
+				}
+				_lastRoute.geometry = _directionsFS.mergedGeometry;
+				
+//				graphicsLayer.add(new Graphic(_directionsFS.mergedGeometry, routeSymbol));
+				
+				theDirections.removeAllElements();
+				var i:int = 1;
+				for each (var feature:Graphic in _directionsFS.features)
+				{
+					var label:Label = new Label();
+					label.setStyle("fontFamily","宋体");
+					label.setStyle("color","0x4a535f");
+					label.setStyle("fontSize",12);
+					label.percentWidth = 100;
+					label.text = i + ". " + feature.attributes.text;
+					label.buttonMode = true;
+					label.addEventListener(MouseEvent.ROLL_OVER,label_rollOverHandler);
+					label.addEventListener(MouseEvent.ROLL_OUT,label_rollOutHandler);
+					
+					if (i > 1 && i < _directionsFS.features.length && feature.attributes.length > 0)
+					{
+						label.text += " (" + formatDistance(feature.attributes.length);  //距离
+						var time:String = formatTime(feature.attributes.time);   //时间
+						if (time != "")
+						{
+							label.text += ", " + time;
+						}
+						label.text += ")";
+					}
+					label.addEventListener(MouseEvent.CLICK, directionsSegmentClickHandler, false, 0, true);
+					theDirections.addElement(label);
+					i++;
+				}
+			}
+			
+			
+			/**
+			 * 格式化距离内容的显示，不同的数值设置为不同的单位
+			 * @author 温杨彪，2012-3-22
+			 */
+			private function formatDistance(dist:Number):String
+			{
+				var newtext:String = "";
+				
+				if(dist>unitScale)
+				{
+					
+					newtext = (dist/largeUnitConversion).toFixed(largeUnitPrecision);
+					newtext = newtext + largeUnitLabel;
+				}
+				else
+				{
+					newtext = (dist/smallUnitConversion).toFixed(smallUnitPrecision);
+					newtext = newtext + smallUnitLabel;
+				}
+				return newtext;
+			}
+			
+			private function formatTime(time:Number):String
+			{
+				var result:String;
+				
+				var hr:Number = Math.floor(time / 60);
+				var min:Number = Math.round(time % 60);
+				
+				if (hr < 1 && min < 1)
+				{
+					result = "";
+				}
+				else if (hr < 1 && min < 2)
+				{
+					result = min + " 分钟";
+				}
+				else if (hr < 1)
+				{
+					result = min + " 分钟";
+				}
+				else
+				{
+					result = hr + " 小时(s) " + min + " 分钟(s)";
+				}
+				
+				return result;
+			}
+			
+			private function directionsSegmentClickHandler(event:MouseEvent):void
+			{
+				var textCntl:Label = event.currentTarget as Label;
+				var segment:Graphic = _directionsFS.features[parseInt(textCntl.text) - 1];
+				var map:Map = graphicsLayer.map;
+				map.extent = segment.geometry.extent;
+				
+				if (!map.extent.contains(segment.geometry.extent))
+				{
+					map.level--; // make sure the whole extent is visible
+				}
+				
+				if (!_segmentGraphic)
+				{
+					_segmentGraphic = new Graphic(segment.geometry, segmentSymbol);
+					graphicsLayer.add(_segmentGraphic);
+				}
+				else
+				{
+					_segmentGraphic.geometry = segment.geometry;
+					_segmentGraphic.symbol = segmentSymbol;
+				}
+			}								
+			
+			protected function group1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				zoomToFullRoute();
+			}
+			
+			private function zoomToFullRoute():void
+			{
+				if (_segmentGraphic)
+				{
+					graphicsLayer.remove(_segmentGraphic);
+					_segmentGraphic = null;
+				}
+				if(_directionsFS == null)
+					return;
+				graphicsLayer.map.extent = _directionsFS.extent;
+				if (!graphicsLayer.map.extent.contains(_directionsFS.extent))
+				{
+					graphicsLayer.map.level--; // make sure the whole extent is visible
+				}
+			}
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+//				_segmentGraphic = null;
+//				_directionsFS = null;
+//				_lastRoute = null;
+				dispatchEvent(new Event("cleanAddReset"));
+			}
+			
+			protected function label1_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				returnLabel.setStyle("fontWeight","bold");
+			}
+			
+			protected function label1_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				returnLabel.setStyle("fontWeight","normal");
+			}
+			
+			public function clean():void
+			{
+				_lastRoute = null;
+				_segmentGraphic = null;
+				_directionsFS = null;
+			}
+			
+		]]>
+	</fx:Script>
+	<s:layout>
+		<s:VerticalLayout gap="15" 
+						  horizontalAlign="left"/>
+	</s:layout>
+	<!--<s:TextArea id="theRouteName" 
+				editable="false"
+				styleName="WidgetText" width="200"
+				fontWeight="bold"
+				text="{_directionsFS.routeName}"
+				toolTip="点击缩放到道路"/>-->
+	<s:HGroup width="100%" horizontalAlign="right">
+		<s:Label text="&lt;&lt;返回" click="button1_clickHandler(event)" rollOver="label1_rollOverHandler(event)"
+				 rollOut="label1_rollOutHandler(event)" id="returnLabel" buttonMode="true"
+				 color="0x436590" fontFamily="宋体" fontSize="12" textDecoration="underline" baselineShift="2"/>
+	</s:HGroup>
+	<s:Group width="100%" height="85" toolTip="点击缩放到道路" buttonMode="true"
+			 fontSize="12" color="#4a535f" fontFamily="宋体" click="group1_clickHandler(event)">
+		<s:Rect left="0" right="0" bottom="0" top="0">
+			<s:fill>
+				<s:SolidColor color="#fbfbfb"/>
+			</s:fill>
+			<s:stroke >
+				<s:SolidColorStroke color="#dedede"/>
+			</s:stroke>
+		</s:Rect>
+		<s:Label text="{_directionsFS.routeName}" top="10" left="15"/>
+		<s:Label text="{'距离：'+formatDistance(_directionsFS.totalLength)}" left="15" verticalCenter="0"/>
+		<s:Label text="{'时间：'+formatTime(_directionsFS.totalTime)}" left="15" bottom="10"/>
+	</s:Group>
+	<!--<s:TextArea id="theSummary" 
+				styleName="WidgetText" 
+				width="200"
+				text="距离: {formatDistance(_directionsFS.totalLength)}{NL}时间: {formatTime(_directionsFS.totalTime)}"
+				/>-->
+	<!--<mx:HRule width="100%"/>-->
+	<s:Scroller width="100%" height="100%" >
+		<s:VGroup id="theDirections" 
+				  width="100%" 
+				  height="100%" 
+				  minHeight="0"
+				  gap="10">
+			<s:Label text="请先查询路径" 
+					 styleName="WidgetText"/>
+		</s:VGroup>
+	</s:Scroller>
+</s:Group>

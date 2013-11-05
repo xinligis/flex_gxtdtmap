@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <poi>
+  	<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+  	<titlefield>NAME</titlefield>
+  	<displayfields>
+  	  <field name="NAME" aliasname="名称"/>
+  	  <field name="ADDNAME" aliasname="地址"/>
+  	</displayfields>
+  	<oidfield>OBJECTID</oidfield>
+  	<expression>NAME LIKE '%[VALUE]%'</expression>
+  </poi>
+  
+  <poiAsPlaceNameAddress>
+  	<url></url>
+  	<titlefield>NAME</titlefield>
+  	<oidfield>OBJECTID</oidfield>
+  	<displayfields>
+  	  <field name="NAME" aliasname="名称"/>
+  	  <field name="ADDNAME" aliasname="地址"/>
+  	</displayfields>
+  	<expression>NAME LIKE '%[VALUE]%'</expression>
+  </poiAsPlaceNameAddress>
+
+  
+  <placeNameAddress>
+  	<url></url>
+  	<titlefield>NAME</titlefield>
+  	<displayfields>
+  	  <field name="ADDNAME" aliasname="地址"/>
+  	</displayfields>
+  	<addressfield>ADDNAME</addressfield>
+  	<expression>NAME LIKE '%[VALUE]%'</expression>
+  </placeNameAddress>
+  <compositesymbol>
+	<picturemarkersymbol source="assets/images/placenameAddress/general.png" width="47" height="54" xoffset="7" yoffset="27"/>
+	<textsymbol color="0xFFFFFF" xoffset="0" yoffset="40"/>
+  </compositesymbol>
+  <info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
+  <infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+  <!-- 结果缩放级别，基数为0 -->
+  <zoomlevel>13</zoomlevel>
+</configuration>

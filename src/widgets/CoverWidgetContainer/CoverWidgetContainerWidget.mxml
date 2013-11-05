@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:widgetContainer="widgets.CoverWidgetContainer.*"
+				   width="100%" height="100%"
+				   borderSkin="{null}"
+				   creationComplete="this_creationCompleteHandler()"
+				   implements="com.esri.viewer.IWidgetContainer">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.IWidgetContainer;
+			
+			import mx.core.IVisualElement;
+			
+			[Bindable]
+			private var _configParams:Object;
+			
+			private function this_creationCompleteHandler():void
+			{
+				
+			}
+			public function isBasicLayout():Boolean
+			{
+				return false;
+			}
+			/**
+			 * 判断是否拆分布局
+			 * 王红亮，2012-01-04
+			 */
+			public function isSplitLayout():Boolean
+			{
+				return true;
+			}
+			public function addWidget(value:IBaseWidget):void
+			{
+				const visualElement:IVisualElement = value as IVisualElement;
+				if (visualElement)
+				{
+					widgetContainer.addElement(visualElement);
+				}
+			}
+			
+			public function focusWidget(id:Number):void
+			{
+			}
+			
+			public function set configParams(value:Object):void
+			{
+				_configParams = value;
+			}
+		]]>
+	</fx:Script>
+	<widgetContainer:CoverWidgetContainer id="widgetContainer" config="{_configParams}"/>
+</viewer:BaseWidget>

@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<!--<activeLayer>
+		<mapservice label="全球影像" type="tiled" visible="true" alpha="1" icon="assets/images/i_highway.png">http://218.60.144.97:8080/RemoteRest/services/LNMap_DEM/MapServer</mapservice>
+	</activeLayer>-->
+	<activelayers>
+		<activelayer type="tiled" label="卷帘影像" url="http://www.digitalcq.com:8399/arcgis/rest/services/CQMap_VEC/MapServer"/>
+	</activelayers>
+</configuration>

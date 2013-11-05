@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SettingPanel1:SettingPanel xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+		 xmlns:SettingPanel="widgets.Print.SettingPanel.*"
+		 creationComplete="group1_creationCompleteHandler(event)" xmlns:SettingPanel1="widgets.Print.SettingPanel.*">
+	<SettingPanel:layout>
+		<s:VerticalLayout gap="0"/>
+	</SettingPanel:layout>
+	<fx:Metadata>
+		[Event(name="addPrintElement",type="widgets.Print.SettingPanel.AddPrintElementEvent")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.ColorPickerEvent;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			
+			import spark.components.SkinnableContainer;
+			
+			import widgets.Print.element.TextElement;
+			
+
+			[Bindable]
+			private var _currentLabel:TextElement=null;
+			
+			public function set currentLabel(value:TextElement):void
+			{
+				this._currentLabel=value;
+			}
+			
+			public function get currentLabel():TextElement
+			{
+				return this._currentLabel;
+			}
+			
+			private var _printContent:SkinnableContainer;
+			
+			public function get printContent():SkinnableContainer
+			{
+				return _printContent;
+			}
+			
+			public function set printContent(value:SkinnableContainer):void
+			{
+				this._printContent=value;
+			}
+			
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				var textEle:TextElement=new TextElement(_printContent);
+				textEle.text="标签";
+				textEle.fontFamily="宋体";
+				_printContent.addElement(textEle);
+				textEle.color="0x000000";
+				this._currentLabel=textEle;
+				dispatchEvent(new AddPrintElementEvent(textEle));
+			}
+			
+			private function fontFamilyddl_changeHandler(event:Object):void
+			{
+				if(_currentLabel!=null)
+				{
+					_currentLabel.fontFamily=event.currentTarget.selectedItem;
+				}
+			}
+			
+			protected function fontColorPicker_changeHandler(event:ColorPickerEvent):void
+			{
+				if(_currentLabel!=null)
+				{
+					_currentLabel.color=String(fontColorPicker.selectedColor)
+				}
+			}
+			
+			protected function numericstepper1_changeHandler(event:Event):void
+			{
+				if(_currentLabel!=null)
+				{
+					_currentLabel.fontSize=String(fontSizeStepper.value);
+				}
+			}
+			
+			protected function checkbox1_changeHandler(event:Event):void
+			{
+				if(_currentLabel!=null)
+				{
+					if(event.currentTarget.selected)
+					{
+						_currentLabel.fontWeight="bold";
+					}
+					else
+					{
+						_currentLabel.fontWeight="normal";
+					}
+				}
+			}
+			
+			
+			protected function button4_clickHandler(event:MouseEvent):void
+			{
+				if(_currentLabel!=null)
+				{
+					_currentLabel.centerForHorizontal();
+				}
+			}
+
+
+			protected function group1_creationCompleteHandler(event:FlexEvent):void
+			{
+				var fonts:Array = Font.enumerateFonts(true);
+				var dataleg:int=fonts.length;
+				var fontFamilies:ArrayCollection=new ArrayCollection();
+				for(var i:int=0;i<dataleg;i++)
+				{
+					fontFamilies.addItem(fonts[i].fontName);
+				}
+				fontFamilyddl.dataProvider=fontFamilies;
+				fontFamilyddl.selectedItem="宋体";
+				content.addElement(vgroup);
+				panelLabel.text="标签设置"//height="130"
+			}
+			private function textInput_keyUpHandler(event:KeyboardEvent):void
+			{
+				if(_currentLabel!=null)
+				{
+					_currentLabel.text=event.target.text
+				}
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+			<s:VGroup id="vgroup" paddingLeft="10" >
+				<s:Spacer height="5"/>
+				<s:Button label="+添加标签" click="button2_clickHandler(event)" color="#01588f" fontFamily="宋体" chromeColor="0xffffff" width="80"/>
+				<s:TextInput text="{_currentLabel.text}" 
+							 toolTip="编辑标签文本" skinClass="spark.skins.spark.ComboBoxTextInputSkin"
+							 keyUp="textInput_keyUpHandler(event)" chromeColor="0xffffff"/>
+				<s:HGroup>
+					<s:DropDownList id="fontFamilyddl" 
+									change="fontFamilyddl_changeHandler(event)" 
+									selectedItem="{_currentLabel.fontFamily}" width="100"
+									toolTip="标签字体"/>
+					<mx:ColorPicker id="fontColorPicker" 
+									change="fontColorPicker_changeHandler(event)" 
+									selectedColor="{uint(_currentLabel.color)}"
+									toolTip="标签颜色"/>
+				</s:HGroup>
+				
+				<s:HGroup>
+					
+					<s:NumericStepper change="numericstepper1_changeHandler(event)" 
+									  id="fontSizeStepper" 
+									  toolTip="字体大小"
+									  stepSize="1" maximum="100" 
+									  value="{Number(_currentLabel.fontSize)}"/>
+					<s:CheckBox label="加粗" selected="{_currentLabel.fontWeight=='bold'?true:false}" 
+								color="#01588f"
+								change="checkbox1_changeHandler(event)"/>
+				</s:HGroup>
+				<s:Spacer height="5"/>
+			</s:VGroup>
+		
+	</fx:Declarations>
+	
+</SettingPanel1:SettingPanel>

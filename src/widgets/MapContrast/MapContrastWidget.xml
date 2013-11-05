@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<configuration>
+	<!-- type:tiled/dynamic/wms/wmts -->
+	<mainmap name="主体地图">
+		<layer name="重庆矢量底图" type="tiled" url="http://www.tianditucq.com/RemoteRest/services/CQMap_VEC/MapServer" check="1"/>
+		<layer name="重庆影像底图" type="tiled" url="http://www.tianditucq.com/RemoteRest/services/CQMap_IMG/MapServer" check="0"/>
+	</mainmap>
+	<attachedmap name="附属地图">
+		<layer name="重庆矢量底图" type="tiled" url="http://www.tianditucq.com/RemoteRest/services/CQMap_VEC/MapServer" check="0"/>
+		<layer name="重庆影像底图" type="tiled" url="http://www.tianditucq.com/RemoteRest/services/CQMap_IMG/MapServer" check="1"/>
+	</attachedmap>
+	<attachedmapwidget>widgets/AttachedMap/AttachedMapWidget.swf</attachedmapwidget>
+</configuration>

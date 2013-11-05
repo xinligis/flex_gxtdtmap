@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
+	<infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+	<!--查找兴趣点周边的公交站点，作为换乘的输入 -->
+	<!--兴趣点的配置信息 -->
+	<poi>
+		<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+		<!--兴趣点显示的名称字段 -->
+		<displayfield>NAME</displayfield>
+		<!--Objectid即主键字段 -->
+		<oidfield>OBJECTID</oidfield>
+		<expression>NAME LIKE '[VALUE]%'</expression>
+	</poi>
+
+	<!--公交换乘的配置信息 -->
+	<bustransfer
+		url="http://124.205.245.98:8181/OneMapServer/rest/services/publicTransportationDemo/MapServer">
+		<soe url="/exts/PublicTransportationSOE" />
+		<busStop layer="1">
+			<displayfields>
+				<field name="NAME" aliasname="名称" />
+			</displayfields>
+			<matchexpress>NAME LIKE '[VALUE]%'</matchexpress>
+		</busStop>
+		<busRoute layer="6">
+			<!-- 上下行概要信息栏中分别显示的信息 -->
+			<upfields>
+			</upfields>
+			<downfields>
+			</downfields>
+			<matchexpress>NAME LIKE '%[VALUE]%'</matchexpress>
+		</busRoute>
+	</bustransfer>
+
+	<!-- 查找最近车站的缓冲区设置 -->
+	<bufferspatialref>102113</bufferspatialref>
+	<!-- 单位：米 -->
+	<bufferradius>500</bufferradius>
+	<geometryservice>http://124.205.245.98:8181/OneMapServer/rest/services/Geometry/GeometryServer</geometryservice>
+	<zoomlevel>16</zoomlevel>
+</configuration>

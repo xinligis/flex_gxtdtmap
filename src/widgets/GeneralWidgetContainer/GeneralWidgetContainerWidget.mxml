@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:widgetContainer="widgets.GeneralWidgetContainer.*"
+				   width="0" height="100%"
+				   borderSkin="{null}"
+				   creationComplete="this_creationCompleteHandler()"
+				   implements="com.esri.viewer.IWidgetContainer">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.IWidgetContainer;
+			import com.esri.viewer.WidgetStates;
+			import mx.core.IVisualElement;
+			
+			[Bindable]
+			private var _configParams:Object;
+			
+			private function this_creationCompleteHandler():void
+			{
+				widgetContainer.addEventListener("isEmpty", container_emptyHandler);
+			}
+			public function isBasicLayout():Boolean
+			{
+				return false;
+			}
+			/**
+			 * 判断是否拆分布局
+			 * 王红亮，2012-01-04
+			 */
+			public function isSplitLayout():Boolean
+			{
+				return true;
+			}
+
+			public function addWidget(value:IBaseWidget):void
+			{
+				
+				if(this.visible == false)
+				{
+					this.visible = true;
+					var data:Object = {type:"show", index:parseInt(this._configParams.index), container:this};
+					AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_VISIBLE, data, null);
+				}
+
+				widgetContainer.addWidget(value);
+
+			}
+			
+			
+			public function focusWidget(id:Number):void
+			{
+				widgetContainer.focusWidget = id;
+			}
+			
+			public function set configParams(value:Object):void
+			{
+				_configParams = value;
+				if(value.width)
+				{
+					this.width = value.width;
+				}
+			}
+			
+			
+			private function container_emptyHandler(event:Event):void
+			{
+				var data:Object = {type:"hide", index:parseInt(this._configParams.index), container:this};
+				AppEvent.dispatch(AppEvent.WIDGET_CONTAINER_VISIBLE, data);
+			}
+		]]>
+	</fx:Script>
+	<widgetContainer:GeneralWidgetContainer id="widgetContainer" config="{_configParams}"/>
+</viewer:BaseWidget>

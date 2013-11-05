@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<HotSpots>
+	<!-- 缩略图建议使用120*80大小 -->
+		<area name="渝北区">
+			<HotSpot name="解放碑" xmin="106.569" ymin="29.563" xmax="106.576" ymax="29.557" image="assets/images/hotarea/jiefangbei.jpg"/>
+			<HotSpot name="观音桥" xmin="106.523" ymin="29.587" xmax="106.535" ymax="29.572" image="assets/images/hotarea/guanyinqiao.jpg"/>
+			<HotSpot name="南坪" xmin="106.557" ymin="29.535" xmax="106.565" ymax="29.529" image="assets/images/hotarea/nanping.jpg"/>
+			<HotSpot name="杨家坪" xmin="106.507" ymin="29.516" xmax="106.515" ymax="29.51" image="assets/images/hotarea/yangjiaping.jpg"/>
+			<HotSpot name="沙坪坝" xmin="106.456" ymin="29.562" xmax="106.464" ymax="29.557" image="assets/images/hotarea/shapingba.jpg"/>
+		</area>
+		
+		<area name="江北区">
+			<HotSpot name="解放碑" xmin="106.569" ymin="29.563" xmax="106.576" ymax="29.557" image="assets/images/hotarea/jiefangbei.jpg"/>
+			<HotSpot name="观音桥" xmin="106.523" ymin="29.587" xmax="106.535" ymax="29.572" image="assets/images/hotarea/guanyinqiao.jpg"/>
+			<HotSpot name="南坪" xmin="106.557" ymin="29.535" xmax="106.565" ymax="29.529" image="assets/images/hotarea/nanping.jpg"/>
+			<HotSpot name="杨家坪" xmin="106.507" ymin="29.516" xmax="106.515" ymax="29.51" image="assets/images/hotarea/yangjiaping.jpg"/>
+			<HotSpot name="沙坪坝" xmin="106.456" ymin="29.562" xmax="106.464" ymax="29.557" image="assets/images/hotarea/shapingba.jpg"/>
+		</area>
+	</HotSpots>
+</configuration>

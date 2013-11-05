@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2011 ESRI中国（北京）有限公司
+//注记的infowindow
+//
+//2012-04-20
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   implements="com.esri.viewer.IInfowindowTemplate"
+				   xmlns:sho="com.esri.viewer.components.sho.ui.*"
+				   dataChange="basewidget1_dataChangeHandler(event)" 
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.components.Toast;
+			import com.esri.viewer.components.tools.AES;
+			import com.esri.viewer.remote.RemoteHandler;
+			import com.esri.viewer.remote.RemoteResult;
+			
+			import flash.text.engine.TextElement;
+			
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.Fault;
+			private var _infoClass:Class;
+			
+			private var graphicsLayer:GraphicsLayer;
+			
+			/**
+			 * 分享地址
+			 **/
+			[Bindable]
+			private var _shareUrl:String = "";
+			public function set infoClass(value:Class):void
+			{
+				_infoClass = value;
+			}
+			
+			public function get infoClass():Class
+			{
+				return _infoClass;
+			}
+			
+			public function set infoConfig(value:XML):void
+			{
+			}
+			
+			
+			protected function basewidget1_dataChangeHandler(event:FlexEvent):void
+			{
+				if(data!=null)
+				{
+					if(initialized)
+					{
+						loadData();
+					}
+					else
+					{
+						addEventListener(FlexEvent.CREATION_COMPLETE,function(event:FlexEvent):void
+						{
+							loadData();
+						});
+					}
+				}
+			}
+			
+			/**
+			 * 加载数据
+			 **/
+			private function loadData():void
+			{
+				graphicsLayer = data.graphicsLayer as GraphicsLayer;
+				
+				if(nameInput)
+				{
+					nameInput.text = "";
+				}
+				if(descriptionInput)
+				{
+					descriptionInput.text = "";
+				}
+				var g:Graphic = data.graphic as Graphic;
+				if(g == null || g.attributes == null)
+				{
+					return;
+				}
+				if(g.attributes.hasOwnProperty("markername"))
+				{
+					nameInput.text = g.attributes.markername;
+				}
+				if(g.attributes.hasOwnProperty("markerdetail"))
+				{
+					descriptionInput.text = g.attributes.markerdetail;
+				}
+				if(g.attributes.hasOwnProperty("shareUrl") != false)
+				{
+					_shareUrl = g.attributes.shareUrl;
+				}
+				else
+				{
+					_shareUrl = "";
+				}
+				/* if(tipLabel != null)
+				{
+					tipLabel.visible = false;
+				} */
+				descriptionInput.textFlow.verticalAlign = "top";
+			}
+			
+			protected function clickbutton1_clickHandler(event:MouseEvent):void
+			{
+				if(nameInput.text == "")//||descriptionInput.text == ""
+				{
+					Alert.show("请填写名称");
+					return;
+				}
+				//向其他模块发出请求，获取当前地图组的id，王红亮，2013-3-11
+				AppEvent.addListener(AppEvent.CURRENT_MAP_GROUP_RESPONSE, appEvent_currentMapGroupResponseHandler);
+				AppEvent.dispatch(AppEvent.CURRENT_MAP_GROUP_REQUEST);
+
+			}
+			private function appEvent_currentMapGroupResponseHandler(event:AppEvent):void
+			{
+				AppEvent.removeListener(AppEvent.CURRENT_MAP_GROUP_RESPONSE, appEvent_currentMapGroupResponseHandler);
+				var g:Graphic = data.graphic as Graphic;
+				g.attributes.markername = nameInput.text;
+				g.attributes.markerdetail = descriptionInput.text;
+				g.attributes.markerextent = g.graphicsLayer.map.extent;
+				var newAttributes:Object = new Object();
+				newAttributes.markername = g.attributes.markername;
+				newAttributes.markerdetail = g.attributes.markerdetail;
+				newAttributes.x = MapPoint(g.geometry).x;
+				newAttributes.y = MapPoint(g.geometry).y;
+				newAttributes.xmin = g.graphicsLayer.map.extent.xmin;
+				newAttributes.xmax = g.graphicsLayer.map.extent.xmax;
+				newAttributes.ymin = g.graphicsLayer.map.extent.ymin;
+				newAttributes.ymax = g.graphicsLayer.map.extent.ymax;
+				//记录当前地图组
+				newAttributes.mapgroup = event.data.toString();
+				var jsonString:String = com.esri.ags.utils.JSON.encode(newAttributes);
+				var result:String = AES.encrypt(jsonString,"com.esrichina.onemap",AES.BIT_KEY_128);
+				var largeUrl:String = g.attributes.hostUrl+"?operation=marker&data="+result;
+				//调用后台接口，把长地址转换成短地址
+//				_shareUrl = 
+				
+				//向服务请求url的短地址
+				RemoteHandler.invoke("MarkerService.shortenUrl", [largeUrl],
+					new AsyncResponder(shortenUrl_resultHandler, shortenUrl_faultHandler,g));
+			}
+			private function shortenUrl_resultHandler(result:RemoteResult,token:Object = null):void
+			{
+				if(result==null||result.code != RemoteResult.RESULT_OK || result.content.toString() == "")
+				{
+					//说明获取失败
+					Toast.show("获取地址失败，请重新尝试!");
+					return;
+				}
+//				System.setClipboard(result.content.toString());
+//				Toast.show("地址已复制");
+				
+				var g:Graphic = token as Graphic;
+				_shareUrl = g.attributes.hostUrl + "/m/" + String(result.content);
+				g.attributes.shareUrl = _shareUrl;
+			}
+			private function shortenUrl_faultHandler(fault:Fault,token:Object = null):void
+			{
+				Toast.show("无法分享当前标记");
+			}
+			protected function copyBtn_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				System.setClipboard(_shareUrl);
+				Toast.show("已复制");
+				/* tipLabel.visible = true; */
+			}
+			
+			protected function deletebutton_clickHandler(event:MouseEvent):void
+			{
+				if(graphicsLayer){
+					graphicsLayer.clear();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+	</fx:Declarations>
+	<s:SkinnableContainer id="infoCanvas"
+						  width="330"
+						  >
+		<s:Label text="您可将您地图上的标注内容分享给好友" fontFamily="宋体" 
+				 fontSize="12" color="#4061ad" top="16" left="25" />
+		<s:VGroup horizontalCenter="0" left="25" top="45" gap="10" horizontalAlign="left" fontFamily="宋体">
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="名称：" color="#4a535f"/>
+				<s:TextInput id="nameInput" width="225" prompt="请输入名称" 
+							 contentBackgroundColor="0xffffff" contentBackgroundAlpha="1"
+							 skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+				<s:Label text="*" color="0xff0000"/>
+			</s:HGroup>
+			<s:HGroup verticalAlign="middle">
+				<s:Label text="备注：" color="#4a535f"/>
+				<s:TextArea height="60" id="descriptionInput" width="225" prompt="请输入备注"
+							contentBackgroundColor="0xffffff" contentBackgroundAlpha="1"
+							skinClass="com.esri.viewer.skins.CommonTextAreaSkin"/>
+			</s:HGroup>
+			<s:HGroup width="100%" height="28" verticalAlign="bottom" horizontalAlign="center">
+				<customskinbutton:ClickButton buttonType="circleRadius"
+											  label="分享"
+											  click="clickbutton1_clickHandler(event)"/>
+				<customskinbutton:ClickButton buttonType="circleRadius"
+											  label="删除"
+											  click="deletebutton_clickHandler(event)"/>
+			</s:HGroup>
+		</s:VGroup>
+		<s:BorderContainer width="300"  top="190" left="15" id="shareContainer" fontFamily="宋体"
+						   visible="{_shareUrl == ''?false:true}" includeInLayout="{_shareUrl == ''?false:true}"
+						   backgroundColor="0xffffff" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout paddingLeft="15" gap="10" paddingTop="15" paddingBottom="15"/>
+			</s:layout>
+			<s:Label text="分享地址已复制，您可以通过Email，QQ，MSN等将此链接发送给您的好友" color="#4a535f" width="270"/>
+			<s:Label id="shareUrlText" width="270" height="13" text="{_shareUrl.slice(0,40)+'...'}"/>
+			<s:HGroup width="100%" gap="15" horizontalAlign="left">
+				<s:Label text="复制地址" color="0x000000" rollOut="copyBtn.setStyle('color',0x000000)" textDecoration="underline"
+						 rollOver="copyBtn.setStyle('color',0xff0000)" id="copyBtn" buttonMode="true" click="copyBtn_clickHandler(event)"/>
+				<s:Label text="地址已复制到剪切板" id="tipLabel" visible="false"/>
+			</s:HGroup>
+		</s:BorderContainer>
+	</s:SkinnableContainer>
+	
+</viewer:BaseWidget>

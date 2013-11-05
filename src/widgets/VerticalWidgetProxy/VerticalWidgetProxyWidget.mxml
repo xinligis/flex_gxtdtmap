@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 垂直布局的Widget代理类，其中的各个子项可以直接激发对应的功能Widget
+// 王红亮，2012-3-9
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:viewer="com.esri.viewer.*" 
+					widgetConfigLoaded="onWidgetConfigLoaded()">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			
+			import spark.components.Image;
+			private var _proxyArray:Array;
+			private function onWidgetConfigLoaded():void
+			{
+				if(this.configXML)
+				{
+					var urlOperationWidget:String = "";
+					if(configData.urlParam.hasOwnProperty("operation"))
+					{
+						//说明widget是从url中调用的。
+						if(configData.urlParam.operation == "trafficcondition")
+						{
+							urlOperationWidget = configData.urlOperation.find("trafficcondition");
+						}
+					}
+					
+					_proxyArray = [];
+					for each(var proxy:XML in configXML.proxy)
+					{
+						var icon:String = proxy.@icon_off;
+						var image:Image = new Image();
+						var isON:Boolean = false;
+						String(proxy.@widget) == urlOperationWidget?
+							image.source = String(proxy.@icon_on):image.source = icon;
+						String(proxy.@widget) == urlOperationWidget?
+							isON=true:isON=false;
+						var name:String = proxy.@name[0] || "";
+						if(name != "")
+						{
+							image.toolTip = name;
+						}
+						image.buttonMode = true;
+						image.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					 	widgetProxyGroup.addElement(image);
+						var proxyObject:Object = {image:image, config:proxy, isON:isON};
+						_proxyArray.push(proxyObject);
+					}
+				}
+			}
+			private function image_clickHandler(event:MouseEvent):void
+			{
+				var image:Image = event.currentTarget as Image;
+				var proxyObject:Object;
+				for each(var proxy:Object in this._proxyArray)
+				{
+					if(proxy.image == image)
+					{
+						proxyObject = proxy;
+						break;
+					}
+				}
+				var id:int = super.siblingWidgetId(proxyObject.config.@widget);
+				if(id < 0)
+				{
+					return;
+				}
+				if(proxyObject.isON == true)
+				{
+					//代理 的widget由开启转为关闭
+					AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+					image.source = proxyObject.config.@icon_off.toString();
+					proxyObject.isON = false;
+				}
+				else
+				{
+					//代理 的widget由关闭转为开启
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+					image.source = proxyObject.config.@icon_on.toString();
+					proxyObject.isON = true;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+		<s:Rect width="106" height="32" top="0">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/verticalwidgetproxy/back_up.png')"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect width="58" top="32" bottom="36">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/verticalwidgetproxy/back_center.png')" fillMode="repeat"/>
+			</s:fill>
+		</s:Rect>
+		<s:Rect width="58" height="36" bottom="0">
+			<s:fill>
+				<s:BitmapFill source="@Embed('assets/images/verticalwidgetproxy/back_down.png')"/>
+			</s:fill>
+		</s:Rect>
+		<s:VGroup id="widgetProxyGroup" width="100%" height="100%"
+				  top="32" gap="10" bottom="30" horizontalAlign="left"/>
+	</s:Group>
+</viewer:BaseWidget>	

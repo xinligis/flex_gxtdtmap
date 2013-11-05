@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Skin xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" 
+		xmlns:mx="library://ns.adobe.com/flex/mx" initialize="skin1_initializeHandler(event)">
+	<!-- host component -->
+	<fx:Metadata>
+		[HostComponent("spark.components.Button")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.events.StateChangeEvent;
+			
+			/**
+			 * 按钮弹起来的图片路径
+			 * author 温杨彪 2011-7-26
+			**/
+			[Bindable]
+			private var _upPath:String = "";
+			/**
+			 * 按钮按下的图片路径
+			 * author 温杨彪 2011-7-26
+			 **/
+			[Bindable]
+			private var _downPath:String = "";
+			/**
+			 * 按钮上浮的图片路径
+			 * author 温杨彪 2011-7-26
+			 **/
+			[Bindable]
+			private var _overPath:String = "";
+			
+			
+			/**
+			 * 按钮图片的宽
+			 * author 温杨彪 2011-7-26
+			 **/
+			[Bindable]
+			private var _imgWidth:int;
+			
+			/**
+			 * 按钮图片的长
+			 * author 温杨彪 2011-7-26
+			 **/
+			[Bindable]
+			private var _imgHeight:int;
+			
+
+			/**
+			 * 根据按钮的id来设置它的样式，这样就能使用一个皮肤文件控制几个widget按钮的样式
+			 * @author 温杨彪 2011/7/26
+			 **/
+			protected function skin1_initializeHandler(event:FlexEvent):void
+			{
+				switch(hostComponent.id)
+				{
+					//配送范围查询的查询按钮
+					case "getServiceAreabtn":
+					case "findClosestButton":
+						_imgWidth = 81;
+						_imgHeight=26;
+						_upPath = "assets/images/serviceArea/serach_normal.png";
+						_downPath = "assets/images/serviceArea/serach_normal.png";
+						_overPath = "assets/images/serviceArea/serach_over.png"
+						break;
+					case "bufferCleanButton":
+					case "cleanServiceAreabtn":
+					case "cleanClosestbtn":
+						_imgWidth = 73;
+						_imgHeight=26;
+						_upPath = "assets/images/serviceArea/clean_normal.png";
+						_downPath = "assets/images/serviceArea/clean_normal.png";
+						_overPath = "assets/images/serviceArea/clean_over.png"
+						break;
+				}
+			}
+		]]>
+	</fx:Script>
+	
+	<!-- states -->
+	<s:states>
+		<s:State name="disabled" />
+		<s:State name="down" />
+		<s:State name="over" />
+		<s:State name="up" />
+	</s:states>
+	
+	<!-- SkinParts
+	name=labelDisplay, type=spark.components.supportClasses.TextBase, required=false
+	-->
+	<mx:Image id="img_up" includeIn="up" width="{_imgWidth}" height="{_imgHeight}" source="{_upPath}"/>
+	<mx:Image id="img_hover" includeIn="over" width="{_imgWidth}" height="{_imgHeight}" source="{_overPath}"/>
+	<mx:Image id="img_down" includeIn="down" width="{_imgWidth}" height="{_imgHeight}" source="{_downPath}"/>
+</s:Skin>

@@ -1,0 +1,741 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:esri="http://www.esri.com/2008/ags"
+		 xmlns:sho="com.esri.viewer.components.sho.ui.*"
+		 xmlns:BusTransfer="widgets.BusTransfer.*"
+		 xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
+		 width="100%" height="100%" xmlns:pageSelector="com.esri.viewer.components.pageSelector.*" 
+		 xmlns:BusRoute="widgets.BusTransfer.BusRoute.*" xmlns:components="com.esri.viewer.components.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.SpatialReference;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.TextSymbol;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.BufferParameters;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.ags.utils.GeometryUtil;
+			import com.esri.ags.utils.GraphicUtil;
+			import com.esri.viewer.components.pageSelector.PageChangeEvent;
+			import com.esrichina.publictransportation.*;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.IList;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.Fault;
+			import mx.utils.StringUtil;
+			
+			import spark.events.IndexChangeEvent;
+			import spark.utils.TextFlowUtil;
+			
+			private const ICON_URL:String = "assets/images/transfer/";
+			public var map:Map;
+			private var _configXML:XML;
+			private var _busTransferUrl:String;
+			private const PAGESIZE:int = 8;
+			private var _tipStopGraphic:Graphic = null;
+			private var _currentItemRenderer:BusRouteItemRenderer = null;
+			
+			public function set configXML(value:XML):void
+			{
+				_configXML = value;
+				_busTransferUrl = configXML.bustransfer.@url +  configXML.bustransfer.soe.@url;
+			}
+			public function get configXML():XML
+			{
+				return _configXML;
+			}
+			/**
+			 * 图形显示图层
+			 */
+			private var _resultsLayer:GraphicsLayer;
+			public function set resultsLayer(value:GraphicsLayer):void
+			{
+				_resultsLayer = value;
+				_resultsLayer.addEventListener(MouseEvent.CLICK,layer_clickHandler);
+				_resultsLayer.addEventListener(MouseEvent.MOUSE_MOVE,layer_rollOverHandler);
+			}
+			private var _oidField:String = "ROUTE_ID";
+			/**
+			 * 智能提示的状态
+			 */
+			private var _tipPrefix:String = "";
+			/**
+			 * 当前正在查询公交线路的信息{name:"", oid:int}
+			 */
+			private var _busRouteInfo:Object;
+			/**
+			*功能：查询BusRoute名称中以name开头的所有地物
+			*参数：name,名称的开头部分；
+			作者：
+			返回：无
+			*/
+			private function queryBusRoutePartialName(control: CompletionInput, prefix: String) : int 
+			{
+				if(!configXML)
+				{	
+					return CompletionInput.COMPLETION_FAILED;
+				}
+				
+				if(_tipPrefix != "")
+				{
+					_tipPrefix = prefix;
+					return CompletionInput.COMPLETION_ASYNC;
+				}
+				_tipPrefix = prefix;
+				
+				_busRouteInfo = new Object();
+				_busRouteInfo.name = prefix;
+				
+				var url:String = configXML.bustransfer.@url + "/" + configXML.bustransfer.busRoute.@layer;
+				var displayField:String = "NAME";
+				var strExpr:String = configXML.bustransfer.busRoute.matchexpress;
+				var queryTask:QueryTask = new QueryTask(url);
+				queryTask.useAMF = false;
+				var query:Query = new Query();
+				query.returnGeometry = false;
+				query.outFields = [displayField, _oidField];
+				strExpr = strExpr.toLowerCase();
+				query.where = strExpr.replace("[value]", prefix);
+				queryTask.execute(query, new AsyncResponder(onResult, onFault, control));
+				
+				return CompletionInput.COMPLETION_ASYNC;
+				// on result
+				function onResult(featureSet:com.esri.ags.FeatureSet, token:Object = null):void
+				{
+					var input:CompletionInput = token as CompletionInput;
+					if(_tipPrefix != prefix)
+					{
+						var strTemp:String = _tipPrefix;
+						_tipPrefix = "";
+						queryBusRoutePartialName(input, strTemp);
+						return;
+					}
+					try
+					{
+						var resultArray:Array = [];
+						var len:uint = featureSet.features.length;
+						len = len > 30 ? 30 : len;
+						var graphic:Graphic;
+						for(var index:int = 0; index < len; ++index)
+						{
+							graphic = featureSet.features[index];
+							var item:Object = {name:graphic.attributes[displayField], oid:graphic.attributes[_oidField]};
+							var info:Object = {item:item, label:item.name, index:index};
+							resultArray.push(info);
+						}
+						
+						input.completions = resultArray;
+						input.displayCompletions(0);
+					}
+					catch (error:Error)
+					{
+						
+					}
+					
+					_tipPrefix = "";
+				} 
+			}
+			
+			private function layer_clickHandler(event:MouseEvent):void
+			{
+				var g:Graphic = event.target as Graphic;
+				if(g != null && g.attributes != null && g.attributes.hasOwnProperty("id"))
+				{
+					searchStop(g.attributes.id,g.geometry);
+				}
+			}
+			private function layer_rollOverHandler(event:MouseEvent):void
+			{
+				var g:Graphic = event.target as Graphic;
+				if(g == null)
+				{
+					return;
+				}
+				if((g.geometry is MapPoint) == false || g.attributes == null)
+				{
+					return;
+				}
+				if(_tipStopGraphic != null)
+				{
+					_resultsLayer.remove(_tipStopGraphic);
+				}
+				_tipStopGraphic = new Graphic(g.geometry);
+				var textSymbol:TextSymbol = 
+					new TextSymbol(g.attributes.name,
+						null,0x5D7FBE,1,true,
+						0x9FD2FF,true,
+						0xffffff,"start",0,10,0);
+				//				textSymbol.yoffset = 5;
+				var textFormat:TextFormat = new TextFormat();
+				textFormat.font = "宋体";
+				textFormat.bold = true;
+				textFormat.size = 12;
+				textFormat.leftMargin = 5;
+				textFormat.leading = 10;
+				textFormat.rightMargin = 5;
+				textSymbol.textFormat = textFormat;
+				_tipStopGraphic.symbol = textSymbol;
+				_resultsLayer.add(_tipStopGraphic);
+			}
+			
+			private function onFault(result:Fault, token:Object = null):void
+			{
+				trace(result.toString());
+			}
+			//线路查询判断是否是用户选择下拉列表输入方式
+			private var _isBusLineInputbySelect:Boolean = false;
+			/**
+			 * 线路查询
+			 */
+			private function onSearchBusLine(event:MouseEvent):void
+			{
+				if(!_busRouteInfo)
+				{
+					_busRouteInfo = new Object();
+				}
+				_busRouteInfo.name = busLineInput.text;
+				doSearch();
+			}
+			
+			/**
+			 * 所有待查询的线路信息几何，[{name:"",oid:int}]
+			 */
+			private var _allRoutes:Array;
+			
+			private function doSearch():void
+			{
+				if(_busRouteInfo.name  == "")
+				{
+					Alert.show("线路名称不能为空！");
+					return;
+				}
+				_allRoutes = [];
+				pageSelector.set_TotalCount(0);
+				if(_busRouteInfo.oid == null)
+				{
+					searchBusByName(_busRouteInfo.name);
+					return;
+				}
+				if(_busRouteInfo.oid != null)
+				{
+					_allRoutes.push(_busRouteInfo);
+					pageSelector.set_TotalCount(1);
+					pageSelector.currentPage = 1;
+					return;
+				}
+
+			}
+
+			/**
+			*功能：通过输入方式查询
+			*参数：name,名称的开头部分；
+			作者：胡国营
+			时间：2012-05-18
+			*/
+			private function searchBusByName(prefix: String) : void 
+			{
+				if(!configXML)
+				{	
+					return ;
+				}
+				
+				var url:String = configXML.bustransfer.@url + "/" + configXML.bustransfer.busRoute.@layer;
+				var strExpr:String = configXML.bustransfer.busRoute.matchexpress;
+				var queryTask:QueryTask = new QueryTask(url);
+				queryTask.useAMF = true;
+				var query:Query = new Query();
+				query.returnGeometry = false;
+				query.outFields = [_oidField, _titleField];
+				//增加基本信息的输出项
+				for each(var fieldXML:XML in configXML.bustransfer.busRoute..field)
+				{
+					var name:String = fieldXML.@name;
+					if(query.outFields.indexOf(name) < 0)
+					{
+						query.outFields.push(name);
+					}
+				}
+				strExpr = strExpr.toLowerCase();
+				query.where = strExpr.replace("[value]", prefix);
+				queryTask.execute(query, new AsyncResponder(onResult, onFault));
+				
+				// on result
+				function onResult(featureSet:com.esri.ags.FeatureSet, token:Object = null):void
+				{
+					var busRouteXML:XML = configXML.bustransfer.busRoute[0];
+					var len:uint = featureSet.features.length;
+					var graphic:Graphic;
+					for(var index:uint = 0; index < len; ++index)
+					{
+						graphic = featureSet.features[index];
+						var info:Object = {name:graphic.attributes[_titleField], oid:graphic.attributes[_oidField]};
+						//上行线路的基本信息集合
+						var infos:Array = [];
+						var basicInfo:BasicInfoItem;
+						for each(var fieldXML:XML in busRouteXML.upfields.field)
+						{
+							var field:String = fieldXML.@name;
+							var alias:String = fieldXML.@alias;
+							var value:Object = graphic.attributes[field];
+							if(!value)
+							{
+								basicInfo = new BasicInfoItem(alias);
+								infos.push(basicInfo);
+								continue;
+							}
+							if(value is Number)
+							{
+								var precision:int = parseInt(fieldXML.@precision[0] || "0");
+								numberFormatter.fractionalDigits = precision;
+								value = numberFormatter.format(value);
+							}
+							if(fieldXML.@suffix[0])
+							{
+								value = value.toString() + fieldXML.@suffix[0];
+							}
+							basicInfo = new BasicInfoItem(alias, value.toString());
+							infos.push(basicInfo);
+						}
+						info.upInfos = new ArrayCollection(infos);
+						//上行线路的基本信息集合
+						infos = [];
+						for each(fieldXML in busRouteXML.downfields.field)
+						{
+							field = fieldXML.@name;
+							alias = fieldXML.@alias;
+							value = graphic.attributes[field];
+							if(!value)
+							{
+								basicInfo = new BasicInfoItem(alias);
+								infos.push(basicInfo);
+								continue;
+							}
+							if(value is Number)
+							{
+								precision = parseInt(fieldXML.@precision[0] || "0");
+								numberFormatter.fractionalDigits = precision;
+								value = numberFormatter.format(value);
+							}
+							if(fieldXML.@suffix[0])
+							{
+								value = value.toString() + fieldXML.@suffix[0];
+							}
+							basicInfo = new BasicInfoItem(alias, value.toString());
+							infos.push(basicInfo);
+						}
+						info.downInfos = new ArrayCollection(infos);
+						
+						_allRoutes.push(info);
+					}
+					//所有查询得到的线路按照name字段以小到大排序，2013-1-31
+					_allRoutes.sortOn("name");
+					var pages:int = Math.ceil(_allRoutes.length / COUNT);
+					pageSelector.set_TotalCount(pages);
+					if(pages > 0)
+					{
+						pageSelector.currentPage = 1;
+					}
+				} 
+				
+			}
+			
+			private const _titleField:String = "NAME";
+
+			
+			/**
+			*功能：根据busRouteItem中的routeId查询线路实例，并填写该参数中的内容
+			*@param busRouteItem 查询目标
+			作者：王红亮，2012-7-20
+			返回：无
+			*/
+			private function searchBus(busRouteItemRenderer:BusRouteItemRenderer):void
+			{
+				if(!configXML)
+				{	
+					return ;
+				}
+				var busRouteItem:BusRouteItem = busRouteItemRenderer.data as BusRouteItem;
+				if(!busRouteItem)
+				{
+					return;
+				}
+				//已经查过了的，就不再查询
+				if(busRouteItem.upStops!=null && busRouteItem.upStops.length>0)
+				{
+					return;
+				}
+				var busTask:TransportationTask = new TransportationTask();
+				busTask.url = _busTransferUrl;
+				var parameters:RouteParameters = new RouteParameters();
+				parameters.routeId = busRouteItem.routeId;
+				parameters.outSR = map.spatialReference;
+				busTask.searchRoute(parameters, new AsyncResponder(onBusRouteSearchResult, onFault, busRouteItemRenderer)); 
+			}
+			private var _solveResult:RouteResult;
+			private function onBusRouteSearchResult(result:RouteResult, token:Object = null):void
+			{
+				_solveResult = result;
+				var busRouteItemRenderer:BusRouteItemRenderer = token as BusRouteItemRenderer;
+				var routeItem:BusRouteItem = busRouteItemRenderer.data as BusRouteItem;
+				//上下行的基本显示项
+				for each(var routeInfo:Object in this._allRoutes)
+				{
+					if(routeInfo.oid == routeItem.routeId)
+					{
+						routeItem.upBasicInfos = routeInfo.upInfos;
+						routeItem.downBasicInfos = routeInfo.downInfos;
+						break;
+					}
+				}
+				routeItem.solveResult = result;
+				var array:Array = [];
+				for each(var graphic:Graphic in result.upStations)
+				{
+					if(graphic)
+					{
+						var stopItem:Object = {oid:graphic.attributes.id, name:graphic.attributes.name, graphic:graphic};
+						array.push(stopItem);
+					}
+				}
+				routeItem.upStops = new ArrayCollection(array);
+				
+				array = [];
+				for each(graphic in result.downStations)
+				{
+					if(graphic)
+					{
+						var stopItem1:Object = {oid:graphic.attributes.id, name:graphic.attributes.name, graphic:graphic};
+						array.push(stopItem1);
+					}
+				}
+				routeItem.downStops = new ArrayCollection(array);
+				
+				showGraphics(true);
+//				busRouteItemRenderer.setDetail(routeItem);
+			}
+			
+			/**
+			 * 在地图上显示线路的上行或下行的站点和线段的图形
+			 * @param isUp true 上行；false 下行
+			 */ 
+			private function showGraphics(isUp:Boolean):void
+			{
+				if(!_solveResult)
+				{
+					return;
+				}
+				if(!_resultsLayer)
+				{
+					return;
+				}
+				_resultsLayer.clear();
+				map.infoWindow.hide();
+				if(_tipStopGraphic)
+				{
+					_tipStopGraphic = null;
+				}
+				var line:Polyline = isUp ? _solveResult.upTrack : _solveResult.downTrack;
+
+				//显示线段
+				if(line)
+				{
+					var graphic:Graphic = new Graphic(line);
+						graphic.symbol = segmentSymbol;
+						_resultsLayer.add(graphic);
+					}
+				//显示站点
+				var array:Array = isUp ? _solveResult.upStations : _solveResult.downStations;
+				for each(graphic in array)
+					{
+					if(graphic && _resultsLayer.graphicProvider.getItemIndex(graphic) < 0)
+					{
+						graphic.symbol = stopSymbol;
+						_resultsLayer.add(graphic);
+					}
+				}
+				var extent:Extent = com.esri.ags.utils.GraphicUtil.getGraphicsExtent(_resultsLayer.graphicProvider.toArray());
+				if(extent != null)
+				{
+					extent = extent.expand(2);
+					extent = extent.offset(-extent.width/4,0);
+					map.extent = extent;
+				}
+			}	
+			
+			private const COUNT:int = 4;
+			protected function pageSelector_PageChangedHandler(event:PageChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(!_allRoutes || _allRoutes.length < 1)
+				{
+					return;
+				}
+				_resultsLayer.clear();
+				_tipStopGraphic = null;
+				var array:Array = [];
+				var startIndex:int = COUNT * (event.currentPage - 1);
+				var endIndex:int = startIndex + COUNT;
+				var first:Boolean = true;
+				for (var index:int = startIndex; index < endIndex && index < _allRoutes.length; ++index)
+				{
+					var routeInfo:Object = _allRoutes[index];
+					var item:BusRouteItem = new BusRouteItem();
+					item.routeId = routeInfo.oid;
+					item.name = routeInfo.name;
+					item.firstOne = first;
+					if(first)
+					{
+						first = false;
+					}
+					array.push(item);
+				}
+				list.dataProvider = new ArrayCollection(array);
+			}
+			
+			protected function list_queryDetailHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				trace("list_queryDetailHandler");
+				if(_currentItemRenderer != null)
+				{
+					_currentItemRenderer.hide();
+				}
+				_currentItemRenderer = event.target as BusRouteItemRenderer
+				searchBus(_currentItemRenderer);
+			}
+			
+			protected function list_showBusRouteHandler(event:Event):void
+			{
+				var item:BusRouteItemRenderer = event.target as BusRouteItemRenderer;
+				_solveResult = (item.data as BusRouteItem).solveResult;
+				item.lineType == "up" ? showGraphics(true):showGraphics(false);
+			}
+			
+			protected function list_busStopItemOverHandler(event:Event):void
+			{
+				var item:BusstopListRenderer = event.target as BusstopListRenderer;
+				var stop:Graphic = item.data.stop.graphic;
+				if(_tipStopGraphic != null)
+				{
+					_resultsLayer.remove(_tipStopGraphic);
+				}
+				if(stop == null)
+				{
+					return;
+				}
+				_tipStopGraphic = new Graphic(stop.geometry);
+				var textSymbol:TextSymbol = 
+					new TextSymbol(item.data.stop.name,
+						null,0x5D7FBE,1,true,
+						0x9FD2FF,true,
+						0xffffff,"start",0,10,0);
+//				textSymbol.yoffset = 5;
+				var textFormat:TextFormat = new TextFormat();
+				textFormat.font = "宋体";
+				textFormat.bold = true;
+				textFormat.size = 12;
+				textFormat.leftMargin = 5;
+				textFormat.leading = 10;
+				textFormat.rightMargin = 5;
+				textSymbol.textFormat = textFormat;
+				_tipStopGraphic.symbol = textSymbol;
+				_resultsLayer.add(_tipStopGraphic);
+//				stop.
+			}
+			
+			protected function list_busStopItemClickHandler(event:Event):void
+			{
+				var item:BusstopListRenderer = event.target as BusstopListRenderer;
+				var stop:Graphic = item.data.stop.graphic;
+				if(stop == null)
+				{
+					return;
+				}
+				map.centerAt(stop.geometry as MapPoint);
+				searchStop(item.data.stop.oid,stop.geometry)
+				if(_tipStopGraphic != null && _tipStopGraphic.geometry == stop.geometry)
+				{
+					_resultsLayer.remove(_tipStopGraphic);
+					_tipStopGraphic = null;
+				}
+			}
+			/**
+			 * 查找途经站点bustStopId的线路信息
+			 * @param busStopId 目标站点
+			 * @param geometry 目标站点的位置
+			 */
+			private function searchStop(busStopId:int,geometry:Geometry):void
+			{
+				if(!configXML)
+				{	
+					return ;
+				}
+				var busTask:TransportationTask = new TransportationTask();
+				busTask.url = _busTransferUrl;
+				var parameters:StationParameters = new StationParameters();
+				parameters.stationId = busStopId;
+				busTask.searchStation(parameters, new AsyncResponder(onBusStopSearchResult, onFault,geometry)); 
+			}
+			/**
+			 * 在infowindow中显示途经站点bustStopId的线路信息（依名称次序）。
+			 * 若线路上下行均经过，则显示线路名称；否则还附加上（起始站-终点站）信息。2013-1-31
+			 * @param busStopId 目标站点
+			 * @param geometry 目标站点的位置
+			 */
+			private function onBusStopSearchResult(result:StationResult, token:Object = null):void
+			{
+				var content:String = "";
+				if(infoTemplate.initialized == false)
+				{
+					map.infoWindowContent = infoTemplate;
+					map.infoWindow.show(token as MapPoint);
+					infoTemplate.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Event):void
+					{
+						onBusStopSearchResult(result,token);
+					});
+					return;
+				}
+				if(result.station && result.station.attributes)
+				{
+					stopNameLabel.text = result.station.attributes.name;
+				}
+				var bidirection:Object = new Object();
+				for each(var stationRoute:StationRoute in result.stationRoutes)
+				{
+					if(bidirection.hasOwnProperty(stationRoute.routeId))
+					{
+						bidirection[stationRoute.routeId] = true;
+					}
+					else
+					{
+						bidirection[stationRoute.routeId] = false;
+					}
+				}
+				result.stationRoutes.sortOn("name");
+				var routes:Array = [];
+				for each(stationRoute in result.stationRoutes)
+				{
+					if(bidirection[stationRoute.routeId] == null)
+					{
+						continue;
+					}
+					if(bidirection[stationRoute.routeId] == true)
+					{
+						routes.push({id:stationRoute.routeId, name:stationRoute.name});
+					}
+					else
+					{
+						routes.push({id:stationRoute.routeId, name:StringUtil.substitute("{0}（{1}--{2} 方向）；",
+							stationRoute.name, stationRoute.firstStation, stationRoute.lastStation)});
+					}
+					bidirection[stationRoute.routeId] = null;
+				}
+				stopDG.dataProvider = new ArrayCollection(routes);
+				map.infoWindowContent = infoTemplate;
+				map.infoWindow.show(token as MapPoint);
+			}
+			
+			protected function stopDG_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				stopDG.addEventListener("itemClick",function(evt:Event):void
+				{
+					var data:Object = evt.target.data;
+					_busRouteInfo.oid = data.id;
+					_busRouteInfo.name = evt.target.data;
+					busLineInput.text = _busRouteInfo.name;
+					doSearch();
+				});
+			}
+			
+		]]>
+	</fx:Script>
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="detail"/>
+	</s:states>
+	<s:layout>
+		<s:VerticalLayout horizontalAlign="center"/>
+	</s:layout>
+	<fx:Declarations>
+		<!--<esri:PictureMarkerSymbol id="stopSymbol" source="{ICON_URL + 'iBus.png'}"/>-->
+		<esri:SimpleMarkerSymbol color="0xffffff" size="10" id="stopSymbol">
+			<esri:outline>
+				<esri:SimpleLineSymbol width="3" color="#5B7FBD"/>
+			</esri:outline>
+		</esri:SimpleMarkerSymbol>
+		<esri:SimpleLineSymbol id="segmentSymbol" color="#5B7FBD" alpha="1" width="5"/>
+		<s:BorderContainer width="310" id="infoTemplate" color="#4A5161" fontFamily="宋体" alpha="1" 
+				  backgroundColor="#F6F6F6" horizontalCenter="0" borderVisible="false">
+			<s:layout>
+				<s:VerticalLayout gap="0" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"/>
+			</s:layout>
+			<s:Label id="stopNameLabel" fontFamily="微软雅黑" color="#4062AC" fontSize="13" fontWeight="bold"/>
+			<s:Spacer height="8"/>
+			<s:Line width="100%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xededed"/>
+				</s:stroke>
+			</s:Line>
+			<s:Line width="100%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xffffff"/>
+				</s:stroke>
+			</s:Line>
+			<s:Spacer height="8"/>
+			<s:Label text="途径车次："/>
+			<s:Spacer height="8"/>
+			<!--<s:TextArea borderVisible="false" contentBackgroundAlpha="0" editable="false" id="linesTextArea" height="120"
+						width="100%" lineHeight="20" selectable="true" skinClass="com.esri.viewer.skins.CommonTextAreaSkin">
+			</s:TextArea>-->
+			<s:Scroller width="100%" height="120">
+				<s:DataGroup id="stopDG" width="100%" height="100%" itemRenderer="{new ClassFactory(StationRouteItemRenderer)}"
+							 creationComplete="stopDG_creationCompleteHandler(event)">
+					<s:layout>
+						<components:FlowLayout gapColumn="5" gapRow="10"/>
+					</s:layout>
+				</s:DataGroup>
+			</s:Scroller>
+		</s:BorderContainer>
+		
+		<s:NumberFormatter id="numberFormatter"/>
+	</fx:Declarations>
+	<s:VGroup width="100%" paddingTop="10" paddingLeft="10" paddingRight="20" gap="5"
+			  horizontalAlign="center" includeIn="normal">
+		<s:HGroup width="100%" gap="10" verticalAlign="middle">
+			<sho:CompletionInput id="busLineInput"  width="100%" prompt="请输入线路名称"
+								 skinClass="com.esri.viewer.skins.CommonTextInputSkin"
+								 contentBackgroundAlpha="1" contentBackgroundColor="0xffffff"
+								 completionFunction="{queryBusRoutePartialName}"
+								 keepLocalHistory="false"/>
+			<customskinbutton:ClickButton buttonType="circleRadius" label="搜 索" icon="assets/images/icon/search.png"
+										  click="onSearchBusLine(event);"/>
+		</s:HGroup>
+	</s:VGroup>
+	<s:Scroller width="95%" height="100%">
+		<BusRoute:BusRouteList id="list" width="100%" itemRenderer="widgets.BusTransfer.BusRoute.BusRouteItemRenderer"
+							   height="100%"
+							   queryDetail="list_queryDetailHandler(event)"
+							   showBusRoute="list_showBusRouteHandler(event)"
+							   busStopItemOver="list_busStopItemOverHandler(event)"
+							   busStopItemClick="list_busStopItemClickHandler(event)">
+			<BusRoute:layout>
+				<s:VerticalLayout gap="5"/>
+			</BusRoute:layout>
+		</BusRoute:BusRouteList>
+	</s:Scroller>
+	<pageSelector:PagesSelector id="pageSelector" width="100%" pageCount="5" PageChanged="pageSelector_PageChangedHandler(event)"/>
+</s:Group>

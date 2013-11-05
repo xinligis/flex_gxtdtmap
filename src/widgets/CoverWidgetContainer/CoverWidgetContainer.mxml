@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// 覆盖在主地图之上的WidgetContainer类，大小和位置随主地图的变化而变化
+// Copyright (c) 2012-2013 Esri China. All Rights Reserved.
+// 王红亮，2012-01-12
+///////////////////////////////////////////////////////////////////////////
+-->
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 width="100%" height="100%"
+		 clipAndEnableScrolling="true"
+		 elementAdd="widgetAddedHandler(event)"
+		 creationComplete="this_creationCompleteHandler(event)">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IBaseWidget;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.events.FlexEvent;
+			import mx.core.IVisualElement;
+			import spark.events.ElementExistenceEvent;
+			public function set config(value:Object):void
+			{
+				if (value.left)
+				{
+					this.left = value.left;
+				}
+				if (value.right)
+				{
+					this.right = value.right;
+				}
+				if (value.top)
+				{
+					this.top = value.top;
+				}
+				if (value.bottom)
+				{
+					this.bottom = value.bottom;
+				}
+			}
+			
+			private function widgetAddedHandler(event:ElementExistenceEvent):void
+			{
+				AppEvent.dispatch(AppEvent.WIDGET_ADDED, event.element);
+			}
+			
+			protected function this_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, widgetClosedHandler);
+			}
+			
+			private function widgetClosedHandler(event:AppEvent):void
+			{
+				var data:Object = event.data;
+				
+				if (data.state as String == WidgetStates.WIDGET_CLOSED)
+				{
+					var curId:Number = data.id as Number;
+					removeWidget(curId);
+				}
+			}
+			
+			private function removeWidget(curId:Number):void
+			{
+				var widget:IVisualElement;
+				for (var i:int = 0; i < this.numElements; i++)
+				{
+					widget = this.getElementAt(i);
+					var baseWidget:IBaseWidget = widget as IBaseWidget;
+					if (baseWidget.widgetId == curId)
+					{
+						this.removeElement(widget);
+						return;
+					}
+				}
+			}
+		]]>
+	</fx:Script>
+</s:Group>

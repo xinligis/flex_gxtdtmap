@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" dataChange="itemrenderer1_dataChangeHandler(event)" click="itemrenderer1_clickHandler(event)"
+				rollOver="itemrenderer1_rollOverHandler(event)" rollOut="itemrenderer1_rollOutHandler(event)">
+	<fx:Metadata>
+		[Event(name="busStopItemOver",type="flash.events.Event")]
+		[Event(name="busStopItemClick",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			protected function itemrenderer1_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data != null)
+				{
+					msgLabel.text = data.index + " " + data.stop.name;
+				}
+			}
+			
+			protected function itemrenderer1_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data == null)
+				{
+					return;
+				}
+				msgLabel.setStyle("fontWeight","bold");
+				dispatchEvent(new Event("busStopItemOver",true));
+			}
+			
+			protected function itemrenderer1_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data == null)
+				{
+					return;
+				}
+				msgLabel.setStyle("fontWeight","normal");
+			}
+			
+			protected function itemrenderer1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				dispatchEvent(new Event("busStopItemClick",true));
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<s:Label id="msgLabel" verticalCenter="0" maxDisplayedLines="1" 
+			 color="#4B5360" fontFamily="宋体" maxWidth="145"/>
+	
+</s:ItemRenderer>

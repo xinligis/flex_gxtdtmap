@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<serviceareaservice>http://192.168.80.35:8399/arcgis/rest/services/Route_all/NAServer/ServiceArea</serviceareaservice>
+	<startSymbol>assets/images/startPt.png</startSymbol>
+</configuration>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     ////////////////////////////////////////////////////////////////////////////////
+     //
+     // Copyright (c) 2010 ESRI
+     //
+     // All rights reserved under the copyright laws of the United States.
+     // You may freely redistribute and use this software, with or
+     // without modification, provided you include the original copyright
+     // and use restrictions.  See use restrictions in the file:
+     // <install location>/License.txt
+     //
+//图层管理
+//放弃使用原来viewer框架中自带的toc组件，使用自己写的组件。温杨彪；2012-3-27
+     ////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*" xmlns:LayerList="widgets.LayerList.*"
+				   width="100%" height="100%">
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.events.LayerEvent;
+			import com.esri.ags.events.MapEvent;
+			import com.esri.ags.layers.ArcGISDynamicMapServiceLayer;
+			import com.esri.ags.layers.Layer;
+			import com.esri.ags.layers.TiledMapServiceLayer;
+			import com.esri.viewer.AppEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			protected function wTemplate_openHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				getLayers();
+				map.addEventListener(MapEvent.LAYER_ADD,map_layerChangeHandler);
+				map.addEventListener(MapEvent.LAYER_REMOVE,map_layerChangeHandler);
+				map.addEventListener(MapEvent.LAYER_REORDER,map_layerChangeHandler);
+				
+				AppEvent.addListener(AppEvent.BASEMAP_SWITCH,basemap_switchHandler);
+			}
+			
+			private function map_layerChangeHandler(event:Object):void
+			{
+				getLayers();
+				//createLayerControllers();
+			}
+			
+			protected function wTemplate_closedHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				map.removeEventListener(MapEvent.LAYER_ADD,map_layerChangeHandler);
+				map.removeEventListener(MapEvent.LAYER_REMOVE,map_layerChangeHandler);
+				map.removeEventListener(MapEvent.LAYER_REORDER,map_layerChangeHandler);
+				
+				AppEvent.removeListener(AppEvent.BASEMAP_SWITCH,basemap_switchHandler);
+			}
+			[Bindable]
+			private var _layerAC:ArrayCollection; 
+			/**
+			 * 获取当前地图的非GraphicLayer的图层
+			 **/
+			private function getLayers():void
+			{
+				if(!_layerAC)
+				{
+					_layerAC = new ArrayCollection();
+				}
+				_layerAC.removeAll();
+				for each(var layer:Layer in map.layers)
+				{
+					if(layer is com.esri.ags.layers.GraphicsLayer)
+					{
+						continue;
+					}
+					_layerAC.addItem(layer);
+				}
+			}
+
+			private function basemap_switchHandler(event:AppEvent):void
+			{
+				getLayers();
+			}
+			
+		]]>
+    </fx:Script>
+    <viewer:SplitWidgetTemplate id="wTemplate"
+                           width="100%" height="100%" open="wTemplate_openHandler(event)"
+						   closed="wTemplate_closedHandler(event)">
+		<viewer:layout>
+			<s:VerticalLayout gap="10" paddingLeft="20" paddingRight="20"/>
+		</viewer:layout>
+		<s:Label text="分别对图层进行可见性及透明度控制" fontFamily="宋体" width="100%"/>
+		<s:Scroller height="100%" width="100%">
+			<LayerList:LayerListDataGroup id="layerListDataGroup" width="100%" height="100%" dataProvider="{_layerAC}">
+				<LayerList:layout>
+					<s:VerticalLayout gap="8" horizontalAlign="justify"
+									  useVirtualLayout="true"/>
+				</LayerList:layout>
+			</LayerList:LayerListDataGroup>
+		</s:Scroller>
+    </viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

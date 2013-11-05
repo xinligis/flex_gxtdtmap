@@ -1,0 +1,596 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--@author 温杨彪
+	@description 底图识别微件-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+                   layout="horizontal"
+                   widgetConfigLoaded="basewidget_widgetConfigLoadedHandler(event)" xmlns:esri="http://www.esri.com/2008/ags">
+    <fx:Script>
+        <![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.events.ExtentEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.FeatureLayer;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.MarkerSymbol;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IInfowindowTemplate;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import flash.utils.clearTimeout;
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.UIComponent;
+			import mx.rpc.AsyncResponder;
+			import mx.utils.StringUtil;
+			/**
+			 * 每个级别配置的图层组映射
+			 **/
+			private var _lods2AnnotationGroup:Hashtable;
+			
+			/**
+			 * 注记服务资源地址对应的Item映射
+			 **/
+			private var _url2AnnoItem:Hashtable;
+			
+			/**
+			 * 当前地图的显示级别，从0开始算
+			 **/
+			private var _lod:int=-1;
+			
+			[Bindable]
+			private var _lineColor:uint;
+			
+			[Bindable]
+			private var _lineWidth:Number;
+			
+			[Bindable]
+			private var _lineAlpha:Number;
+			
+			[Bindable]
+			private var _fillColor:uint;
+			
+			[Bindable]
+			private var _fillAlpha:Number;
+			
+			private var _annotationLayers:Array=[];
+			
+			/* [Bindable]
+			private var _highlightGraphic:Graphic; */
+			
+			/* [Bindable]
+			private var _overAnno:Graphic; */
+			
+			private var infoTemplate:IInfowindowTemplate;
+			
+			/**
+			 * 当前点击的注记
+			 **/
+			private var _currentAnnoItem:AnnotationItem;
+			
+			/**
+			 * 当前点击的注记所关联的实体
+			 **/
+			private var _currentFeature:Graphic;
+			
+			private var _graphicsLayer:GraphicsLayer=new GraphicsLayer();
+			
+			/**
+			 * 当前鼠标move中的注记Graphic
+			 **/
+			private var _currentAnnotationGraphic:Graphic = null;
+			
+			/**
+			 * 是否打开地图识别功能
+			 **/
+			private var _isOpenAnnotations:Boolean=false;
+			
+			private var _annotationGraphic2featureGraphci:Hashtable = new Hashtable();
+			
+			private var _isInHover:Boolean = false;
+			
+            protected function basewidget_widgetConfigLoadedHandler(event:Event):void
+            {
+				_lods2AnnotationGroup=new Hashtable();
+				_url2AnnoItem=new Hashtable();
+				_annotationGraphic2featureGraphci=new Hashtable();
+				if (configXML)
+                {
+					//读取配置的选中样式
+					_lineColor=uint(configXML.selectedsymbol.outline.@color)||0x0000ff;
+					_lineAlpha=Number(configXML.selectedsymbol.outline.@alpha)||1;
+					_lineWidth=Number(configXML.selectedsymbol.outline.@width)||1.5;
+					
+					_fillAlpha=Number(configXML.selectedsymbol.fill.@alpha)||0.5;
+					_fillColor=Number(configXML.selectedsymbol.fill.@color)||0xffffff;
+					
+					//读取配置的图层
+					var groups:XMLList=configXML.group;
+					var groupsLen:int=groups.length();
+					
+					for(var i:int=0;i<groupsLen;i++)
+					{
+						var layers:XMLList=groups[i].annotation;
+						var annoLen:int=layers.length();
+						var items:Array=[];
+						for(var j:int=0;j<annoLen;j++)
+						{
+							var item:AnnotationItem=new AnnotationItem();
+							//根据配置的图层加载相应的featurelayer
+							var featureLayer:FeatureLayer=new FeatureLayer();
+							featureLayer.mode=FeatureLayer.MODE_ON_DEMAND;
+							featureLayer.outFields=[String(layers[j].@featureidfield)];
+							featureLayer.url=String(layers[j].@url);
+							featureLayer.symbol=unselectedSymbol;
+							featureLayer.addEventListener(MouseEvent.MOUSE_MOVE,featurelayer_mousemoveHandler);
+							featureLayer.visible=false;
+							map.addLayer(featureLayer);
+							
+							item.featureLayer=featureLayer;
+							_annotationLayers.push(featureLayer);
+							item.relateUrl=String(layers[j].@relateurl);
+							//获取字段信息
+							var fieldsXml:XMLList=layers[j].fields;
+							item.titlefield=String(fieldsXml.titlefield);
+							item.linkfield=String(fieldsXml.linkfield);
+							item.featureIdFieldName=String(layers[j].@featureidfield);
+							item.typefield = String(layers[j].@typefield);
+							var outfields:XMLList=fieldsXml.field;
+							var fieldlen:int=outfields.length();
+							item.outFields=[];
+							for(var k:int=0;k<fieldlen;k++)
+							{
+								item.outFields.push({
+									name:String(outfields[k].@name),
+									alias:String(outfields[k].@alias)});
+								
+							}
+							//创建默认高亮符号
+							var picSymbol:PictureMarkerSymbol = new PictureMarkerSymbol
+								(String(layers[j].@symbolurl),Number(layers[j].@symbolwidth),
+								Number(layers[j].@symbolheight),Number(layers[j].@symbolxoffset),
+								Number(layers[j].@symbolyoffset));
+							item.defultHeighlightSymbol=picSymbol;
+							items.push(item);
+							//获取类型对应的符号
+							var typelst:XMLList = layers[j].type;
+							item.type2heighlightSymbolTable = new Hashtable();
+							for each(var type:XML in typelst)
+							{
+								picSymbol = new PictureMarkerSymbol
+									(String(type.@symbolurl),Number(type.@symbolwidth),
+									Number(type.@symbolheight),Number(type.@symbolxoffset),
+									Number(type.@symbolyoffset));
+								item.type2heighlightSymbolTable.add(String(type.@value),picSymbol);
+							}
+							
+							_url2AnnoItem.add(String(layers[j].@url),item);
+						}
+						_lods2AnnotationGroup .add(String(groups[i].@lod),items);
+					}
+					
+					if(map.loaded)
+					{
+						_lod=map.level;
+						setAnnotations();
+					}
+					
+					//绑定事件
+					map.addEventListener(ExtentEvent.EXTENT_CHANGE,map_extentChangeHandler);
+					
+					//设置infoWindow
+					var infoUrl:String = String(configXML.info);
+					var infoConfig:String=String(configXML.infoConfig)
+					var data:Object =
+						{
+							id: String(this.widgetId),
+							url: infoUrl,
+							config: infoConfig
+						};
+					AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET, data, infoReady);
+					
+					//创建高亮图层
+					map.addLayer(_graphicsLayer);
+					_graphicsLayer.addEventListener(MouseEvent.MOUSE_OUT,function(event:Object):void
+					{
+						_isInHover = false;
+						setTimeout(function():void
+						{
+							trace(_isInHover);
+							if(_isInHover == false)
+							{
+								showHighlightGraphic(false);
+								_overAnno.visible = false;
+								_overAnno.geometry = null;
+							}
+						},500);
+					});
+					
+					_graphicsLayer.addEventListener(MouseEvent.MOUSE_MOVE,function(event:Object):void
+					{
+						_isInHover = true;
+					});
+					_highlightGraphic=new Graphic();
+					_highlightGraphic.visible=false;
+//					_highlightGraphic.alpha = 0;
+					_highlightGraphic.buttonMode = true;
+					_highlightGraphic.addEventListener(MouseEvent.CLICK,hightlightGraphic_clickHandler);
+					_highlightGraphic.addEventListener(MouseEvent.MOUSE_MOVE,hightlightGraphic_moveHandler);
+//					_highlightGraphic.addEventListener(MouseEvent.MOUSE_OUT,hightlightGraphic_moveoutHandler);
+					_overAnno=new Graphic();
+//					_overAnno.addEventListener(MouseEvent.MOUSE_OUT,overAnno_mouseOutHandler);
+					_overAnno.addEventListener(MouseEvent.CLICK,overAnno_mouseClickHandler);
+					
+					
+					_overAnno.symbol=selectedSymbol;
+					_overAnno.toolTip="点击查看更多信息";
+					_overAnno.buttonMode=true;
+					_overAnno.visible=false;
+					
+					
+					_graphicsLayer.add(_overAnno);
+					_graphicsLayer.add(_highlightGraphic);
+					_isOpenAnnotations=true;
+					
+					//监听postprocess消息
+					AppEvent.addListener(AppEvent.POST_PROCESS,postProcessHandler);
+                }
+            }
+			
+			
+			private function hightlightGraphic_moveHandler(event:MouseEvent):void
+			{
+				showHighlightGraphic(true);
+			}
+			
+			private function hightlightGraphic_moveoutHandler(event:MouseEvent):void
+			{
+//				showHighlightGraphic(false);
+			}
+			
+			private function postProcessHandler(event:Object):void
+			{
+				if(event.data.type=="BaseMapIdentifySwitch")
+				{
+					if(event.data.data==true)
+					{
+						openAnnotations();
+					}
+					else
+					{
+						closeAnnotations();
+					}
+				}
+			}
+			
+			
+			private function infoReady(event:AppEvent):void
+			{
+				var id:Number = Number(event.data.id);
+				if (id == this.widgetId)
+				{
+					infoTemplate = event.data.infoWidget;
+					infoTemplate.infoConfig = configXML;
+					//王红亮，2011-04-08
+					var bWidget:BaseWidget = infoTemplate as BaseWidget;
+					if(bWidget)
+					{
+						bWidget.configData = this.configData;
+					}
+				}
+			}
+			
+			
+			protected function map_extentChangeHandler(event:ExtentEvent):void
+			{
+				//当地图视图改变了，判断显示级别是否有变化，如果有变化，则设置相应显示级别下的featurelayer的可见性
+				if(_lod==map.level||_isOpenAnnotations==false)
+					return;
+				_lod=map.level;
+				setAnnotations();
+				trace("map_extentChangeHandler");
+			}
+			
+			protected function featurelayer_mouseoverHandler(event:MouseEvent):void
+			{
+				if((event.target is Graphic)==false)
+					return;
+				//查询该注记所对应的实体
+				var g:Graphic=event.target as Graphic;
+				_overAnno.geometry=g.geometry;
+				
+				var fealry:FeatureLayer=g.graphicsLayer as FeatureLayer;
+				var url:String=fealry.url;
+				var item:AnnotationItem=_url2AnnoItem.find(url);
+				
+				setQueryParam(g,item);
+				qtask.url=item.relateUrl;
+				qtask.execute(queryparam,new AsyncResponder(queryCompelete,queryError,{annoItem:item}));
+			}
+			
+			protected function featurelayer_mousemoveHandler(event:MouseEvent):void
+			{
+				if((event.target is Graphic)==false)
+					return;
+				//查询该注记所对应的实体
+				var g:Graphic=event.target as Graphic;
+				if(_overAnno.geometry != g.geometry)
+				{
+					_overAnno.geometry=g.geometry;
+					
+					var feature:Graphic=_annotationGraphic2featureGraphci.find(g);
+					var fealry:FeatureLayer=g.graphicsLayer as FeatureLayer;
+					var url:String=fealry.url;
+					var item:AnnotationItem=_url2AnnoItem.find(url);
+					if(feature==null)
+					{
+						setQueryParam(g,item);
+						qtask.url=item.relateUrl;
+						qtask.execute(queryparam,new AsyncResponder(queryCompelete,queryError,{annoItem:item,annotation:g}));
+					}
+					else
+					{
+						//如果POI设置了类型图标，则使用类型图标，如果没有使用，则使用默认图标
+						var heighlightSymbol:MarkerSymbol = null;
+						if(item.typefield != "")
+						{
+							var typeValue:String = feature.attributes[item.typefield];
+							heighlightSymbol = item.type2heighlightSymbolTable.find(typeValue);
+						}
+						if(heighlightSymbol == null)
+						{
+							heighlightSymbol = item.defultHeighlightSymbol;
+						}
+						_highlightGraphic.geometry = feature.geometry;
+						_highlightGraphic.symbol = heighlightSymbol;
+						_overAnno.visible = true;
+						showHighlightGraphic(true);
+						_currentFeature=feature;
+						_currentAnnoItem=item;
+					}
+					
+				}
+			}
+			
+			/**
+			 * 根据当前地图显示的级别设置注记
+			 **/
+			private function setAnnotations():void
+			{
+				hideAllAnnotations();
+				var annotations:Array=_lods2AnnotationGroup.find(_lod);
+				if(annotations==null||annotations.length==0)
+				{
+					return;
+				}
+				var len:int=annotations.length;
+				for(var i:int=0;i<len;i++)
+				{
+					var item:AnnotationItem=annotations[i];
+					item.featureLayer.visible=true;
+				}
+				_isOpenAnnotations=true;
+			}
+			
+			/**
+			 * 隐藏所有的注记图层
+			 **/
+			private function hideAllAnnotations():void
+			{
+				var len:int=_annotationLayers.length;
+				
+				for(var i:int=0;i<len;i++)
+				{
+					var feaLayer:FeatureLayer=_annotationLayers[i];
+					feaLayer.visible=false;
+				}
+			}
+			
+			/**
+			 * 根据Graphic对象设置查询变量
+			 **/
+			private function setQueryParam(g:Graphic,item:AnnotationItem):void
+			{
+				queryparam.outFields=[];
+				queryparam.objectIds=[g.attributes[item.featureIdFieldName]];
+				if(item.titlefield!="")
+				{
+					queryparam.outFields.push(item.titlefield);
+				}
+				if(item.linkfield!="")
+				{
+					queryparam.outFields.push(item.linkfield);
+				}
+				if(item.typefield!="")
+				{
+					queryparam.outFields.push(item.typefield);
+				}
+				var len:int=item.outFields.length;
+				for(var i:int=0;i<len;i++)
+				{
+					queryparam.outFields.push(item.outFields[i].name);
+				}
+			}
+			
+			private function showHighlightGraphic(visible:Boolean):void
+			{
+				_highlightGraphic.visible = visible;
+				
+//				if(visible)
+//				{
+//					_isInHover = true;
+//				}
+//				visible?showFade.play():hideFade.play();
+			}
+			
+			protected function queryCompelete(result:FeatureSet,token:Object=null):void
+			{
+				var item:AnnotationItem=token.annoItem;
+				var feature:Graphic = result.features[0];
+				
+				//如果POI设置了类型图标，则使用类型图标，如果没有使用，则使用默认图标
+				var heighlightSymbol:MarkerSymbol = null;
+				if(item.typefield != "")
+				{
+					var typeValue:String = feature.attributes[item.typefield];
+					heighlightSymbol = item.type2heighlightSymbolTable.find(typeValue);
+				}
+				if(heighlightSymbol == null)
+				{
+					heighlightSymbol = item.defultHeighlightSymbol;
+				}
+				_highlightGraphic.geometry = feature.geometry;
+				_highlightGraphic.symbol = heighlightSymbol;
+				_overAnno.visible = true;
+				showHighlightGraphic(true);
+
+				
+				_currentFeature=result.features[0];
+				//把相应的注记要素和实际要素存到关联表中
+				_annotationGraphic2featureGraphci.add(token.annotation,_currentFeature);
+				_currentAnnoItem=item;
+			}
+			
+			override public function showInfoWindow(infoData:Object):void
+			{
+				if (infoData)
+				{
+					var infoWindowData:Object = {
+						title:infoData.title,
+						content:infoData.content,
+						graphic:infoData.graphic,
+						fromWidget:this
+					};
+					if(infoData.link)
+					{
+						infoWindowData.link=infoData.link;
+					}
+					//温杨彪；2011-7-29   让infoWindow第一次能显示东西
+					infoTemplate.data = infoWindowData;
+					map.infoWindow.content = infoTemplate as UIComponent;
+					map.infoWindow.label = infoData.title || "";
+					map.infoWindow.show(infoData.popupPoint);
+				}
+				else
+				{
+					map.infoWindow.hide();
+				}
+			}
+			
+			
+			protected function queryError(event:Object,token:Object=null):void
+			{
+				trace("error");
+			}
+			
+			private function overAnno_mouseOutHandler(event:Object):void
+			{
+				setTimeout(function():void
+				{
+					showHighlightGraphic(false);
+					_overAnno.visible = false;
+				},500);
+//				_overAnno.geometry = null;
+			}
+			
+			private function overAnno_mouseClickHandler(event:MouseEvent):void
+			{
+				var popupPoint:MapPoint=map.toMapFromStage(event.stageX,event.stageY);
+				
+				var content:String="";
+				var fields:Array=_currentAnnoItem.outFields;
+				var len:int=fields.length;
+				var values:Object=_currentFeature.attributes;
+				for(var i:int=0;i<len;i++)
+				{
+					content=content+fields[i].alias+"："+values[fields[i].name]+"\n";
+				}
+				var title:String=values[_currentAnnoItem.titlefield];
+				var link:String=values[_currentAnnoItem.linkfield];
+				showInfoWindow(
+					{
+						title:title,
+						link:link,
+						content:content,
+						graphic:_currentFeature,
+						popupPoint:_currentFeature.geometry
+					}
+				);
+			}
+			
+			private function hightlightGraphic_clickHandler(event:MouseEvent):void
+			{
+				var content:String="";
+				var fields:Array=_currentAnnoItem.outFields;
+				var len:int=fields.length;
+				var values:Object=_currentFeature.attributes;
+				for(var i:int=0;i<len;i++)
+				{
+					content=content+fields[i].alias+"："+values[fields[i].name]+"\n";
+				}
+				var title:String=values[_currentAnnoItem.titlefield];
+				var link:String=values[_currentAnnoItem.linkfield];
+				showInfoWindow(
+					{
+						title:title,
+						link:link,
+						content:content,
+						graphic:_currentFeature,
+						popupPoint:_currentFeature.geometry
+					}
+				);
+			}
+			
+			
+			/**
+			 * 关掉底图识别功能
+			 **/
+			public function closeAnnotations():void
+			{
+				if(_isOpenAnnotations)
+				{
+					hideAllAnnotations();
+					_graphicsLayer.visible=false;
+				}
+				_isOpenAnnotations=false;
+			}
+			
+			/**
+			 * 开启底图识别功能
+			 **/
+			public function openAnnotations():void
+			{
+				_isOpenAnnotations=true;
+				_lod=map.level;
+				setAnnotations();
+				_graphicsLayer.visible=true;
+			}
+			
+        ]]>
+    </fx:Script>
+
+    <fx:Declarations>
+		<esri:SimpleFillSymbol alpha="0" id="unselectedSymbol"/>
+		<esri:SimpleFillSymbol alpha="{_fillAlpha}" id="selectedSymbol" color="{_fillColor}" outline="{outlineSymbol}"/>
+		<esri:SimpleLineSymbol id="outlineSymbol" color="{_lineColor}" width="{_lineWidth}" alpha="{_lineAlpha}"/>
+	<!--	<esri:PictureMarkerSymbol id="picSymbol" width="50" height="50" source="@Embed('assets/images/Red_glow.swf')"/>-->
+		<esri:QueryTask id="qtask" useAMF="true"/>
+		<esri:Query id="queryparam" returnGeometry="true"/>
+	<!--	<s:Fade targets="{[_overAnno,_highlightGraphic]}" alphaFrom="0" alphaTo="1" duration="500" id="showFade"/>
+		<s:Fade targets="{[_overAnno,_highlightGraphic]}" alphaFrom="1" alphaTo="0" duration="500" id="hideFade"/>-->
+		<s:Fade alphaFrom="0" alphaTo="1" duration="500" id="showFade"/>
+		<s:Fade alphaFrom="1" alphaTo="0" duration="1000" id="hideFade"/>
+		<esri:Graphic id="_overAnno">
+		</esri:Graphic>
+		<esri:Graphic id="_highlightGraphic"/>
+    </fx:Declarations>
+</viewer:BaseWidget>

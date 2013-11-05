@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" ?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright © 2008 ESRI
+//
+// All rights reserved under the copyright laws of the United States.
+// You may freely redistribute and use this software, with or
+// without modification, provided you include the original copyright
+// and use restrictions.  See use restrictions in the file:
+// <install location>/FlexViewer/License.txt
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<configuration>
+	<labels>
+		<locationlabel>输入参数</locationlabel>
+		<resultlabel>查询结果列表</resultlabel>
+		<servicearealabel>输入点</servicearealabel>
+		<submitlabel>查找最近设施</submitlabel>
+		<clearlabel>清除</clearlabel>
+		<loadinglabel>加载中</loadinglabel>
+	</labels>
+	<findclosestservice>http://192.168.80.43:8399/arcgis/rest/services/CQRoadNetwork/NAServer/Closest%20Facility</findclosestservice>
+	<layerlistvalues>Dump Truck-On Road,Mobile Feeding Kitchen</layerlistvalues>
+	<!--查询结果显示的字段名称-->
+	<fields>
+		<field name="NAME" alias="名称"/>
+	</fields>
+	<poicatalogs>
+		<poicatalog name="餐饮">
+			<url>http://192.168.80.43:8399/arcgis/rest/services/CQPOI/MapServer/0</url>
+			<expression>TYPE = '01'</expression>
+			<facilitysymbol>assets/images/search/restaurant.png</facilitysymbol>
+			<startSymbol>assets/images/i_pin2.png</startSymbol>
+		</poicatalog>
+		<poicatalog name="购物">
+			<url>http://192.168.80.43:8399/arcgis/rest/services/CQPOI/MapServer/0</url>
+			<expression>TYPE = '02'</expression>
+			<facilitysymbol>assets/images/search/shopping.png</facilitysymbol>
+			<startSymbol>assets/images/i_pin2.png</startSymbol>
+		</poicatalog>
+<!-- 		<poicatalog name="住宿"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '03'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/hotel.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="出行"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '04'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/travel.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="文体娱乐"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '05'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/entertainment.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="金融服务"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '06'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/finance.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="生活服务"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '07'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/life.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="汽车服务"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '08'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/car.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="教育"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '09'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/shopping.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/search/education.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		胡国营修改配置20120209 -->
+<!-- 		<poicatalog name="医疗"> -->
+<!-- 			<url>http://192.168.80.35:8399/arcgis/rest/services/POI_new/MapServer/0</url> -->
+<!-- 			<expression>TYPE = '02'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/hospital.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="房产"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '11'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/house.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="旅游"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '12'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/park.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="企事业单位"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '13'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/enterprise.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+<!-- 		<poicatalog name="行政机构"> -->
+<!-- 			<url>http://192.168.2.66:8080/RemoteRest/services/POI/MapServer/0</url> -->
+<!-- 			<expression>TYPE1 = '14'</expression> -->
+<!-- 			<facilitysymbol>assets/images/search/government.png</facilitysymbol> -->
+<!-- 			<startSymbol>assets/images/i_pin2.png</startSymbol> -->
+<!-- 		</poicatalog> -->
+	</poicatalogs>
+	<!--设施点的搜索半径，单位：米-->
+	<bufferRadius>1000</bufferRadius>
+	<bufferspatialref>102100</bufferspatialref>
+	<simpleRouteSymbol color="0x0000FF" width="9" alpha="0.5" style="solid"/>
+	<heighlightRouteSymbol color="0xFF0000" width="9" alpha="1" style="solid"/>
+	<barrier style="dashdot" color="0xAA0000" width="3"/>
+</configuration>

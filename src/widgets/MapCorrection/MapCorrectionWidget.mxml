@@ -1,0 +1,1089 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	地图纠错widget
+	马红涛  2012-02-20
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:viewer="com.esri.viewer.*"
+		  xmlns:components="com.esri.viewer.components.*"
+		  widgetConfigLoaded="init()" xmlns:esri="http://www.esri.com/2008/ags" 
+		  xmlns:MapCorrection="widgets.MapCorrection.*" 
+		  xmlns:Search="widgets.Search.*"
+		  width="100%" height="100%"
+		  xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*" 
+		  xmlns:componet="com.esrichina.om.componet.*">	
+	<viewer:states>
+		<s:State name="graphicalInputState"/>
+		<s:State name="resultsListState"/>
+	</viewer:states>
+	
+	<viewer:transitions>
+		<s:Transition autoReverse="true" toState="*">
+			<s:Fade targets="{[graphicalInput, resultsList]}"/>
+		</s:Transition>
+	</viewer:transitions>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.Map;
+			import com.esri.ags.SpatialReference;
+			import com.esri.ags.events.DrawEvent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.*;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tools.DrawTool;
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.WidgetStates;
+			import com.esri.viewer.remote.RemoteHandler;
+			import com.esri.viewer.remote.RemoteResult;
+			
+			import flash.net.*;
+			
+			import mx.collections.ArrayCollection;
+			import mx.collections.ArrayList;
+			import mx.controls.Alert;
+			import mx.controls.List;
+			import mx.events.CloseEvent;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			import mx.events.StateChangeEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			import spark.components.supportClasses.ItemRenderer;
+			import spark.events.IndexChangeEvent;
+			
+			[Bindable]
+			private var positions:FeatureSet = new FeatureSet([null, null]);
+			/* [Bindable]
+			private var lines:FeatureSet = new FeatureSet([]); */
+			[Bindable]
+			private var searchResult:ArrayCollection = new ArrayCollection();;
+			
+			/**
+			 * 错误类型：名称错误
+			 **/
+			private const ERROR_TYPE_NAME:String = "1";
+			
+			/**
+			 * 错误类型：位置错误
+			 **/
+			private const ERROR_TYPE_POSITION:String = "2";
+			
+			/**
+			 * 错误类型：其他错误
+			 **/
+			private const ERROR_TYPE_OTHER:String = "3";
+			
+			/**
+			 *  纠正点
+			 **/
+			private const RIGHT_POINT:int = 0;
+			
+			/**
+			 *  错误点
+			 **/
+			private const WRONG_POING:int = -1;
+			
+			/**
+			 * 地理实体空间类型，点
+			 **/
+			private const GEOMETRY_TYPE_POINT:String = "1";
+			
+			/**
+			 * 地理实体空间类型，线
+			 **/
+			private const GEOMETRY_TYPE_POLYLINE:String = "2";
+			
+			/**
+			 * 地理实体空间类型，面
+			 **/
+			private const GEOMETRY_TYPE_POLYGON:String = "3";
+			
+			/**
+			 * 审核状态，未审核
+			 **/
+			private const STATE_UNAUDITED:String = "0";
+			
+			/**
+			 * 审核状态，已审核
+			 **/
+			private const STATE_AUDITED:String = "1";
+			
+			private var _inputsLayer:GraphicsLayer = new GraphicsLayer();
+//			private var _linesLayer:GraphicsLayer = new GraphicsLayer();   
+			private var _currentGeometry:Geometry;
+			private var _selectInput:int = 0; //0:WrongPosition,1:RightPosition
+			private const ICON_URL:String = "assets/images/mapcorrectionwidget/";
+					
+			
+			private var fileReference:FileReference = new FileReference();
+			/**
+			 * 上传的图片的字节流
+			 **/
+			private var _upLoadImgByts:flash.utils.ByteArray = null;
+			private var bitmapData:BitmapData;
+			private var loader:Loader = new Loader();
+			
+			/**
+			 * 当前提交的纠错信息，“提交”后，传给后台入库。温杨彪；2012-3-2
+			 **/
+			private var _currentMCVo:MapCorrectionVO;
+			
+			
+			
+			/**
+			 * 错误点Graphic
+			 **/
+			private var _wrongGraphic:Graphic;
+			
+			/**
+			 * 纠正点Graphic
+			 **/
+			private var _correctionGraphic:Graphic;
+			
+			
+		/* 	private var icon_off:String = ICON_URL + 'pickpoint.png';
+			private var icon_on:String = ICON_URL + 'barrier.png'; */
+			
+			private function init():void
+			{
+				if(configXML)
+				{
+					var name:String = configXML.province.@name;
+					var cityArray:ArrayCollection = new ArrayCollection();
+					var cityXMLList:XMLList = configXML.province.city;
+					for(var i:uint = 0; i < cityXMLList.length(); ++i)
+					{
+						name = cityXMLList[i].@name;
+						cityArray.addItem(name);
+					}
+					cityCombo.dataProvider = cityArray;
+					cityCombo.selectedIndex = 0;
+					
+					selectCity();
+
+					var icon:String = configXML.imageIcon.@icon_off; 
+					this.infoImg.source = icon;
+					this.infoGroup.width = 300;
+					this.infoGroup.height = 30;
+					this.nameGroup.visible = false;
+					this.nameGroup.includeInLayout = false;
+					this.emailGroup.visible = false;
+					this.emailGroup.includeInLayout = false;
+//					this.infoImg.addEventListener(MouseEvent.CLICK, image_clickHandler);
+					
+					//查询最近10条纠错记录
+//					_task = new MapCorrectionQueryTask();
+//					var param:MapCorrectionParam = new MapCorrectionParam();
+//					param.where = "ERRMSGID=5";
+//					param.outFields = new Array();
+//					param.outFields.push(MapCorrectionField.FIELD_CORRECTIONNAME);
+//					param.outFields.push(MapCorrectionField.FIELD_ERRORTYPE);
+//					param.outFields.push(MapCorrectionField.FIELD_STATE);
+//					param.outFields.push(MapCorrectionField.FIELD_PICTURE);
+//					param.outFields.push(MapCorrectionField.FIELD_GEOMETRY);
+					
+//					_task.query(param,
+//						new AsyncResponder(queryFileds_compeleteHandler, queryFileds_faultHandler));
+					if(configData.loginUser != null)
+					{
+						nameInput.text = configData.loginUser.fullName;
+						phoneInput.text = configData.loginUser.tel;
+						emailInput.text = configData.loginUser.email;
+					}
+					else
+					{
+						nameInput.text = "";
+						phoneInput.text = "";
+						emailInput.text = "";
+					}
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widgetStateChangedHandler);
+				}
+				
+				fileReference.addEventListener(Event.COMPLETE, fileReferenceCompleteHandler);
+			}
+			
+			private function image_clickHandler(event:MouseEvent):void
+			{
+				var icon:String;
+				if(this.infoImg.source == configXML.imageIcon.@icon_on)
+				{
+					this.infoImg.source = icon;
+					this.infoGroup.width = 300;
+					this.infoGroup.height = 30;
+					this.nameGroup.visible = false;
+					this.nameGroup.includeInLayout = false;
+					this.emailGroup.visible = false;
+					this.emailGroup.includeInLayout = false;
+//					this.imgGroup.includeInLayout = true;
+//					this.imgGroup.visible = true;
+					icon = configXML.imageIcon.@icon_off;
+					this.infoImg.source = icon;
+				}
+				else if (this.infoImg.source == configXML.imageIcon.@icon_off)
+				{
+					this.infoGroup.width = 300;
+					this.infoGroup.height = 100;
+					this.nameGroup.visible = true;
+					this.nameGroup.includeInLayout = true;
+					this.emailGroup.visible = true;
+					this.emailGroup.includeInLayout = true;
+//					this.imgGroup.includeInLayout = false;
+//					this.imgGroup.visible = false;
+					icon = configXML.imageIcon.@icon_on;
+					this.infoImg.source = icon;
+				}				
+			}
+			
+			protected function infoclickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.infoGroup.width = 300;
+				this.infoGroup.height = 30;
+				this.nameGroup.visible = false;
+				this.nameGroup.includeInLayout = false;
+				this.emailGroup.visible = false;
+				this.emailGroup.includeInLayout = false;
+				this.imgGroup.includeInLayout = false;
+				this.imgGroup.visible = false;
+			}
+			
+			private function queryFileds_compeleteHandler(result:RemoteResult,token:Object = null):void
+			{
+				if(result.code == RemoteResult.RESULT_OK)
+				{
+					trace("query compelete");		
+					var searchArr:Array = result.content as Array;
+					searchResult.source = searchArr;
+					this.searchResultDG.dataProvider = searchResult;	
+				}
+			}
+			
+			private function queryFileds_faultHandler(fault:Object,token:Object = null):void
+			{
+				trace("query fault");
+			}
+			
+			private function fileReferenceCompleteHandler(e:Event):void
+			{
+				_upLoadImgByts = fileReference.data; 
+				loader.contentLoaderInfo.addEventListener(Event.COMPLETE,loaderCompleteHandler); 
+				loader.loadBytes(_upLoadImgByts); 
+			}
+			
+			private function loaderCompleteHandler(e:Event):void
+			{
+				var bitmap:Bitmap = Bitmap(loader.content);
+				bitmapData = bitmap.bitmapData;
+				imgLocal.source = bitmap;
+			}
+			
+			private function fileReferenceSelectHandler(e:Event):void
+			{
+				fileReference.load();
+			}
+			
+			/**绘制地图错误位置点
+			 * @param index,位置点的序号，0表示错误点；-1表示纠正后点
+			 * @author 马红涛，2012-02-22
+			 * return 无
+			 */
+			private function activatePositionTool(flag:int):void
+			{	
+				var status:String;
+				_selectInput = flag;
+//				_linesLayer.clear();
+				switch(_selectInput)
+				{				
+					case WRONG_POING:
+					{
+						status = "错误位置";
+						break;
+					}
+					case RIGHT_POINT:
+					{
+						status = "纠正位置";
+						break;
+					}	
+				}
+				setMapAction(DrawTool.MAPPOINT, status, null, drawPositionEnd);				
+			}
+			
+			private function clear():void
+			{
+				_inputsLayer.clear();
+//				_linesLayer.clear();
+				
+				positions.features = [null, null];
+			}
+			
+			private function drawPositionEnd(event:DrawEvent):void
+			{
+				event.target.deactivate();
+//				_inputsLayer.clear();
+				var geom:Geometry = event.graphic.geometry;
+				var name:String = "手工绘制";
+				addPosition(geom, name, _selectInput);
+			}
+			
+			/**
+			 *功能：添加途径点
+			 *@param geom 几何坐标；name，; index,位置索引，0为错误点，-1表示纠正点。
+			 *@param name 该点的名称
+			 *@param flag 点类型
+			 *@author 马红涛，2012-02-23
+			 *@return 无
+			 */
+			private function addPosition(geom:Geometry, name:String, flag:int = -1):void
+			{
+				//温杨彪修改；2012-3-2
+				var mPt:MapPoint = geom as MapPoint
+				if(mPt == null)
+				{
+					return;
+				}
+				var attributes:Object =
+					{
+						Name:name
+					};
+				var position:Graphic = new Graphic(geom, null, attributes);
+				
+				if(flag == WRONG_POING)//错误点
+				{
+					if(_wrongGraphic == null)
+					{
+						_wrongGraphic = new Graphic(geom,new PictureMarkerSymbol(ICON_URL + "wrong.png", 21, 25, 0, 12));
+						_inputsLayer.add(_wrongGraphic);
+					}
+					else
+					{
+						_wrongGraphic.geometry = geom;
+					}
+					wrongPosition.checked = false;
+				}
+				else //纠正点
+				{
+					if(_correctionGraphic == null)
+					{
+						_correctionGraphic = new Graphic(geom,new PictureMarkerSymbol(ICON_URL + "right.png", 21, 25, 0, 12));
+						_inputsLayer.add(_correctionGraphic);
+					}
+					else
+					{
+						_correctionGraphic.geometry = geom;
+					}
+					rightPosition.checked = false;
+				} 
+//				refreshGraphicsLayer();
+			}
+			
+			/**重新绘制所有的输入图层
+			 * @author 马红涛，2012-02-23
+			 * @return 无
+			 */
+		 	private function refreshGraphicsLayer():void
+			{
+				for(var index:uint = 0; index < positions.features.length; ++index)
+				{
+					var position:Graphic = positions.features[index]; 
+					if(!position) //排除点占位
+					{
+						continue;
+					}
+					if(index == 0)
+					{
+						position.symbol = new PictureMarkerSymbol(ICON_URL + "wrong.png", 28, 26, 0, 12);
+					}
+					else if(index == positions.features.length - 1)
+					{
+						position.symbol = new PictureMarkerSymbol(ICON_URL + "right.png", 28, 26, 0, 12);
+					}
+					_inputsLayer.add(position);
+				} 				
+			} 
+								
+			protected function onClickPickWrongPoint(event:MouseEvent):void
+			{
+				activatePositionTool(WRONG_POING);
+			}
+			
+			protected function onClickPickRightPoint(event:MouseEvent):void
+			{
+				if(this.positionRadio.selected)
+				{
+					activatePositionTool(RIGHT_POINT);
+				}
+				
+			}
+			
+/* 			protected function onClickPickLine(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				activateLineTool();
+			}
+			
+			private function activateLineTool():void
+			{
+				clear();
+				var status:String = "错误道路";
+				setMapAction(DrawTool.POLYLINE, status, null, drawLineEnd);
+			}
+			
+			private function drawLineEnd(event:DrawEvent):void
+			{
+				var geom:Geometry = event.graphic.geometry;
+				var lineName:String = "道路" + (lines.features.length + 1);
+				addLines(geom, lineName);
+			}
+			
+			/**
+			 *功能：添加道路
+			 *@param：geo,几何坐标；name，该线的名称
+			 *@author：马红涛，2012-02-23
+			 *@return：无
+			 */
+	/* 		private function addLines(geom:Geometry, name:String):void
+			{
+				var lineAttributes:Object =
+					{
+						Name:name
+					};
+				var line:Graphic = new Graphic(geom, lineSymbol, lineAttributes);
+//				_linesLayer.add(line);
+			}  */
+			
+			
+			protected function onSelectCity(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(cityCombo.selectedIndex < 0)
+					return;
+				if(event.newIndex == event.oldIndex)
+					return;
+				selectCity();
+			}
+			
+			private function selectCity():void
+			{
+				var districts:ArrayCollection = new ArrayCollection();
+				var name:String;
+				var cityXML:XML = configXML.province.city[cityCombo.selectedIndex];
+				for each(var xml:XML in cityXML.district)
+				{
+					name = xml.@name;
+					districts.addItem(name);
+				}
+				districtCombo.dataProvider = districts;
+				districtCombo.selectedIndex = 0;
+			}
+			
+			protected function onSelectDistrict(event:IndexChangeEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(event.newIndex == event.oldIndex)
+					return;
+			}
+			
+			protected function onUploadPicture(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				fileReference.browse([new FileFilter("图片文件","*.jpg;*.png")]);
+				fileReference.addEventListener(Event.SELECT, fileReferenceSelectHandler);
+			}
+			
+			protected function onCommitInformation(event:MouseEvent):void
+			{
+				//上传纠错信息，温杨彪；2012-3-2
+				_currentMCVo = new MapCorrectionVO();
+				var correctionName:String = correctionInput.text;
+				correctionName = StringUtil.trim(correctionName);
+				if(correctionName == "")
+				{
+					Alert.show("请填写纠错名称");
+					return;
+				}
+				if(positionRadio.selected == true)
+				{
+					if(_correctionGraphic == null || _wrongGraphic == null || 
+						_correctionGraphic.geometry == null || _wrongGraphic.geometry == null)
+					{
+						Alert.show("请确定错误点和纠正点");
+						return;
+					}
+					_currentMCVo.geometrys = [];
+					_currentMCVo.geometrys.push(GEOMETRY_TYPE_POINT);
+					_currentMCVo.geometrys.push(com.esri.ags.utils.JSON.encode(_wrongGraphic.geometry));
+					_currentMCVo.geometrys.push(com.esri.ags.utils.JSON.encode(_correctionGraphic.geometry));
+				}
+				else
+				{
+					//马红涛     2012-3-10
+					if(_wrongGraphic == null || _wrongGraphic.geometry == null)
+					{
+						Alert.show("请确定错误点");
+						return;
+					}
+					
+					_currentMCVo.geometrys = [];
+					_currentMCVo.geometrys.push(GEOMETRY_TYPE_POINT);
+					_currentMCVo.geometrys.push(com.esri.ags.utils.JSON.encode(_wrongGraphic.geometry));
+				}
+				
+				_currentMCVo.name = correctionName;
+				_currentMCVo.msgType = "1"; 
+				if(nameInput.text == "" && emailInput.text == "" && phoneInput.text == "")
+				{
+					Alert.show("您确认不留下联系方式吗？","确认",Alert.YES|Alert.NO,null,sureCommitCloseHandler);
+					return;
+				}
+				
+/* 				_currentMCVo.name = correctionInput.text;
+				
+				_currentMCVo.geometrys = [];
+				_currentMCVo.geometrys.push(GEOMETRY_TYPE_POINT);
+				_currentMCVo.geometrys.push(com.esri.ags.utils.JSON.encode(_wrongGraphic.geometry));
+				_currentMCVo.geometrys.push(com.esri.ags.utils.JSON.encode(_correctionGraphic.geometry));*/
+				
+				_currentMCVo.author = nameInput.text;
+				_currentMCVo.email = emailInput.text;
+				_currentMCVo.tel = phoneInput.text;
+				_currentMCVo.errType = String(errorTypeRBGrp.selectedValue);
+				_currentMCVo.description = describeInfo.text;
+				//获取选中的PAC码
+				var cityXML:XML = configXML.province.city[cityCombo.selectedIndex];
+				var districtXml:XML = cityXML.district[districtCombo.selectedIndex];
+				var districtData:String = String(districtXml.@code);
+				_currentMCVo.pac = districtData;
+				_currentMCVo.picture = _upLoadImgByts;
+				_currentMCVo.state = STATE_UNAUDITED;
+				RemoteHandler.invoke("MapCorrectionService.submitInfos",[_currentMCVo],
+					new AsyncResponder(submit_compeleteHandler,submit_errorHandler));
+			}
+			
+			private function sureCommitCloseHandler(event:CloseEvent):void
+			{
+				if(event.detail == Alert.YES)
+				{
+					_currentMCVo.author = nameInput.text;
+					_currentMCVo.email = emailInput.text;
+					_currentMCVo.tel = phoneInput.text;
+					_currentMCVo.errType = String(errorTypeRBGrp.selectedValue);
+					_currentMCVo.description = describeInfo.text;
+					//获取选中的PAC码
+					var cityXML:XML = configXML.province.city[cityCombo.selectedIndex];
+					var districtXml:XML = cityXML.district[districtCombo.selectedIndex];
+					var districtData:String = String(districtXml.@code);
+					_currentMCVo.pac = districtData;
+					_currentMCVo.picture = _upLoadImgByts;
+					_currentMCVo.state = STATE_UNAUDITED;
+					RemoteHandler.invoke("MapCorrectionService.submitInfos",[_currentMCVo],
+						new AsyncResponder(submit_compeleteHandler,submit_errorHandler));
+				}
+				else
+				{
+					if(nameGroup.visible == false)
+					{
+						hgroup1_clickHandler(null);
+					}
+				}
+			}
+			
+			private var _previousState:String = "graphicalInput";
+			private function showStateGraphicalSearch():void
+			{
+				_previousState = _previousState == "resultsList" ? "graphicalInput" : _previousState;
+				this.currentState = _previousState;
+			}
+			
+			/**
+			 * 显示历史列表
+			 * @param showSubmitInfo 显示“上传成功”提示。如果通过纠错页面查看历史列表，则不显示“上传成功”提示
+			 **/
+			private function showResultsStates(showSubmitInfo:Boolean):void
+			{
+				this.currentState = "resultsListState";
+				submitInfo.visible = showSubmitInfo;
+				submitInfo.includeInLayout = showSubmitInfo
+				RemoteHandler.invoke("MapCorrectionService.queryNewestInfos",null,
+					new AsyncResponder(queryFileds_compeleteHandler,queryFileds_faultHandler));
+			}
+			
+			private function submit_compeleteHandler(result:RemoteResult,token:Object = null):void
+			{
+//				if(result.code == RemoteResult.RESULT_OK)
+				if(result!=null && result.code == 200)
+				{
+					trace("insert succed");
+					//插入成功后，清除某些信息
+//					Alert.show("提交成功。");
+					_wrongGraphic.geometry = null;
+					//马红涛     2012-3-10
+					if(_correctionGraphic != null)
+						_correctionGraphic.geometry = null;
+					correctionInput.text = "";
+					districtCombo.selectedIndex = 0;
+					cityCombo.selectedIndex = 0;
+					describeInfo.text = "";
+					_upLoadImgByts = null;
+					imgLocal.source = null;
+					if(configData.loginUser == null)
+					{
+						nameInput.text = "";
+						emailInput.text = "";
+						phoneInput.text = "";
+					}
+					
+					showResultsStates(true);
+				}
+				else if(result !=null)
+				{
+					Alert.show("提交纠错信息失败，Code："+result.code.toString());
+				}
+				else
+				{
+					Alert.show("提交纠错信息失败");
+				}
+			}
+			
+			private function submit_errorHandler(fault:Object,token:Object = null):void
+			{
+				trace("fault");
+			}
+			
+			protected function wTemplate_openHandler(event:Event):void
+			{
+				//确保widget打开时，图层加载到地图上
+				map.addLayer(_inputsLayer);
+			}
+			
+			protected function wTemplate_closedHandler(event:Event):void
+			{
+				//确保widget关闭时，图层从地图上清除
+				map.removeLayer(_inputsLayer);
+			}			
+						
+			protected function return_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+//				this.graphicalInput.visible = true;
+//				this.resultsList.visible = false;
+				this.currentState = "graphicalInputState";
+				
+				errorTypeRBGrp.selectedValue = null;
+				describeInfo.text = "";
+				imgLocal.source = null;
+				_upLoadImgByts = null;
+				correctionInput.text = "";
+				
+				if(configData.loginUser != null)
+				{
+					nameInput.text = configData.loginUser.fullName;
+					phoneInput.text = configData.loginUser.tel;
+					emailInput.text = configData.loginUser.email;
+				}
+				else
+				{
+					nameInput.text = "";
+					phoneInput.text = "";
+					emailInput.text = "";
+				}
+				
+				if(_wrongGraphic != null)
+				{
+					_wrongGraphic.geometry =null;
+				}
+				if(_correctionGraphic != null)
+				{
+					_correctionGraphic.geometry = null;
+				}
+			}
+			
+			protected function wrongPosition_checkChangeHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				if(wrongPosition.checked)
+				{
+					rightPosition.checked = false;
+					activatePositionTool(WRONG_POING);
+				}
+			}
+			
+			protected function hgroup1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var icon:String;
+				if(this.infoImg.source == configXML.imageIcon.@icon_on)
+				{
+					this.infoImg.source = icon;
+					this.infoGroup.width = 300;
+					this.infoGroup.height = 30;
+					this.nameGroup.visible = false;
+					this.nameGroup.includeInLayout = false;
+					this.emailGroup.visible = false;
+					this.emailGroup.includeInLayout = false;
+					//					this.imgGroup.includeInLayout = true;
+					//					this.imgGroup.visible = true;
+					icon = configXML.imageIcon.@icon_off;
+					this.infoImg.source = icon;
+				}
+				else if (this.infoImg.source == configXML.imageIcon.@icon_off)
+				{
+					this.infoGroup.width = 300;
+					this.infoGroup.height = 100;
+					this.nameGroup.visible = true;
+					this.nameGroup.includeInLayout = true;
+					this.emailGroup.visible = true;
+					this.emailGroup.includeInLayout = true;
+					//					this.imgGroup.includeInLayout = false;
+					//					this.imgGroup.visible = false;
+					icon = configXML.imageIcon.@icon_on;
+					this.infoImg.source = icon;
+				}				
+			}
+			
+			protected function rightPosition_checkChangeHandler(event:Event):void
+			{
+				if(rightPosition.checked)
+				{
+					wrongPosition.checked = false;
+					activatePositionTool(RIGHT_POINT);
+				}
+			}
+			
+			protected function errorTypeRBGrp_changeHandler(event:Event):void
+			{
+				//如果选择的错误类型不为“位置错误”，那么在地图上清除原来的纠错点
+				if(errorTypeRBGrp.selectedValue != ERROR_TYPE_POSITION)
+				{
+					if( _correctionGraphic&& _correctionGraphic.geometry)
+					{
+						_correctionGraphic.geometry = null;
+					}
+				}
+			}
+			
+			protected function showHistoryLabel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				showResultsStates(false);
+			}
+			
+			protected function widgetStateChangedHandler(event:AppEvent):void
+			{
+				if(event.data.id == widgetId)
+				{
+					if(event.data.state == WidgetStates.WIDGET_OPENED && configData.loginUser != null)
+					{
+						nameInput.text = configData.loginUser.fullName;
+						phoneInput.text = configData.loginUser.tel;
+						emailInput.text = configData.loginUser.email;
+					}
+					else
+					{
+						nameInput.text = "";
+						phoneInput.text = "";
+						emailInput.text = "";
+					}
+				}
+			}
+			
+			protected function searchResultDG_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				searchResultDG.addEventListener("itemClick",searchResultDG_itemClickHandler);
+			}
+			
+			protected function searchResultDG_itemClickHandler(event:Event):void
+			{
+				var correctionData:MapCorrectionVO = event.target.data as MapCorrectionVO;
+				var wrongPt:MapPoint = null;
+				var rightPt:MapPoint = null;
+				for(var i:int = 0;i<correctionData.geometrys.length;i++)
+				{
+					var flag:int = (i+1)%3;
+					var geometry:Object;
+					switch(flag)
+					{
+						case 0:
+							//纠正后的
+							geometry = com.esri.ags.utils.JSON.decode(correctionData.geometrys[i]);
+							rightPt = new MapPoint(geometry.x,geometry.y,map.spatialReference);
+//							 = com.esri.ags.utils.JSON.decode(correctionData.geometrys[i]);
+							break;
+						case 1:
+							//类型
+							break;
+						case 2:
+							//原来的
+							geometry = com.esri.ags.utils.JSON.decode(correctionData.geometrys[i]);
+							wrongPt = new MapPoint(geometry.x,geometry.y,map.spatialReference);
+							break;
+					}
+				}
+				//把纠错信息加到地图上
+				if(_wrongGraphic == null)
+				{
+					_wrongGraphic = new Graphic(wrongPt,new PictureMarkerSymbol(ICON_URL + "wrong.png", 21, 25, 0, 12));
+					_inputsLayer.add(_wrongGraphic);
+				}
+				else
+				{
+					_wrongGraphic.geometry = wrongPt;
+				}
+				if(_correctionGraphic == null)
+				{
+					_correctionGraphic = new Graphic(rightPt,new PictureMarkerSymbol(ICON_URL + "right.png", 21, 25, 0, 12));
+					_inputsLayer.add(_correctionGraphic);
+				}
+				else
+				{
+					_correctionGraphic.geometry = rightPt;
+				}
+				if(wrongPt && rightPt)
+				{
+					var mapPt:MapPoint = new MapPoint((wrongPt.x+rightPt.x)/2,(wrongPt.y+rightPt.y)/2);
+					map.centerAt(mapPt);
+					return;
+				}
+				if(wrongPt)
+				{
+					map.centerAt(wrongPt);
+					return;
+				}
+				if(rightPt)
+				{
+					map.centerAt(rightPt);
+					return;
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<esri:SimpleMarkerSymbol id="pointSymbol" color="0xFF0000" size="10" style="circle"/>
+		<esri:SimpleLineSymbol id="lineSymbol" color="0xFF0000" width="3" style="solid"/>		
+		<s:RadioButtonGroup id="infoTypeRBGrp"/>
+		<s:RadioButtonGroup id="errorTypeRBGrp" change="errorTypeRBGrp_changeHandler(event)"/>
+	</fx:Declarations>
+	
+	<viewer:SplitWidgetTemplate id="wTemplate"
+							    width="100%" height="100%" open="wTemplate_openHandler(event)"
+								closed="wTemplate_closedHandler(event)">
+		<!--地图纠错-->
+		<s:Scroller width="100%" height="100%"
+					visible.resultsListState="false"
+					includeInLayout.resultsListState="false"
+					visible="true" includeInLayout="true">
+			
+		
+		<s:Group id="graphicalInput"
+				 height="100%" width="100%"
+				 >
+			<s:layout>
+				<s:VerticalLayout horizontalAlign="center" gap="10" paddingLeft="10" paddingRight="10"/>
+			</s:layout>
+			<s:Group width="100%" height="30">
+				<s:Label text="告诉我们地图上存在的问题" textAlign="left" 
+						 fontSize="12" fontFamily="宋体" color="#ff8400"
+						 left="0" verticalCenter="0"/>
+				<s:Label text="查看纠错历史" textDecoration="underline" id="showHistoryLabel"
+						 baselineShift="2" right="0" fontFamily="宋体" fontSize="12"
+						 verticalCenter="0" buttonMode="true"
+						 rollOver="{showHistoryLabel.setStyle('fontWeight','bold')}"
+						 rollOut="{showHistoryLabel.setStyle('fontWeight','normal')}"
+						 click="showHistoryLabel_clickHandler(event)"/>
+			</s:Group>
+			<!--<s:Line xFrom="5" width="90%" >
+				<s:stroke>
+					<s:SolidColorStroke color="0xb9d6dc"/>
+				</s:stroke>
+			</s:Line>-->
+			<s:HGroup width="100%" gap="0" verticalAlign="middle">
+				<componet:DottedLine width="305" color="0xb9d6dc"/>
+				<s:Image source="{ICON_URL + 'separator.png'}"/>
+			</s:HGroup>
+			<s:Group width="100%" height="100%" left="10">
+				<s:layout>
+					<s:VerticalLayout />
+				</s:layout>
+				<!--<s:HGroup width="100%" paddingTop="5" verticalAlign="middle" gap="10">
+					<s:Label text="信息类型：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					
+					<s:RadioButton groupName="infoTypeRBGrp" label="地点" fontFamily="宋体" color="#4a535f" fontSize="12" id="locationRadio"/>
+					<s:RadioButton groupName="infoTypeRBGrp" label="道路" fontFamily="宋体" color="#4a535f" fontSize="12" id="streetRadio" />
+				</s:HGroup>	-->
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="middle" gap="10">
+					<s:Label text="错误类型：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<s:RadioButton label="位置错误" groupName="errorTypeRBGrp" fontFamily="宋体" color="#4a535f" fontSize="12" id="positionRadio" value="{ERROR_TYPE_POSITION}"/>
+					<s:RadioButton label="名称错误" groupName="errorTypeRBGrp" fontFamily="宋体" color="#4a535f" fontSize="12" id="nameRadio" value="{ERROR_TYPE_NAME}"/>
+					<s:RadioButton label="其它" groupName="errorTypeRBGrp" fontFamily="宋体" color="#4a535f" fontSize="12" id="otherRadio" value="{ERROR_TYPE_OTHER}"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="middle" gap="0">
+					<s:Label text="标注位置：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<s:Spacer width="30"/>
+					<!--<s:Image id="wrongPosition" source="{ICON_URL + 'wrong_off.png'}" buttonMode="true" click="onClickPickWrongPoint(event)" toolTip="地图上的错误点"/>-->
+					<!--<s:Image id="rightPosition" source="{ICON_URL + 'right_off.png'}" buttonMode="true" click="onClickPickRightPoint(event)" toolTip="纠正后的点"/>-->
+					<customskinbutton:CheckButton id="wrongPosition" toolTip="地图上的错误点"
+												  enabled="{errorTypeRBGrp.selectedValue != null?true:false}"
+												  overImage="@Embed('assets/images/mapcorrectionwidget/wrong_off.png')"
+												  normalImage="@Embed('assets/images/mapcorrectionwidget/wrong_on.png')"
+												  selectedImage="@Embed('assets/images/mapcorrectionwidget/wrong_checked.png')"
+												  checkChange="wrongPosition_checkChangeHandler(event)"/>
+					<s:Spacer width="50"/>
+					<customskinbutton:CheckButton id="rightPosition" toolTip="纠正后的点" 
+												  enabled="{errorTypeRBGrp.selectedValue == ERROR_TYPE_POSITION?true:false}"
+												  overImage="@Embed('assets/images/mapcorrectionwidget/right_off.png')"
+												  normalImage="@Embed('assets/images/mapcorrectionwidget/right_on.png')"
+												  selectedImage="@Embed('assets/images/mapcorrectionwidget/right_checked.png')"
+												  checkChange="rightPosition_checkChangeHandler(event)"/>
+					
+					
+					<!--<s:Image source="{ICON_URL + 'pickpoint.png'}" buttonMode="true" click="onClickPickLine(event)" toolTip="纠正的道路"/>-->
+				</s:HGroup>
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="middle">
+					<s:Label text="名    称：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<s:TextInput id="correctionInput" width="100%" contentBackgroundColor="0xffffff"
+								 skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="middle">
+					<s:Label text="所属区域：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<s:ComboBox id="cityCombo" width="80" change="onSelectCity(event)" />
+					<s:Label text="->"/>
+					<s:ComboBox id="districtCombo" width="80" change="onSelectDistrict(event)"/>
+				</s:HGroup>
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="top">
+					<s:Label text="描述信息：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<s:TextArea id="describeInfo" width="100%" height="60" contentBackgroundColor="0xffffff"
+								skinClass="com.esri.viewer.skins.CommonTextAreaSkin"
+										lineHeight="12" fontWeight="normal" fontFamily="宋体" fontSize="12" /> 
+					<!--<s:TextInput id="describeInfo" width="200" height="60" contentBackgroundColor="0xffffff"
+								focusedTextSelectionColor="#54bcfd" skinClass="com.esri.viewer.skins.CommonTextInputSkin"
+								lineHeight="12" fontWeight="normal" fontFamily="宋体" fontSize="12" /> -->
+				</s:HGroup>					
+				
+				<s:HGroup width="100%" paddingTop="5" verticalAlign="middle">
+					<s:Label text="辅助图片：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+					<customskinbutton:ClickButton overImage="@Embed('assets/images/mapcorrectionwidget/download_on.png')"
+												  normalImage="@Embed('assets/images/mapcorrectionwidget/download_off.png')"
+												  click="onUploadPicture(event)"/>
+					<!--<s:Image source="{ICON_URL + 'download_off.png'}" buttonMode="true" click="onUploadPicture(event)"/>-->
+					<s:Label text="建议图片尺寸150*150"/>
+				</s:HGroup>
+				
+				<s:HGroup id="imgGroup" width="100%" paddingTop="5" horizontalAlign="left" includeInLayout="true" gap="0">
+					<s:Spacer width="65"/>
+					<s:BorderContainer width="70" height="70" borderWeight="1" borderColor="#417DE1" backgroundAlpha="0.25">
+						<s:Image id="imgLocal" left="5" top="5" bottom="5" right="5" width="110" height="90"/> 
+					</s:BorderContainer>						
+				</s:HGroup>
+				
+				<s:Group width="100%">
+					<s:BorderContainer id="infoGroup"  width="300" borderWeight="1" horizontalCenter="0" 
+									   borderColor="#417DE1" backgroundAlpha="0.25">
+						<s:layout>
+							<s:VerticalLayout verticalAlign="middle"/>
+						</s:layout>
+						
+						<s:HGroup width="100%" verticalAlign="middle" gap="18"
+								  click="hgroup1_clickHandler(event)" buttonMode="true" paddingLeft="5">
+							<s:Image source="assets/images/attention.png" />
+							<s:Label text="建议留下联系方式，我们将严格保密：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="normal"/>	
+							<s:Image id="infoImg" />
+						</s:HGroup>	
+						
+						<s:HGroup id="nameGroup" width="100%" paddingLeft="15" paddingTop="5" verticalAlign="middle">
+							<s:Label text="姓名：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+							<s:TextInput id="nameInput" width="80" skinClass="com.esri.viewer.skins.CommonTextInputSkin" contentBackgroundColor="0xffffff"/>
+							<s:Label text="电话：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+							<s:TextInput id="phoneInput" width="90" skinClass="com.esri.viewer.skins.CommonTextInputSkin" contentBackgroundColor="0xffffff"/>
+						</s:HGroup>
+						
+						<s:HGroup id="emailGroup" width="100%" paddingLeft="15" paddingTop="5" verticalAlign="middle">
+							<s:Label text="邮箱：" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="bold"/>
+							<s:TextInput id="emailInput" width="220" textAlign="justify" skinClass="com.esri.viewer.skins.CommonTextInputSkin" contentBackgroundColor="0xffffff"/>
+						</s:HGroup>
+					</s:BorderContainer>
+				</s:Group>
+				
+				
+				
+				<s:HGroup width="100%" paddingTop="5" horizontalAlign="center">
+					<!--<s:Button label="提交信息" left="100" click="onCommitInformation(event)" />-->
+					<customskinbutton:ClickButton overImage="@Embed('assets/images/mapcorrectionwidget/submit_over.png')"
+												  normalImage="@Embed('assets/images/mapcorrectionwidget/submit_normal.png')"
+												  click="onCommitInformation(event)"/>
+				</s:HGroup>
+				
+			</s:Group>
+		</s:Group>
+		</s:Scroller>
+			
+		<!--</s:VGroup>-->
+		<!--纠错信息-->
+		<s:Scroller width="100%" height="100%"
+					visible="false"
+					includeInLayout="false"
+					visible.resultsListState="true"
+					includeInLayout.resultsListState="true">
+		<s:Group id="resultsList" left="20">
+			<s:layout>
+				<s:VerticalLayout gap="15" verticalAlign="top" horizontalAlign="center" paddingLeft="10" paddingRight="10"/>
+			</s:layout>		
+				
+			<s:HGroup id="submitInfo" 
+					  verticalAlign="middle" gap="5">
+				<s:BitmapImage source="@Embed('assets/images/mapcorrectionwidget/certain.png')"/>
+				<s:Label text="纠错信息已成功提交！" textAlign="center" fontFamily="宋体"
+						 color="0x535353" fontWeight="bold" fontSize="14"/>
+			</s:HGroup>	
+			
+			<s:Label text="返回纠错界面" click="return_clickHandler(event)" 
+					 buttonMode="true" id="returnLabel" rollOut="{returnLabel.setStyle('color',0x535353)}"
+					 rollOver="{returnLabel.setStyle('color',0xff0000)}"/>
+			
+			<!--<s:Line xFrom="5" width="90%">
+				<s:stroke>
+					<s:SolidColorStroke color="0xb9d6dc"/>
+				</s:stroke>
+			</s:Line>-->
+			<s:HGroup width="100%" gap="0" verticalAlign="middle">
+				<componet:DottedLine width="305" color="0xb9d6dc"/>
+				<s:Image source="{ICON_URL + 'separator.png'}"/>
+			</s:HGroup>
+			
+			<s:HGroup id="correctInfo" width="100%" paddingTop="5" horizontalAlign="left" paddingLeft="15"
+					  verticalAlign="middle" gap="10" >
+				<s:Image id="imgInfo" source="{ICON_URL + 'lowerTriangular.png'}"/>
+				<s:Label text="最近上报的纠错信息：" textAlign="center" fontFamily="宋体" 
+						 color="#4a535f" fontSize="12" fontWeight="bold" />
+			</s:HGroup>
+			
+			<s:Group width="100%">
+				<s:DataGroup id="searchResultDG" itemRenderer="widgets.MapCorrection.ResultItemRenderer"
+							 horizontalCenter="0" creationComplete="searchResultDG_creationCompleteHandler(event)">
+					<s:layout>
+						<s:VerticalLayout gap="15" horizontalAlign="center"/>
+					</s:layout>
+				</s:DataGroup>				
+			</s:Group>			
+		</s:Group>
+		</s:Scroller>
+		<!--<s:VGroup id="resultInfo" width="400" height="100%" left="10" bottom="10" verticalAlign="middle" visible="false">-->
+		<!--</s:VGroup>-->
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

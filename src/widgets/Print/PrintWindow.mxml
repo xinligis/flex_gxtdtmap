@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customTitleWindow:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+			   xmlns:s="library://ns.adobe.com/flex/spark" 
+			   xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
+			   title="打印设置" xmlns:SettingPanel="widgets.Print.SettingPanel.*" 
+			   skinClass="widgets.Print.skin.PrintWindowSkin" backgroundColor="0xf7f7f7"
+			   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*" closeButtonVisible="true">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.Map;
+			
+			import flash.utils.setTimeout;
+			
+			import mx.collections.ArrayCollection;
+			import mx.core.FontAsset;
+			import mx.core.IUIComponent;
+			import mx.events.ColorPickerEvent;
+			import mx.events.DragEvent;
+			import mx.events.FlexEvent;
+			import mx.graphics.ImageSnapshot;
+			import mx.graphics.codec.PNGEncoder;
+			import mx.managers.DragManager;
+			import mx.utils.Base64Encoder;
+			
+			import widgets.Print.SettingPanel.AddPrintElementEvent;
+			import widgets.Print.SettingPanel.PositionChangeEvent;
+			import widgets.Print.element.CompassElement;
+			import widgets.Print.element.Element;
+			import widgets.Print.element.MapElement;
+			import widgets.Print.element.TextElement;
+			
+			
+			private var _map:Map=null;
+			
+			[Bindable]
+			private var _currentLabel:TextElement=null;
+			
+			private var _currentElement:Element=null;
+			
+			[Bindable]
+			private var _currentMap:MapElement=null;
+			
+			private static const SMALL_STEP:int=1;
+			private static const LARGE_STEP:int=5;
+			
+			/**
+			 * 需要在creationCompelete事件以后调用。设置需要打印的地图
+			 */
+			public function setMap(map:Map,bmpData:BitmapData):void
+			{
+				_currentMap = new MapElement(printContent,bmpData);
+				printContent.addElement(_currentMap);
+				_currentMap.addEventListener(FlexEvent.CREATION_COMPLETE,function(event:Object):void
+				{
+					_currentMap.createMap(map);
+					eleAddHandler(new AddPrintElementEvent(_currentMap));
+				});
+			}
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				var job:PrintJob=new PrintJob();
+				
+				job.addEventListener(Event.DEACTIVATE,function(evnet:Event):void
+				{
+					trace("compelet");
+				});
+				if(job.start())
+				{
+					try
+					{
+						var xScale:Number;
+						var yScale:Number;
+						xScale = (job.pageWidth / printContent.width);
+						yScale = ( job.pageHeight / printContent.height);
+						
+						printContent.scaleX= Math.min(xScale, yScale);
+						printContent.scaleY = Math.min(xScale, yScale);
+						
+						var option:PrintJobOptions=new PrintJobOptions(true);
+						job.addPage(printContent,null,option);
+						job.send();
+					}
+					catch(ex:Error)
+					{
+						trace("取消打印了")
+					}
+					finally
+					{
+						printContent.scaleX= 1;
+						printContent.scaleY = 1;
+					}
+				}
+			}
+			
+			protected function element_mouseDownHandler(event:MouseEvent):void
+			{
+				setCurrentElement(event.currentTarget);
+			}
+			
+			
+			protected function printContent_dragEnterHandler(event:DragEvent):void
+			{
+				DragManager.acceptDragDrop(IUIComponent(event.target));
+			}
+			
+			private function group_dragDropHandler(event:DragEvent):void
+			{
+				var dx:int=int(event.dragSource.dataForFormat("dx"));
+				var dy:int=int(event.dragSource.dataForFormat("dy"));
+				var ui:IUIComponent=event.dragSource.dataForFormat("ui") as IUIComponent;
+				ui.x=event.localX-dx;
+				ui.y=event.localY-dy;
+			}
+
+			protected function positionpanel1_positionChangeHandler(event:PositionChangeEvent):void
+			{
+				if(_currentElement==null)
+					return;
+				var step:int=0;
+				if(event.stepType == PositionChangeEvent.STEP_LARGE)
+				{
+					step=LARGE_STEP;
+				}
+				else
+				{
+					step=SMALL_STEP;
+				}
+				switch(event.direction)
+				{
+					case PositionChangeEvent.DIRECTION_UP:
+						_currentElement.y=_currentElement.y-step;
+						break;
+					case PositionChangeEvent.DIRECTION_DOWN:
+						_currentElement.y=_currentElement.y+step;
+						break;
+					case PositionChangeEvent.DIRECTION_RIGHT:
+						_currentElement.x=_currentElement.x+step;
+						break;
+					case PositionChangeEvent.DIRECTOIN_LEFT:
+						_currentElement.x=_currentElement.x-step;
+						break;
+					case PositionChangeEvent.DIRECTION_VERTICAL_CENTER:
+						_currentElement.centerForVertical();
+						break;
+					case PositionChangeEvent.DIRECTION_HORIZONTAL_CENTER:
+						_currentElement.centerForHorizontal();
+						break;
+					case PositionChangeEvent.DIRECTION_CENTER:
+						_currentElement.center();
+						break;
+				}
+			}
+			
+			protected function eleAddHandler(event:AddPrintElementEvent):void
+			{
+				setCurrentElement(event.element);
+				_currentElement.addEventListener(MouseEvent.MOUSE_DOWN,element_mouseDownHandler);
+			}
+			
+			private function setCurrentElement(value:Object):void
+			{
+				if(value is Element)
+				{
+					_currentElement=value as Element;
+					if(_currentElement is TextElement)
+					{
+						_currentLabel=_currentElement as TextElement;
+					}
+				}
+			}
+
+
+			protected function img_dataChangeHandler(event:FlexEvent):void
+			{
+				trace("img_dataChangeHandler");
+			}
+
+
+			protected function img_completeHandler(event:Event):void
+			{
+				trace("img_completeHandler");
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label text="打印设置" color="0x4a535f" fontSize="24" fontFamily="微软雅黑" top="8" left="20"/>
+	<s:Group width="100%" height="100%" top="30" left="20" right="20">
+		<s:layout>
+			<s:HorizontalLayout gap="10"/>
+		</s:layout>
+		<s:Group height="600" width="860" horizontalCenter="0" >
+			
+			<!--真正打印的区域-->
+			<s:BorderContainer verticalCenter="0" horizontalCenter="0" width="857" height="560" id="printContent" 
+							   borderVisible="false">
+			</s:BorderContainer>
+		</s:Group>
+		<s:BorderContainer height="600" width="200" backgroundColor="#ffffff" borderColor="#e9edf0">
+			<s:layout>
+				<s:BasicLayout/>
+			</s:layout>
+			<s:VGroup width="100%" height="450" horizontalAlign="center">
+				<SettingPanel:LabelPanel width="185" currentLabel="{_currentLabel}" 
+										 addPrintElement="eleAddHandler(event)"
+										 printContent="{printContent}"/>
+				<SettingPanel:MapPanel width="185" currentMap="{_currentMap}" />
+				<SettingPanel:CompassPanel width="185" printContent="{printContent}" 
+										   addPrintElement="eleAddHandler(event)"/>
+				<s:Spacer height="20"/>
+				<SettingPanel:PositionPanel positionChange="positionpanel1_positionChangeHandler(event)"/>
+			</s:VGroup>
+			
+			<s:Line width="185" horizontalCenter="0" bottom="80">
+				<s:stroke>
+					<s:SolidColorStroke color="0xe2e3e4"/>
+				</s:stroke>
+			</s:Line>
+			<s:Line width="185" horizontalCenter="0" bottom="79">
+				<s:stroke>
+					<s:SolidColorStroke color="0xfdfefe"/>
+				</s:stroke>
+			</s:Line>
+			<s:Button label="打印" click="button1_clickHandler(event)" 
+					  width="80" height="40" bottom="20" horizontalCenter="0"
+					  skinClass="widgets.ToolBar.Tools.Screenshot.skin.PrintButtonSkin"/>
+		</s:BorderContainer>
+	</s:Group>
+</customTitleWindow:PopUpWindow>

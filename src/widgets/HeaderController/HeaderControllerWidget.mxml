@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+                   xmlns:s="library://ns.adobe.com/flex/spark"
+                   xmlns:mx="library://ns.adobe.com/flex/mx"
+                   xmlns:viewer="com.esri.viewer.*"
+                   width="100%" layout="absolute"
+                   widgetConfigLoaded="widgetConfigLoadedHandler()">
+    <fx:Script>
+        <![CDATA[
+			import com.esri.viewer.AppEvent;
+			
+			import mx.core.FlexGlobals;
+			
+			import spark.components.Application;
+			[Bindable]
+			private var centerLinkX:Number;
+			private var links:Array;
+			
+            private function widgetConfigLoadedHandler():void
+            {
+                if (configXML)
+                {
+					centerLinkX = new Number(configXML.centerLinkX);
+					links = new Array();
+					links.push(new String(configXML.portallink));
+					links.push(new String(configXML.newslink));
+					links.push(new String(configXML.applink));
+					links.push(new String(configXML.reslink));
+                }
+				
+				AppEvent.addListener(AppEvent.BASE_BACK_HOME, backHomeHandler);
+            }
+			
+			private function backHomeHandler(event:AppEvent):void
+			{
+				if(configXML){
+					var homePage:String = configXML.homepage;
+					var widgetId:int = super.siblingWidgetId(homePage);
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, widgetId);
+				}
+			}
+			
+			private function about_clickHandler(type:String):void
+			{
+				switch(type){
+					case "portal":
+						navigateToURL(new URLRequest(links[0]), "_blank");   
+					case "news":
+						navigateToURL(new URLRequest(links[1]), "_blank");   
+					case "app":
+						navigateToURL(new URLRequest(links[2]), "_blank");   
+					case "res":
+						navigateToURL(new URLRequest(links[3]), "_blank");   
+				}
+			}
+		]]>
+    </fx:Script>
+	<s:HGroup width="100%" height="100%" gap="0">
+		<s:Image id="logoIcon" source="assets/images/logo.png"/>
+		<s:Image width="100%" height="100%" fillMode="repeat" source="assets/images/banner_background.png"/>
+		<s:Image id="logoRight" source="assets/images/header_right.png"/>
+	</s:HGroup>
+	<s:HGroup paddingTop="10" x="{centerLinkX}">
+		<mx:LinkButton label="门户首页" buttonMode="true" styleName="headerlinkbut" 
+				 click="about_clickHandler('portal')"/>
+		<mx:LinkButton label="新闻中心" buttonMode="true" styleName="headerlinkbut" 
+				 paddingLeft="10" click="about_clickHandler('news')"/>
+		<mx:LinkButton label="专题应用" buttonMode="true" styleName="headerlinkbut" 
+				 paddingLeft="10" click="about_clickHandler('app')"/>
+		<mx:LinkButton label="资源中心" buttonMode="true" styleName="headerlinkbut" 
+				 paddingLeft="10" click="about_clickHandler('res')"/>
+	</s:HGroup>
+</viewer:BaseWidget>

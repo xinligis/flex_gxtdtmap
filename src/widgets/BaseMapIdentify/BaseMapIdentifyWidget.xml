@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<configuration>  
+    <group lod='13'>
+    	<annotation url="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/13"
+    				featureidfield="FeatureID"
+    				relateurl="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/15"
+    				symbolurl="assets/images/basemapIdentify/highlighttsymbol.png" symbolwidth="15" symbolheight="15" symbolxoffset="0" symbolyoffset="0">
+    				<fields>
+    					<titlefield>NAME</titlefield>
+    					<linkfield></linkfield>
+    					<field name="TELEPHONE" alias="电话号码"/>
+    					<field name="ADDNAME" alias="详细地址"/>
+    				</fields>
+    	</annotation>
+    </group>
+    <group lod='14'>
+    	<annotation url="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/9"
+    				featureidfield="FeatureID"
+    				relateurl="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/11"
+    				symbolurl="assets/images/basemapIdentify/highlighttsymbol.png" symbolwidth="15" symbolheight="15" symbolxoffset="0" symbolyoffset="0">
+    				<fields>
+    					<titlefield>NAME</titlefield>
+    					<linkfield></linkfield>
+    					<field name="TELEPHONE" alias="电话号码"/>
+    					<field name="ADDNAME" alias="详细地址"/>
+    				</fields>
+    	</annotation>
+    </group>
+    
+    <group lod='15'>
+    	<annotation url="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/5"
+    				featureidfield="FeatureID"
+    				relateurl="http://192.168.80.43:8399/arcgis/rest/services/CQPOI_Anno/MapServer/7"
+    				symbolurl="assets/images/basemapIdentify/highlighttsymbol.png" symbolwidth="15" symbolheight="15" symbolxoffset="0" symbolyoffset="0">
+    				<fields>
+    					<titlefield>NAME</titlefield>
+    					<linkfield></linkfield>
+    					<field name="TELEPHONE" alias="电话号码"/>
+    					<field name="ADDNAME" alias="详细地址"/>
+    				</fields>
+    	</annotation>
+    </group>
+	<selectedsymbol>
+		<fill color="0xffcc3b7" alpha="0.2"/>
+		<outline color="0xff9c00" alpha="1" width="1"/>
+	</selectedsymbol>
+	<highlightsymbol src="assets/images/Red_glow.swf" width="50" height="50"></highlightsymbol>
+	<info >widgets/InfoTemplates/CameraInfoWidget.swf</info>
+    <infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+</configuration>

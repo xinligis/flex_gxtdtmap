@@ -1,0 +1,390 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false" buttonMode="true" 
+				creationComplete="itemrenderer1_creationCompleteHandler(event)"
+				mouseOut="itemrenderer1_mouseOutHandler(event)"
+				mouseOver="itemrenderer1_mouseOverHandler(event)" height="29">
+	<fx:Metadata>
+		[Event(name="ToolActive",type="flash.events.Event")]
+		[Event(name="ToolDeactive",type="flash.events.Event")]
+		[Event(name="CommandExcute",type="flash.events.Event")]
+		[Event(name="RunWidgetCommand",type="widgets.ToolBar.RunWidegtEvent")]
+		[Event(name="ExcuteEvent",type="widgets.ToolBar.ExcuteEvent")]
+		[Event(name="SendPostProcess",type="widgets.ToolBar.PostProcessEvent")]
+		[Event(name="toolCommandLoadCompelete",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.binding.utils.BindingUtils;
+			import mx.binding.utils.ChangeWatcher;
+			import mx.controls.Alert;
+			import mx.events.FlexEvent;
+			import mx.events.ModuleEvent;
+			import mx.modules.IModuleInfo;
+			import mx.modules.ModuleManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			
+			import spark.components.Application;
+			
+			import widgets.ToolBar.ExcuteEvent;
+			import widgets.ToolBar.PostProcessEvent;
+			import widgets.ToolBar.RunWidegtEvent;
+			import widgets.ToolBar.Tools.ICommand;
+			import widgets.ToolBar.Tools.ITool;
+			
+			private var _type:String;
+			private var _isActivated:Boolean;
+			
+			private var _moduleInfo:IModuleInfo;
+			
+			private var _tool:ITool=null;
+			private var _command:ICommand=null;
+			[Bindable]
+			private var _toollabel:String;
+			public function get command():ICommand
+			{
+				return _command;
+			}
+			
+			private var _configXML:XML=null;
+			public function get tool():ITool
+			{
+				return _tool;
+			}
+			
+			protected function itemrenderer1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				var item:ToolBarItem=data as ToolBarItem;
+				_isActivated=false;
+				_type=item.type;
+				/**if(data.url!="")
+				{
+					//加载
+					_moduleInfo = ModuleManager.getModule(data.url);
+					_moduleInfo.addEventListener(ModuleEvent.READY,function(event:ModuleEvent):void
+					{
+						switch(_type)
+						{
+							case ToolBarItem.TOOL_TYPE:
+								_tool=_moduleInfo.factory.create() as ITool;
+								_tool.map=item.map;
+								_tool.graphicsLayer=item.graphicsLayer;
+								_tool.activateHandler=tool_activateHandler;
+								_tool.deactivateHandler=tool_deactivateHandler;
+								_tool.toolLabel=item.label;
+								_toollabel=_tool.toolLabel
+								_tool.tooltip=item.tooltip;
+								_tool.runWidgetHandler=tool_runWidgetHandler;
+								_tool.activeOtherToolorCommandHandler=activeOtherToolorCommandHandler;
+								_tool.postProcessHandler=postProcessHandler;
+								_tool.configData = item.configData;
+								break;
+							case ToolBarItem.COMMAND_TYPE:
+								_command=_moduleInfo.factory.create() as ICommand;
+								_command.map=item.map;
+								_command.graphicsLayer=item.graphicsLayer;
+								_command.excuteHandler=command_excuteHandler;
+								_command.postProcessHandler=postProcessHandler;
+								_command.commandLabel=item.label;
+								_toollabel=_command.commandLabel;
+//								var watcht:ChangeWatcher=BindingUtils.bindProperty(_command,"commandLabel",data,"label");
+//								watcht.setHandler(function(o:Object):void
+//								{
+//									trace("chage");
+//								});
+								break;
+						}
+						if(item.config!=null&&item.config!="")
+						{
+							//读取工具的配置信息
+							var configService:HTTPService = new HTTPService();
+							configService.url = item.config;
+							configService.useProxy=false;
+							configService.resultFormat = "e4x";
+							
+							configService.addEventListener(ResultEvent.RESULT, configResult);
+							configService.addEventListener(FaultEvent.FAULT, configFault);
+							configService.send();
+						}
+						else
+						{
+							//如果没有配置信息，则说明加载完成
+							initCompelete();
+						}
+					});
+					_moduleInfo.load(ApplicationDomain.currentDomain,null,null,moduleFactory);
+				}**/
+				if(data.classpath!="")
+				{
+					//利用反射机制创建工具栏中的项
+					var classRefrence:Class = getDefinitionByName( 
+						data.classpath) as Class; 
+					var classInstance:Object = new classRefrence(); 
+					switch(_type)
+					{
+						case ToolBarItem.TOOL_TYPE:
+							_tool=classInstance as ITool;
+							_tool.map=item.map;
+							_tool.graphicsLayer=item.graphicsLayer;
+							_tool.activateHandler=tool_activateHandler;
+							_tool.deactivateHandler=tool_deactivateHandler;
+							_tool.toolLabel=item.label;
+							_toollabel=_tool.toolLabel
+							_tool.tooltip=item.tooltip;
+							_tool.runWidgetHandler=tool_runWidgetHandler;
+							_tool.activeOtherToolorCommandHandler=activeOtherToolorCommandHandler;
+							_tool.postProcessHandler=postProcessHandler;
+							_tool.configData = item.configData;
+							break;
+						case ToolBarItem.COMMAND_TYPE:
+							_command=classInstance as ICommand;
+							_command.map=item.map;
+							_command.graphicsLayer=item.graphicsLayer;
+							_command.excuteHandler=command_excuteHandler;
+							_command.postProcessHandler=postProcessHandler;
+							_command.commandLabel=item.label;
+							_toollabel=_command.commandLabel;
+					}
+					if(item.config!=null && item.config!="")
+					{
+						//读取工具的配置信息
+						var configService:HTTPService = new HTTPService();
+						configService.url = item.config;
+						configService.useProxy=false;
+						configService.resultFormat = "e4x";
+						
+						configService.addEventListener(ResultEvent.RESULT, configResult);
+						configService.addEventListener(FaultEvent.FAULT, configFault);
+						configService.send();
+					}
+					else
+					{
+						//如果没有配置信息，则说明加载完成
+						initCompelete();
+					}
+				}
+				else
+				{
+					content.visible=true;
+					addEventListener(MouseEvent.CLICK,itemrenderer1_clickHandler);
+				}
+			}
+
+			
+			private function tool_runWidgetHandler(tool:ITool,url:String,data:Object = null,callback:Function=null):void
+			{
+				var evt:RunWidegtEvent = new RunWidegtEvent(tool,url,true,callback);
+				evt.data = data;
+				dispatchEvent(evt);
+			}
+			
+			private function activeOtherToolorCommandHandler(classpath:String,params:Object):void
+			{
+				trace("activeOtherToolorCommandHandler");
+				dispatchEvent(new ExcuteEvent(classpath,params));
+			}
+			
+			private function command_excuteHandler(command:ICommand):void
+			{
+				_toollabel=command.commandLabel;
+				if(command.isRunWidget)
+				{
+					dispatchEvent(new RunWidegtEvent(command,command.widgetUrl,true));
+				}
+				dispatchEvent(new Event("CommandExcute",true));
+			}
+			
+			private function postProcessHandler(type:String,data:Object):void
+			{
+				dispatchEvent(new PostProcessEvent(type,data));
+			}
+			
+			private function configFault(event:mx.rpc.events.FaultEvent):void
+			{
+				
+				var sInfo:String = "";
+				
+				if (event.fault.rootCause is IOErrorEvent)
+				{
+					var ioe:IOErrorEvent = event.fault.rootCause as IOErrorEvent;
+					if (ioe.text.indexOf("2032: Stream Error. URL:") > -1)
+					{
+						sInfo += "Could not find " + ioe.text.substring(32) + "\n\n";
+					}
+					else
+					{
+						// some other IOError
+						sInfo += event.fault.rootCause + "\n\n";
+					}
+				}
+				
+				// config file with crossdomain issue
+				if (event.fault.rootCause is SecurityErrorEvent)
+				{
+					var sec:SecurityErrorEvent = event.fault.rootCause as SecurityErrorEvent;
+					if (sec.text.indexOf("Error #2048: ") > -1)
+					{
+						sInfo += "Possible crossdomain issue:\n" + sec.text + "\n\n";
+					}
+					else
+					{
+						// some other Security error
+						sInfo += event.fault.rootCause + "\n\n";
+					}
+				}
+				
+				if (event.statusCode) // e.g. 404 - Not Found - http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+				{
+					sInfo += "http response status: " + event.statusCode + "\n\n";
+				}
+				
+				sInfo += "Fault Code: " + event.fault.faultCode + "\n\n";
+				sInfo += "Fault Info: " + event.fault.faultString + "\n\n";
+				sInfo += "Fault Details: " + event.fault.faultDetail;
+				
+				Alert.show(sInfo);
+			}
+			
+			private function configResult(event:ResultEvent):void
+			{
+					_configXML = event.result as XML;
+					switch(_type)
+					{
+						case ToolBarItem.TOOL_TYPE:
+							_tool.configXML=_configXML;
+							break;
+						case ToolBarItem.COMMAND_TYPE:
+							_command.configXML=_configXML;
+							break;
+					}
+					initCompelete();
+			}
+			
+			private function initCompelete():void
+			{
+				//加载完成后，再显示图标、Laberl等信息
+				content.visible=true;
+				dispatchEvent(new Event("toolCommandLoadCompelete",true));
+				addEventListener(MouseEvent.CLICK,itemrenderer1_clickHandler);
+			}
+			
+			protected function itemrenderer1_clickHandler(event:MouseEvent):void
+			{
+				switch(_type)
+				{
+					case ToolBarItem.TOOL_TYPE:
+						if(_tool==null)
+						{
+							_tool=_moduleInfo.factory.create() as ITool;
+						}
+						if(_tool.activated)
+						{
+							_tool.deactivate();
+						}
+						else
+						{
+							_tool.activate();
+						}
+						break;
+					case ToolBarItem.COMMAND_TYPE:
+						_command.excute();
+						break;
+				}
+				
+			}
+			
+			private function tool_activateHandler(tool:ITool):void
+			{
+				itemlabel.setStyle("color","#ffffff");
+				moveEffect.end();
+				moveEffect.yFrom = -5;
+				moveEffect.yTo = 0;
+				moveEffect.play();
+//				bgColor.alpha=1;
+				overGroup.visible = true;
+				dispatchEvent(new Event("ToolActive",true));
+			}
+			
+			private function tool_deactivateHandler(tool:ITool):void
+			{
+				itemlabel.setStyle("color","#e6e6e6");
+//				bgColor.alpha=0;
+				overGroup.visible = false;
+				dispatchEvent(new Event("ToolDeactive",true));
+			}
+
+
+			protected function itemrenderer1_mouseOutHandler(event:MouseEvent):void
+			{
+				if(_tool==null||_tool.activated==false)
+				{
+					moveEffect.end();
+					moveEffect.yFrom = -5;
+					moveEffect.yTo = 0;
+					moveEffect.play();
+					
+					itemlabel.setStyle("color","#e6e6e6");
+				}
+			}
+
+
+			protected function itemrenderer1_mouseOverHandler(event:MouseEvent):void
+			{
+				if(_tool==null||_tool.activated==false)
+				{
+					if(moveEffect.isPlaying == false)
+					{
+						moveEffect.yFrom = 0;
+						moveEffect.yTo = -5;
+						moveEffect.play();
+					}
+					itemlabel.setStyle("color","#ffffff");
+				}
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:Move id="moveEffect" target="{icon}" duration="300"/>
+	</fx:Declarations>
+	<s:layout>
+		<s:BasicLayout/>
+	</s:layout>
+	<s:Group left="{data.spacer?2:-2}" right="0" height="100%" top="0" id="overGroup" visible="false">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="0x2e4380" alpha="0.3"/>
+			</s:fill>
+		</s:Rect>
+	</s:Group>
+	<s:HGroup id="content" visible="false" verticalAlign="middle" toolTip="{data.tooltip}" gap="0" height="100%" right="10">
+		<s:Line height="24" visible="{data.spacer}" includeInLayout="{data.spacer}">
+			<s:stroke>
+				<s:SolidColorStroke color="#263f8d"/>
+			</s:stroke>
+		</s:Line>
+		<s:Line height="24" visible="{data.spacer}" includeInLayout="{data.spacer}">
+			<s:stroke>
+				<s:SolidColorStroke color="#3e79c9"/>
+			</s:stroke>
+		</s:Line>
+		<s:Spacer width="5"/>
+		<s:Group>
+			<mx:Image source="{data.icon}" id="icon"/>
+		</s:Group>
+		<!--<s:Group>
+			<s:Rect top="-2" left="-2" bottom="-2" right="-2">
+				<s:fill>
+					<s:SolidColor color="0x0176be" id="bgColor" alpha="0"/>
+				</s:fill>
+			</s:Rect>-->
+		<s:Spacer width="5"/>
+			<s:Label text="{_toollabel}" id="itemlabel" color="#e6e6e6" />
+<!--		</s:Group>-->
+	</s:HGroup>
+</s:ItemRenderer>

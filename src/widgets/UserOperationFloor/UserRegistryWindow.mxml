@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customTitleWindow:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
+							   xmlns:s="library://ns.adobe.com/flex/spark" 
+							   xmlns:mx="library://ns.adobe.com/flex/mx" 
+							   backgroundColor="#F6F6F6" color="#4C5261" fontFamily="宋体"
+							   contentBackgroundColor="0xffffff"
+							   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*" 
+							   width="1000" height="555" closeButtonVisible="true" close="popupwindow1_closeHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.utils.JSON;
+			import com.esri.viewer.components.Toast;
+			import com.esri.viewer.utils.UrlConstructor;
+			
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.events.ValidationResultEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.utils.StringUtil;
+			
+			import spark.events.TextOperationEvent;
+
+			
+			public function set url(value:String):void
+			{
+				httpService.url = UrlConstructor.getUrl(value);
+			}
+			
+			protected function popupwindow1_closeHandler(event:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			
+			protected function passwordTextInput_focusOutHandler(event:FocusEvent):void
+			{
+				// TODO Auto-generated method stub
+				var password:String = StringUtil.trim(passwordTextInput.text);
+				var surepassword:String = StringUtil.trim(passwordsureTextInput.text);
+				if(password.length == 0)
+				{
+					passwordMarkerlbl.text = "密码不能为空"
+				}
+				else if(password.length < 8)
+				{
+					passwordMarkerlbl.text = "密码不能小于8位!"
+				}
+				else
+				{
+					passwordMarkerlbl.text = "";
+				}
+				
+				if(password.length>0 && surepassword.length > 0)
+				{
+					if(password == surepassword)
+					{
+						passwordsureMarkerlbl.text = ""
+					}
+					else
+					{
+						passwordsureMarkerlbl.text = "密码不一致！";
+					}
+				}
+			}
+			
+			
+			protected function passwordsureTextInput_focusOutHandler(event:FocusEvent):void
+			{
+				// TODO Auto-generated method stub
+				var password:String = StringUtil.trim(passwordTextInput.text);
+				var surepassword:String = StringUtil.trim(passwordsureTextInput.text);
+				if(password != surepassword)
+				{
+					passwordsureMarkerlbl.text = "密码不一致！";
+				}
+				else if(surepassword.length == 0)
+				{
+					passwordsureMarkerlbl.text = "*";
+				}
+				else
+				{
+					passwordsureMarkerlbl.text = ""
+				}
+			}
+			
+			protected function loginNameMarkerlbl_focusOutHandler(event:FocusEvent):void
+			{
+				var loginName:String = StringUtil.trim(loginNameTextInput.text);
+				if(loginName != "")
+				{
+					loginNameMarkerlbl.text = "";
+				}
+				else
+				{
+					loginNameMarkerlbl.text = "登录名称不能为空!"
+				}
+			}
+			
+			protected function realNameTextInput_focusOutHandler(event:FocusEvent):void
+			{
+				var realName:String = StringUtil.trim(realNameTextInput.text);
+				if(realName != "")
+				{
+					realNameMarkerlbl.text = "";
+				}
+				else
+				{
+					realNameMarkerlbl.text = "真实姓名不能为空!"
+				}
+			}
+			
+			protected function emailValidator_validHandler(event:ValidationResultEvent):void
+			{
+				// TODO Auto-generated method stub
+				mailMarkerlbl.text = "";
+			}
+			
+			protected function emailValidator_invalidHandler(event:ValidationResultEvent):void
+			{
+				mailMarkerlbl.text = "邮箱地址无效";
+			}
+			
+			protected function mailTextInput_focusOutHandler(event:FocusEvent):void
+			{
+				// TODO Auto-generated method stub
+				var email:String = StringUtil.trim(mailTextInput.text);
+				if(email == "")
+				{
+					mailMarkerlbl.text = "邮箱地址不能为空";
+					return;
+				}
+				emailValidator.validate(email);
+			}
+			
+			protected function submit():void
+			{
+				if(!(loginNameTextInput.text != "" &&
+					realNameTextInput.text != "" &&
+					passwordTextInput.text != "" &&
+					passwordsureTextInput.text != "" &&
+					mailMarkerlbl.text == ""))
+				{
+					Alert.show("请正确填写相应信息！");
+					return;
+				}
+				var userinfo:Object = new Object();
+				userinfo.username = StringUtil.trim(loginNameTextInput.text);
+				userinfo.tel = StringUtil.trim(telTextInput.text);
+				userinfo.zipcode = StringUtil.trim(codeTextInput.text);
+				userinfo.fullname = StringUtil.trim(realNameTextInput.text);
+				userinfo.ifCheck = "1";
+				userinfo.password = StringUtil.trim(passwordTextInput.text);
+				userinfo.address = StringUtil.trim(addressTextInput.text);
+				userinfo.description = StringUtil.trim(messageTextInput.text);
+				userinfo.usertype = userTypeDropDownList.selectedIndex.toString();
+				userinfo.usertype == "1"? userinfo.examine = "0" : userinfo.examine = "1";
+				userinfo.email = StringUtil.trim(mailTextInput.text);
+				
+				var obj:Object = new Object();
+				obj.command = "registUser";
+				obj.commandId = "PortalRegistCommand";
+				obj.userinfo = com.esri.ags.utils.JSON.encode(userinfo);
+				
+				httpService.send(obj);
+			}
+			
+			/**
+			 * 清空信息
+			 **/
+			public function reset():void
+			{
+				loginNameMarkerlbl.text = "*";
+				realNameMarkerlbl.text = "*";
+				passwordMarkerlbl.text = "*";
+				passwordsureMarkerlbl.text = "*";
+				mailMarkerlbl.text = "*";
+				
+				loginNameTextInput.text = "";
+				realNameTextInput.text = "";
+				passwordTextInput.text = "";
+				passwordsureTextInput.text = "";
+				mailTextInput.text = "";
+				telTextInput.text = "";
+				codeTextInput.text = "";
+				addressTextInput.text = "";
+				messageTextInput.text = "";
+				userTypeDropDownList.selectedIndex = 0;
+			}
+			
+			protected function httpService_resultHandler(event:ResultEvent):void
+			{
+				var resultObj:Object = com.esri.ags.utils.JSON.decode(String(event.result));
+				if(resultObj != null && resultObj.hasOwnProperty("info"))
+				{
+					Alert.show(resultObj.info);
+					reset();
+					PopUpManager.removePopUp(this);
+				}
+				else if(resultObj != null && resultObj.hasOwnProperty("error"))
+				{
+					Alert.show("注册失败，信息：" + resultObj.error);
+				}
+				else
+				{
+					Alert.show("注册失败，请联系管理员");
+				}
+			}
+			
+			protected function httpService_faultHandler(event:FaultEvent):void
+			{
+				// TODO Auto-generated method stub
+				Alert.show("注册失败！请联系管理员\n信息：" + event.fault.faultDetail);
+			}
+			
+			protected function mailTextInput_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				var email:String = StringUtil.trim(mailTextInput.text);
+				if(email == "")
+				{
+					mailMarkerlbl.text = "邮箱地址不能为空";
+					return;
+				}
+				emailValidator.validate(email);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+		<mx:EmailValidator id="emailValidator"
+						   valid="emailValidator_validHandler(event)"
+						   invalid="emailValidator_invalidHandler(event)"/>
+		<s:HTTPService id="httpService" result="httpService_resultHandler(event)" 
+					   method="POST" fault="httpService_faultHandler(event)" />
+	</fx:Declarations>
+	<customTitleWindow:layout>
+		<s:VerticalLayout gap="10"/>
+	</customTitleWindow:layout>
+	<s:BitmapImage source="@Embed('assets/images/useroperationfloor/registhead.jpg')"/>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="用户类型："/>
+		<s:DropDownList id="userTypeDropDownList" width="200" selectedIndex="0">
+			<s:ArrayList>
+				<fx:String>普通用户</fx:String>
+				<fx:String>企事业用户</fx:String>
+			</s:ArrayList>
+		</s:DropDownList>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="登录名称："/>
+		<s:TextInput id="loginNameTextInput" width="200" skinClass="com.esri.viewer.skins.CommonTextInputSkin"
+					 focusOut="loginNameMarkerlbl_focusOutHandler(event)"/>
+		<s:Label text="*" id="loginNameMarkerlbl" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="真实姓名："/>
+		<s:TextInput id="realNameTextInput" skinClass="com.esri.viewer.skins.CommonTextInputSkin" width="200"
+					 focusOut="realNameTextInput_focusOutHandler(event)"/>
+		<s:Label text="*" id="realNameMarkerlbl" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="用户密码："/>
+		<s:TextInput id="passwordTextInput" width="200" displayAsPassword="true"
+					 skinClass="com.esri.viewer.skins.CommonTextInputSkin" 
+					 focusOut="passwordTextInput_focusOutHandler(event)"/>
+		<s:Label text="*" id="passwordMarkerlbl" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="密码确认："/>
+		<s:TextInput id="passwordsureTextInput" width="200" displayAsPassword="true"
+					 skinClass="com.esri.viewer.skins.CommonTextInputSkin" 
+					 focusOut="passwordsureTextInput_focusOutHandler(event)" />
+		<s:Label text="*" id="passwordsureMarkerlbl" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="用户邮箱："/>
+		<s:TextInput id="mailTextInput" width="200" skinClass="com.esri.viewer.skins.CommonTextInputSkin"
+					 change="mailTextInput_changeHandler(event)"/><!--focusOut="mailTextInput_focusOutHandler(event)" -->
+		<s:Label text="*" id="mailMarkerlbl" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="用户电话："/>
+		<s:TextInput id="telTextInput" width="200" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="邮政编码："/>
+		<s:TextInput id="codeTextInput" width="200" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="middle">
+		<s:Label text="联系地址："/>
+		<s:TextInput id="addressTextInput" width="200" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+	</s:HGroup>
+	<s:HGroup gap="5" paddingLeft="250" verticalAlign="bottom">
+		<s:Label text="申请信息："/>
+		<s:TextArea id="messageTextInput" width="200" height="90" skinClass="com.esri.viewer.skins.CommonTextAreaSkin"/>
+		<s:Label text="企事业用户申请，请认真填写。" color="#BB0202"/>
+	</s:HGroup>
+	<s:HGroup paddingLeft="350">
+		<s:Image source="@Embed('assets/images/useroperationfloor/btn.jpg')" buttonMode="true" click="submit()"/>
+	</s:HGroup>
+</customTitleWindow:PopUpWindow>

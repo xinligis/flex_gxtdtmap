@@ -1,0 +1,183 @@
+﻿<?xml version="1.0" ?>
+<configuration>
+	<poicatalogs>
+		<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+		<titlefield>NAME</titlefield>
+   		<linkfield></linkfield>
+		<!-- 主键字段名 -->
+   		<oidfield>OBJECTID</oidfield>
+   		<fields all="false">
+        	<field name="NAME" alias="名称"/>
+        	<!--field name="JC" alias="简称"/-->
+        	<field name="TELEPHONE" alias="电话号码"/>
+			<field name="ADDNAME" alias="地址"/>
+  		</fields>
+		<expression>NAME Like '%[value]%'</expression>
+		<relatedtable>
+			<url></url>
+			<expression>RelateID = [value]</expression>
+			<multimediafield>URL</multimediafield>
+		</relatedtable>
+		<!--城市匹配表达式-->
+		<citymatch>PAC like '[value]%'</citymatch>
+		<districtmatch>PAC = '[value]'</districtmatch>
+		<!--分类匹配-->
+		<catalogmatch>TYPE = '[value]'</catalogmatch>
+		<subcatalogmatch>TYPE2='[value]'</subcatalogmatch>
+		<poicatalog name="餐饮" code="01">
+			<subcatalogs>
+				<subcatalog name="快餐" code="0101"/>
+				<subcatalog name="西餐" code="0102"/>
+				<subcatalog name="清真" code="0103"/>
+				<subcatalog name="海鲜类饭店" code="0104"/>
+				<subcatalog name="烧烤类饭店" code="0105"/>
+				<subcatalog name="火锅类饭店" code="0106"/>
+				<subcatalog name="综合类饭店" code="0107"/>
+				<subcatalog name="特色饮食" code="0108"/>
+				<subcatalog name="咖啡茶馆" code="0109"/>
+				<subcatalog name="食品店" code="0110"/>
+				<subcatalog name="其他" code="0111"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0xFF7505" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="购物" code="02">
+			<subcatalogs>
+				<subcatalog name="商场" code="0201"/>
+				<subcatalog name="超市" code="0202"/>
+				<subcatalog name="电子电器" code="0203"/>
+				<subcatalog name="建材家居" code="0204"/>
+				<subcatalog name="农贸市场" code="0205"/>
+				<subcatalog name="专营店" code="0206"/>
+				<subcatalog name="其他" code="0207"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>.
+		<poicatalog name="住宿" code="03">
+			<subcatalogs>
+				<subcatalog name="宾馆旅店" code="0301"/>
+				<subcatalog name="星级宾馆" code="0302"/>
+				<subcatalog name="招待所" code="0303"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="出行" code="04">
+			<subcatalogs>
+				<subcatalog name="长途汽车站" code="0401"/>
+				<subcatalog name="火车站" code="0402"/>
+				<subcatalog name="机场" code="0403"/>
+				<subcatalog name="码头" code="0404"/>
+				<subcatalog name="地铁" code="0405"/>
+				<subcatalog name="公交站点" code="0406"/>
+				<subcatalog name="停车场" code="0409"/>
+				<subcatalog name="立交桥" code="0411"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="文体娱乐" code="05">
+			<subcatalogs>
+				<subcatalog name="博物馆" code="0501"/>
+				<subcatalog name="展览馆" code="0502"/>
+				<subcatalog name="图书馆" code="0504"/>
+				<subcatalog name="书店" code="0505"/>
+				<subcatalog name="美术馆" code="0506"/>
+				<subcatalog name="影剧戏院" code="0508"/>
+				<subcatalog name="科技文化宫" code="0510"/>
+				<subcatalog name="公园" code="0515"/>
+				<subcatalog name="健身场所" code="0516"/>
+				<subcatalog name="体育比赛场馆" code="0517"/>
+				<subcatalog name="KTV" code="0519"/>
+				<subcatalog name="酒吧" code="0520"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="金融服务" code="06">
+			<subcatalogs>
+				<subcatalog name="银行" code="0601"/>
+				<subcatalog name="证券" code="0602"/>
+				<subcatalog name="保险" code="0603"/>				
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="生活服务" code="07">
+			<subcatalogs>
+				<subcatalog name="通讯" code="0705"/>
+				<subcatalog name="美容美发" code="0708"/>
+				<subcatalog name="邮政" code="0712"/>	
+				<subcatalog name="物流快递" code="0713"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="汽车服务" code="08">
+			<subcatalogs>
+				<subcatalog name="保养维修店" code="0803"/>
+				<subcatalog name="美容装饰店" code="0804"/>
+				<subcatalog name="销售点" code="0805"/>	
+				<subcatalog name="驾校" code="0808"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="教育" code="09">
+			<subcatalogs>
+				<subcatalog name="大中专院校" code="0901"/>
+				<subcatalog name="中学" code="0902"/>
+				<subcatalog name="小学" code="0903"/>	
+				<subcatalog name="幼儿园" code="0904"/>
+				<subcatalog name="特殊教育" code="0907"/>	
+				<subcatalog name="职业技术学校" code="0908"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="医疗" code="10">
+			<subcatalogs>
+				<subcatalog name="医院" code="1001"/>
+				<subcatalog name="急救中心" code="1002"/>
+				<subcatalog name="卫生服务中心" code="1005"/>	
+				<subcatalog name="诊所" code="1006"/>
+				<subcatalog name="药店" code="1007"/>	
+				<subcatalog name="防疫站" code="1008"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="房产" code="11">
+			<subcatalogs>
+				<subcatalog name="写字楼" code="1102"/>
+				<subcatalog name="房产中介" code="1105"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="旅游" code="12">
+			<subcatalogs>
+				<subcatalog name="景点景区" code="1201"/>
+				<subcatalog name="宗教场所" code="1202"/>
+				<subcatalog name="旅行社" code="1203"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="企事业单位" code="13">
+			<subcatalogs>
+				
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="行政机构" code="14">
+			<subcatalogs>
+				
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+		<poicatalog name="公共服务设施" code="15">
+			<subcatalogs>
+				<subcatalog name="公厕" code="1501"/>
+				<subcatalog name="敬老院" code="1503"/>
+				<subcatalog name="救助站" code="1504"/>
+				<subcatalog name="殡葬设施" code="1505"/>
+				<subcatalog name="社会福利院" code="1506"/>
+				<subcatalog name="疗养院" code="1507"/>
+			</subcatalogs>
+			<simplemarkersymbol color="0x20bf0f" alpha="1" size="10"/>
+		</poicatalog>
+	</poicatalogs>
+    <zoomlevel>13</zoomlevel>
+    <info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
+    <infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+</configuration>

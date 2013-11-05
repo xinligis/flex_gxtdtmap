@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx" 
+				autoDrawBackground="false"
+				dataChange="itemrenderer1_dataChangeHandler(event)" xmlns:HotSpot="widgets.HotSpot.*">
+	<fx:Metadata>
+		[Event(name="expandChildren",type="flash.events.Event")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.EffectEvent;
+			import mx.events.FlexEvent;
+			
+			/**
+			 * 是否显示子项
+			 **/
+			private var _isShowChildren:Boolean = false;
+			
+			protected function itemrenderer1_dataChangeHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(data == null)
+					return;
+				title.text = data.name;
+				hotSpotDataGroup.dataProvider = new ArrayCollection(data.items);
+				
+				var size:Number = hotSpotDataGroup.dataProvider.length;
+				var rowCount:int = 0;
+				if(size % 2 == 0)
+				{
+					rowCount = size/2;
+				}
+				else
+				{
+					rowCount = size/2 + 1;
+				}
+				
+				var heightTo:Number = rowCount * 115 + (rowCount-1) * 20;
+				showResize.heightFrom = 0;
+				showResize.heightTo = heightTo;
+				
+				hideResize.heightFrom = heightTo;
+				hideResize.heightTo = 0;
+				
+				showResize.duration = rowCount * 400;
+				hideResize.duration = showResize.duration;
+				
+//				showResize.heightFrom = 0;
+//				showResize.heightTo = hotSpotDataGroup.height;
+//				
+//				hideResize.heightFrom = hotSpotDataGroup.height;
+//				hideResize.heightTo = 0;
+				if(data.first)
+				{
+					rootGroup_clickHandler(null);
+				}
+			}
+			
+			protected function rootGroup_rollOverHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				rootGroup.setStyle("color",0x4061ad);
+			}
+			
+			protected function rootGroup_rollOutHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				rootGroup.setStyle("color",0x4a535f);
+			}
+			
+			protected function rootGroup_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(_isShowChildren)
+				{
+					//隐藏子项
+					hideResize.play();
+				}
+				else
+				{
+					//展示子项
+					hotSpotDataGroup.visible = true;
+					hotSpotDataGroup.includeInLayout = true;
+					showResize.play();
+					rootGroup.toolTip = "收起";
+					dispatchEvent(new Event("expandChildren",true))
+				}
+				_isShowChildren = !_isShowChildren;
+			}
+			
+			protected function hideResize_effectEndHandler(event:EffectEvent):void
+			{
+				// TODO Auto-generated method stub
+				hotSpotDataGroup.visible = false;
+				hotSpotDataGroup.includeInLayout = false;
+				rootGroup.toolTip = "展开";
+			}
+			
+			/**
+			 * 隐藏子项
+			 **/
+			public function hideChildren():void
+			{
+				hideResize.play();
+				_isShowChildren = false;
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:Resize id="showResize" target="{hotSpotDataGroup}"/>
+		<s:Resize id="hideResize" target="{hotSpotDataGroup}" effectEnd="hideResize_effectEndHandler(event)"/>
+	</fx:Declarations>
+	<s:Group height="20" buttonMode="true" id="rootGroup" toolTip="展开"
+			 fontFamily="宋体" fontSize="12" color="#4a535f" 
+			 rollOver="rootGroup_rollOverHandler(event)" 
+			 rollOut="rootGroup_rollOutHandler(event)" width="320"
+			 click="rootGroup_clickHandler(event)">
+		<s:Rect top="0" bottom="0" left="0" right="0" radiusX="10" radiusY="10" >
+			<s:stroke>
+				<s:SolidColorStroke color="#d8d8d8" weight="1"/>
+			</s:stroke>
+			<s:fill>
+				<s:LinearGradient rotation="90">
+					<s:GradientEntry color="#f4f4f4"/>
+					<s:GradientEntry color="#eeeeee"/>
+					<s:GradientEntry color="#e8e8e8"/>
+				</s:LinearGradient>
+			</s:fill>
+		</s:Rect>
+		<s:Label id="title" left="13" verticalCenter="0"/>
+	</s:Group>
+	<HotSpot:HotSpotDataGroup width="320" top="30" id="hotSpotDataGroup" type="child" 
+							  visible="false" includeInLayout="false" clipAndEnableScrolling="true">
+		<HotSpot:layout>
+			<s:TileLayout columnAlign="justifyUsingGap" requestedColumnCount="2" 
+						  verticalGap="20" paddingLeft="20" paddingRight="20"/>
+		</HotSpot:layout>
+	</HotSpot:HotSpotDataGroup>
+</s:ItemRenderer>

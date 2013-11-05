@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (c) 2011 ESRI
+
+     All rights reserved under the copyright laws of the United States
+     and applicable international laws, treaties, and conventions.
+
+     You may freely redistribute and use this sample code, with or
+     without modification, provided you include the original copyright
+     notice and use restrictions.
+
+     See use restrictions in use_restrictions.txt.
+-->
+<!---
+     The default skin class for the navigation's vertical slider component.
+     @private
+-->
+<s:SparkSkin xmlns:fx="http://ns.adobe.com/mxml/2009"
+             xmlns:s="library://ns.adobe.com/flex/spark"
+             xmlns:mx="library://ns.adobe.com/flex/mx"
+             alpha.disabled="0.5"
+             minWidth="11" creationComplete="sparkskin1_creationCompleteHandler(event)">
+
+    <fx:Metadata>
+        [HostComponent("spark.components.VSlider")]
+    </fx:Metadata>
+
+    <fx:Script>
+		/* Define the skin elements that should not be colorized.
+        For slider, the skin itself is colorized but the individual parts are not. */
+        static private const exclusions:Array = [ "track", "thumb" ];
+
+		private var _val2LabelTable:Hashtable;
+        /**
+         * @private
+         */
+        override public function get colorizeExclusions():Array
+        {
+            return exclusions;
+        }
+
+        /**
+         * @private
+         */
+        override protected function initializationComplete():void
+        {
+            useChromeColor = false;
+            super.initializationComplete();
+        }
+		
+		
+	</fx:Script>
+
+    <fx:Script>
+        <![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import flash.utils.clearTimeout;
+			import flash.utils.setTimeout;
+			
+			import mx.binding.utils.BindingUtils;
+			import mx.events.FlexEvent;
+			
+			import spark.components.Image;
+			import spark.components.Label;
+			
+			private var _labelArray:Array;
+			
+			private var _hideLabelHandler:int;
+			
+			[Bindable]
+			private var _intervalHeight:Number;
+			
+			protected function sparkskin1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				_val2LabelTable=new Hashtable();
+				_val2LabelTable.add(1,"assets/images/navigation/zoom_Global.png");
+				_val2LabelTable.add(3,"assets/images/navigation/zoom_Continent.png");
+				_val2LabelTable.add(5,"assets/images/navigation/zoom_Country.png");
+				_val2LabelTable.add(7,"assets/images/navigation/zoom_Province.png");
+				_val2LabelTable.add(9,"assets/images/navigation/zoom_City.png");
+				_val2LabelTable.add(12,"assets/images/navigation/zoom_County.png");
+				_val2LabelTable.add(15,"assets/images/navigation/zoom_Town.png");
+				_val2LabelTable.add(17,"assets/images/navigation/zoom_Village.png");
+				_val2LabelTable.add(19,"assets/images/navigation/zoom_Street.png"); 
+				
+				createLabel();
+				this.addEventListener(MouseEvent.MOUSE_OVER,ticks_mouseOverHandler);
+				this.addEventListener(MouseEvent.MOUSE_OUT,ticks_mouseOutHandler);
+			}
+			
+			protected function ticks_mouseOverHandler(event:MouseEvent):void
+			{
+				clearTimeout(_hideLabelHandler);
+				for each(var image:Image in _labelArray)
+				{
+					image.visible = true;
+				}
+			}
+			
+			protected function ticks_mouseOutHandler(event:MouseEvent):void
+			{
+				_hideLabelHandler = setTimeout(function():void
+				{
+					for each(var image:Image in _labelArray)
+					{
+						image.visible = false;
+					}
+				},5000);
+			}
+			
+			private function createLabel():void
+			{
+				_labelArray = [];
+				var val:Number = hostComponent.minimum;
+				var yPos:Number;
+				var tInterval:Number = 1;
+				_intervalHeight = hostComponent.height/(hostComponent.maximum - hostComponent.minimum);
+				if (tInterval > 0)
+				{
+					do
+					{
+						yPos = Math.round(getYFromValue(val));
+						val = tInterval + val;
+						var labelString:String=_val2LabelTable.find(val);
+						if(labelString != null && labelString != "")
+						{
+							var label:Image = new Image();
+							label.buttonMode = true;
+							label.source = labelString;
+							label.x=-33;
+							label.y = yPos-3;
+							label.visible = false;
+							label.addEventListener(MouseEvent.CLICK,label_clickHandler);
+							_labelArray.push(label);
+							this.addElement(label);
+						}
+					}while(val<hostComponent.maximum)
+				}
+			}
+			
+			private function label_clickHandler(event:MouseEvent):void
+			{
+				var keys:Array = _val2LabelTable.getKeySet();
+				var label:Image = event.currentTarget as Image;
+				var labelString:String = label.source.toString();
+				var level:int;
+				for each(var key:Number in keys)
+				{
+					var value:String = _val2LabelTable.find(key);
+					var index:int = labelString.indexOf(value);
+					if(index!=-1)
+					{
+						level = key;
+						break;
+					}
+				}
+				this.hostComponent.value = level-1;
+				this.hostComponent.dispatchEvent(new Event(Event.CHANGE));
+//				this.hostComponent.validateNow();
+			}
+            override protected function measure():void
+            {
+                // Temporarily move the thumb to the top of the Slider so measurement
+                // doesn't factor in its y position. This allows resizing the
+                // VSlider to less than 100px in height. 
+                var thumbPos:Number = thumb.getLayoutBoundsY();
+                thumb.setLayoutBoundsPosition(thumb.getLayoutBoundsX(), 0);
+                super.measure();
+                thumb.setLayoutBoundsPosition(thumb.getLayoutBoundsX(), thumbPos);
+            }
+
+            override protected function updateDisplayList(unscaledWidth:Number, unscaledHeight:Number):void
+            {
+                super.updateDisplayList(unscaledWidth, unscaledHeight);
+                drawTicks();
+            }
+
+			
+			
+            private function drawTicks():void
+            {
+//                var tColor:Number = getStyle("symbolColor");
+				var tColor:uint = 0x5c2c00;
+                var tInterval:Number = 1;
+                var tLength:Number = 1.5;
+                var tOffset:Number = -3;
+                var tThickness:Number = 2;
+				var tx:Number = 10;
+
+                var g:Graphics = ticks.graphics;
+                var yPos:Number;
+
+                var val:Number = hostComponent.minimum;
+
+                g.clear();
+
+                if (tInterval > 0)
+                {
+                    g.lineStyle(tThickness, tColor);
+
+                    do
+                    {
+                        yPos = Math.round(getYFromValue(val));
+                        g.moveTo(tx, yPos);
+                        g.lineTo(tLength+tx, yPos);
+                        val = tInterval + val;
+                    } while (val < hostComponent.maximum)
+
+                    // draw the last tick
+                    yPos = Math.round(getMinY());
+                    g.moveTo(tx, yPos);
+                    g.lineTo(tLength+tx, yPos);
+
+//                    ticks.width = tLength - tOffset;
+                }
+            }
+
+            private function getYFromValue(v:Number):Number
+            {
+                var maxY:Number = getMaxY();
+                var minY:Number = getMinY();
+
+                var val:Number;
+
+                if (v == hostComponent.minimum)
+                {
+                    val = maxY;
+                }
+                else if (v == hostComponent.maximum)
+                {
+                    val = minY;
+                }
+                else
+                {
+                    val = minY + (hostComponent.maximum - v) * (maxY - minY) / (hostComponent.maximum - hostComponent.minimum);
+                }
+
+                return val;
+            }
+
+            private function getMinY():Number
+            {
+                return thumb.height / 2;
+            }
+
+            private function getMaxY():Number
+            {
+                return height - thumb.height / 2;
+            }
+        ]]>
+    </fx:Script>
+
+    <s:states>
+        <s:State name="normal"/>
+        <s:State name="disabled"/>
+    </s:states>
+
+    <fx:Declarations>
+        <!--- The tooltip used in the slider control. -->
+        <fx:Component id="dataTip">
+            <s:DataRenderer x="20"
+                            minHeight="24"
+                            minWidth="40">
+                <s:Rect left="0" right="0" top="0" bottom="0">
+                    <s:fill>
+                        <s:SolidColor alpha=".9" color="0x000000"/>
+                    </s:fill>
+                    <s:filters>
+                        <s:DropShadowFilter angle="90"
+                                            color="0x999999"
+                                            distance="3"/>
+                    </s:filters>
+                </s:Rect>
+                <s:Label id="labelDisplay"
+                         left="5" right="5" top="5" bottom="5"
+                         color="white"
+                         fontSize="11"
+                         fontWeight="normal"
+                         horizontalCenter="0"
+                         text="{data}"
+                         textAlign="center"
+                         verticalAlign="middle"
+                         verticalCenter="1">
+                </s:Label>
+            </s:DataRenderer>
+        </fx:Component>
+    </fx:Declarations>
+
+    
+	<s:Group width="40" height="100%" top="0" left="-40">
+		<s:Rect top="0" bottom="0" left="0" right="0">
+			<s:fill>
+				<s:SolidColor color="0xff0000" alpha="0"/>
+			</s:fill>
+		</s:Rect>
+	</s:Group>
+
+    <s:Button id="track" top="0"
+              left="0"
+              width="20" bottom="0"
+              minHeight="33"
+              skinClass="widgets.Navigation.VSliderTrackSkin"/>
+	<s:Group id="ticksBg" bottom="0" width="5" horizontalCenter="0" height="{hostComponent.value * _intervalHeight}">
+		<s:Rect width="100%" height="100%">
+			<s:fill>
+				<s:SolidColor color="#fa7b14" alpha="0.8"/>
+			</s:fill>
+		</s:Rect>
+	</s:Group>
+	<mx:UIComponent id="ticks"
+					left="0" top="0" bottom="0"/>
+
+    <s:Button id="thumb"
+              width="13" height="10"
+              horizontalCenter="0"
+              skinClass="widgets.Navigation.NavigationThumbSkin"/>
+</s:SparkSkin>

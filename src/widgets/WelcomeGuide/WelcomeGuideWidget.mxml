@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+////////////////////////////////////////////////////////////////////////////////
+//
+// Copyright (c) 2012 ESRI China
+//
+// 欢迎向导的Widget类，其中的各个子项可以直接激发对应的功能Widget
+// 王红亮，2012-3-9
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<viewer:BaseWidget  xmlns:fx="http://ns.adobe.com/mxml/2009"
+					xmlns:s="library://ns.adobe.com/flex/spark"
+					xmlns:viewer="com.esri.viewer.*" 
+					widgetConfigLoaded="onWidgetConfigLoaded()" xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.WidgetStates;
+			
+			import spark.components.Image;
+			private const ICON_BASE:String = 'assets/images/welcomeguide/';
+			private var _proxyArray:Array;
+			private function onWidgetConfigLoaded():void
+			{
+				if(this.configXML)
+				{
+					_proxyArray = [];
+					for each(var proxy:XML in configXML.proxy)
+					{
+						var icon:String = proxy.@icon_off;
+						var image:Image = new Image();
+						image.source = icon;
+						var name:String = proxy.@name[0] || "";
+						if(name != "")
+						{
+							image.toolTip = name;
+						}
+						image.buttonMode = true;
+						image.addEventListener(MouseEvent.CLICK, image_clickHandler);
+						widgetProxyGroup.addElement(image);
+						var proxyObject:Object = {image:image, config:proxy, isON:false};
+						_proxyArray.push(proxyObject);
+					}
+				}
+			}
+			private function image_clickHandler(event:MouseEvent):void
+			{
+				var image:Image = event.currentTarget as Image;
+				var proxyObject:Object;
+				for each(var proxy:Object in this._proxyArray)
+				{
+					if(proxy.image == image)
+					{
+						proxyObject = proxy;
+						break;
+					}
+				}
+				var id:int = super.siblingWidgetId(proxyObject.config.@widget);
+				if(id < 0)
+				{
+					return;
+				}
+				if(proxyObject.isON == true)
+				{
+					//代理 的widget由开启转为关闭
+					AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+					image.source = proxyObject.config.@icon_off.toString();
+					proxyObject.isON = false;
+				}
+				else
+				{
+					//代理 的widget由关闭转为开启
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+					image.source = proxyObject.config.@icon_on.toString();
+					proxyObject.isON = true;
+				}
+			}
+			
+			protected function closeButton_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				this.setState(com.esri.viewer.WidgetStates.WIDGET_CLOSED);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:Group width="100%" height="100%">
+		<s:Image left="0" top="10" right="10" bottom="0"
+				 source=""/>
+		<mx:Button id="closeButton" right="0" top="0"
+				  skin="@Embed('assets/images/welcomeguide/close.png')" overSkin="@Embed('assets/images/welcomeguide/close.png')"
+				  click="closeButton_clickHandler(event)"/>
+		<s:VGroup left="0" top="10" right="10" bottom="0" horizontalAlign="center" gap="25">
+			<s:Label text="你好！欢迎使用重庆地理信息服务平台！" fontFamily="微软雅黑" fontWeight="bold" color="0x0000ff"/>
+			<s:HGroup id="widgetProxyGroup" width="100%" height="100%"
+					  paddingTop="10" gap="10" paddingBottom="10"/>
+			<s:Label id="currentWidgetLabel" fontFamily="微软雅黑" fontSize="15" color="0x0000ff" fontWeight="bold"/>
+		</s:VGroup>
+
+	</s:Group>
+</viewer:BaseWidget>

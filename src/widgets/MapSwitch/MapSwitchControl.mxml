@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+///////////////////////////////////////////////////////////////////////////
+// Copyright (c) 2012-2013 Esri China. All Rights Reserved.
+// 自定义地图切换
+// 温杨彪，易智睿中国科技有限公司
+// 温杨彪，2012-03-08
+///////////////////////////////////////////////////////////////////////////
+-->
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		  xmlns:s="library://ns.adobe.com/flex/spark" 
+		  xmlns:mx="library://ns.adobe.com/flex/mx" gap="0" creationComplete="vgroup1_creationCompleteHandler(event)">
+	<fx:Metadata>
+		[Event(name="switchMap",type="widgets.MapSwitch.SwitchMapEvent")]
+	</fx:Metadata>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.events.FlexEvent;
+			
+			import spark.components.Image;
+			
+			private var _datas:Array=null;
+			
+			private var _imageControlTable:Hashtable = new Hashtable();
+			
+			private var _currentLabel:String = "";
+
+			public function get currentLabel():String
+			{
+				return _currentLabel;
+			}
+
+			
+			public function set datas(value:Array):void
+			{
+				_datas = value;
+				if(_datas!=null && _datas.length>0)
+				{
+					createImageItems()
+				}
+			}
+			
+			protected function vgroup1_creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				imgGroup.visible = false;
+				imgGroup.includeInLayout = false;
+				if(_datas!=null && _datas.length>0)
+				{
+					createImageItems()
+				}
+			}
+			
+			private function createImageItems():void
+			{
+				for each(var data:Object in _datas)
+				{
+					var imgCtrl:Image = new Image();
+					imgCtrl.source = data.unselectedIcon;
+					imgCtrl.addEventListener(MouseEvent.CLICK,imgCtrl_ClickHandler);
+					imgCtrl.id = data.label;
+					imgCtrl.useHandCursor = true;
+					imgCtrl.buttonMode = true;
+					_imageControlTable.add(imgCtrl.id,imgCtrl);
+					imgGroup.addElement(imgCtrl);
+				}
+				setCurrentImage(_datas[0].label);
+			}
+			
+			private function imgCtrl_ClickHandler(event:MouseEvent):void
+			{
+				var image:Image = event.currentTarget as Image;
+				setCurrentImage(image.id);
+			}
+			
+			private function setCurrentImage(label:String):void
+			{
+				if(label != _currentLabel)
+				{
+//					trace(label);
+					dispatchEvent(new SwitchMapEvent(label));
+					_currentLabel = label;
+				}
+			}
+			/**
+			 * 把当前状态转移到参数label
+			 * 王红亮，2013-3-11
+			 */
+			public function switchImage(label:String):void
+			{
+				for each(var data:Object in _datas)
+				{
+					var tmpImage:Image = _imageControlTable.find(data.label);
+					
+					if(data.label == label)
+					{
+						currentImageFade.play();
+						_currentImage.source = data.selectedIcon;
+						tmpImage.visible = false;
+						tmpImage.includeInLayout = false;
+					}
+					else
+					{
+						tmpImage.visible = true;
+						tmpImage.includeInLayout = true;
+					}
+				}
+				imgGroup.visible = false;
+				imgGroup.includeInLayout = false;
+			}
+			
+			protected function _currentImage_mouseOverHandler(event:MouseEvent):void
+			{
+				imgGroup.visible = !imgGroup.visible;
+				imgGroup.includeInLayout = !imgGroup.includeInLayout;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<s:Fade id="showFade" alphaFrom="0" alphaTo="1" target="{imgGroup}" duration="500"/>
+		<s:Fade id="hideFade" alphaFrom="1" alphaTo="0" target="{imgGroup}" duration="500"/>
+		<s:Fade target="{_currentImage}" alphaFrom="0" alphaTo="1" duration="500" id="currentImageFade"/>
+	</fx:Declarations>
+	<s:Image id="_currentImage" useHandCursor="true" buttonMode="true"
+			 mouseOver="_currentImage_mouseOverHandler(event)"/>
+	<s:VGroup gap="0" id="imgGroup" showEffect="{showFade}" hideEffect="hideFade">
+	</s:VGroup>
+</s:VGroup>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="58" height="13" borderVisible="false" backgroundAlpha="1">
+	<s:layout>
+		<s:HorizontalLayout gap="2"/>
+	</s:layout>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.controls.Image;
+			import mx.events.FlexEvent;
+			import mx.graphics.BitmapFill;
+			
+			import spark.components.HGroup;
+			import spark.primitives.Rect;
+			
+			private var _bkImgPath:String = "";
+			private var _valueImgPath:String = "";
+			
+			private var _value:int = -1;
+			
+			public function set value(v:int):void
+			{
+				this._value = v;
+				this.removeAllElements();
+				this.createValueBar();
+			}
+			
+			private var _groups:Array = null;
+			
+			/**
+			 * 数值格子的背景图片路径
+			 * @param value:String 路径
+			 * @author 温杨彪 2011-7-28
+			 **/
+			public function set bkImgPath(value:String):void
+			{
+				_bkImgPath = value;
+			}
+			
+			/**
+			 * 数值格子的数值图片路径
+			 * @param value:String 路径
+			 * @author 温杨彪 2011-7-28
+			 **/
+			public function set valueImgPath(value:String):void
+			{
+				this._valueImgPath = value;
+			}
+			
+			/**
+			 * 创建数值的格子
+			 * @author 温杨彪 2011-7-28
+			 */
+			private function createGroups():void
+			{
+				var g:HGroup=null;
+				_groups = new Array();
+				for(var i:int=0;i<5;i++)
+				{
+					g = new HGroup();
+					g.height = 13;
+					g.width = 10;
+					g.gap=0;
+					this.addElement(g);
+					_groups.push(g);
+				}
+				
+			}
+
+			private function createValueBar():void
+			{
+				if(_value<0 || _value>100)
+				{
+					Alert.show("数值必须在0到100之间");
+					return;
+				}
+				//创建格子
+				createGroups();
+				
+				//--------------根据数值填充每个格子-------温杨彪；2011/7/28----------------------------
+				//用颜色数值填充的格子数
+				var fillNum:int = _value / 20;
+				//未能填满一个格子的数值
+				var leftValue:int = _value % 20;
+				
+				for(var i:int=0;i<_groups.length;i++)
+				{
+					var img:Image=null;
+					var g:HGroup = _groups[i] as HGroup;
+					if(i<fillNum)
+					{
+						//这些格子都用数值颜色填满
+						for(var k:int=0;k<10;k++)
+						{
+							img = new Image();
+							img.height=13;
+							img.width=1;
+							img.source = _valueImgPath;
+							g.addElement(img);
+						}
+						
+					}
+					else if(i == fillNum)
+					{
+						//数值没能填满的，计算填色区域
+						var valueWidth:int = leftValue/2;
+						var leftWidth:int = 10-valueWidth;
+						for(k=0;k<valueWidth;k++)
+						{
+							img = new Image();
+							img.height=13;
+							img.width=1;
+							img.source = _valueImgPath;
+							g.addElement(img);
+						}
+						for(k=0;k<leftWidth;k++)
+						{
+							img = new Image();
+							img.height=13;
+							img.width=1;
+							img.source = _bkImgPath;
+							g.addElement(img);
+						}
+					}
+					else
+					{
+						//这些格子都用数值颜色填满
+						for(k=0;k<10;k++)
+						{
+							img = new Image();
+							img.height=13;
+							img.width=1;
+							img.source = _bkImgPath;
+							g.addElement(img);
+						}
+					}
+				}
+			}
+
+		]]>
+	</fx:Script>
+	
+</s:BorderContainer>
