@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+// 自定义的三种状态按钮
+// 更新：可接受图片路径作为图标样式
+//
+////////////////////////////////////////////////////////////////////////////////
+-->
+<s:BorderContainer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				   xmlns:s="library://ns.adobe.com/flex/spark" 
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   height="25" cornerRadius="3"
+				   currentState="normal" buttonMode="true"
+				   color="0x4D565B" borderColor="0x2B9DBF" backgroundColor="0xEBEBEB" borderWeight="1"
+				   mouseOver="container_mouseOverHandler(event)"
+				   mouseOut="container_mouseOutHandler(event)">
+	<fx:Metadata>
+		[Style(name="normalImage", inherit="no", type="String")]
+		[Style(name="overImage", inherit="no", type="String")]
+		[Style(name="overColor", inherit="no", type="uint")]
+		[Style(name="rightImage", inherit="no", type="String")]
+	</fx:Metadata>
+	<s:states>
+		<s:State name="normal"/>
+		<s:State name="over"/>
+	</s:states>
+	<fx:Script>
+		<![CDATA[
+			private var _tag:Object;
+			[Bindable]
+			private var _title:String;
+
+			/**
+			 * 按钮的保留标记，可存储与该按钮相关的信息
+			 **/
+			public function set tag(value:Object):void
+			{
+				_tag = value;
+			}
+			public function get tag():Object
+			{
+				return _tag;
+			}
+			
+			/**
+			 * 标签上的标题
+			 */
+			public function set title(value:String):void
+			{
+				_title = value;
+			}
+			public function get title():String
+			{
+				return _title;
+			}
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOutHandler(event:MouseEvent):void
+			{
+				currentState = "normal";
+				lbl.setStyle("color",getStyle("color"));
+			}
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOverHandler(event:MouseEvent):void
+			{
+				currentState = "over";
+				
+				var clr:uint = getStyle("overColor");
+				if(clr==0){
+					lbl.setStyle("color","0xEA830D");
+				}else{
+					lbl.setStyle("color",getStyle("overColor"));
+				}		
+			}
+
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:layout>
+		<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="5" paddingRight="5" gap="5"/>
+	</s:layout>
+	<s:Image source="{getStyle('normalImage')}" visible="true" includeInLayout="true"
+			 visible.over="false" includeInLayout.over="false"/>
+	<s:Image source="{getStyle('overImage')}" visible="false" includeInLayout="false"
+			 visible.over="true" includeInLayout.over="true"/>
+	<s:Label id="lbl" text="{_title}" fontFamily="宋体" fontSize="12"/>
+	<s:Image source="{getStyle('rightImage')}" visible="{getStyle('rightImage')}" includeInLayout="{getStyle('rightImage')}"/>
+	
+</s:BorderContainer>

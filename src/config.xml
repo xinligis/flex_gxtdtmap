@@ -25,23 +25,23 @@
 			config="widgets/Copyright/CopyrightWidget.xml" 
 			url="widgets/Copyright/CopyrightWidget.swf" />
 	<!-- 主工具栏背景 -->
-	<widget label="主工具栏"  preload="open" top="110" left="350"
+	<widget label="主工具栏"  preload="open" top="90" left="350"
 			url="widgets/CenterFloor/CenterFloorWidget.swf" 
 	 		config="widgets/CenterFloor/CenterFloorWidget.xml"/>
 	<!-- 工具栏上的IP定位 -->
-	<widget label="IP定位" preload="open" left="360" top="112" 
+	<widget label="IP定位" preload="open" top="92" left="360"  
 			config="widgets/IPLocation/IPLocationWidget.xml" 
 			url="widgets/IPLocation/IPLoacationWidget.swf"/>
 	<!-- 工具栏上的工具列 -->
-	<widget label="水平开关代理" preload="open" right="120" top="112"  
+	<widget label="水平开关代理" preload="open" top="95" right="120"   
 			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
 			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
 	<!-- 工具栏上的地图切换 -->
-    <widget label="地图切换" preload="open" right="10" top="112" 
+    <widget label="地图切换" preload="open" top="92" right="10" 
     		config="widgets/MapSwitch/MapSwitcherWidget.xml" 
     		url="widgets/MapSwitch/MapSwitcherWidget.swf"/>	
    	<!-- 主菜单 -->		
-	<widget left="0" top="0" preload="close"
+	<widget preload="close" top="0" left="0"
 			config="widgets/HeaderController/HeaderControllerWidget.xml" 
 			url="widgets/HeaderController/HeaderControllerWidget.swf" />
 	<!-- 鹰眼图 -->
@@ -49,19 +49,18 @@
 			config="widgets/OverviewMap/OverviewMapWidget.xml" 
 			url="widgets/OverviewMap/OverviewMapWidget.swf"/>
 	<!-- 地图搜索 -->
-	<widget label="快捷搜索工具条" preload="open" left="470" top="40" 
+	<widget label="快捷搜索工具条" preload="open" left="350" top="35" 
 			url="widgets/POISearchTool/POISearchToolWidget.swf" 
 			config="widgets/POISearchTool/POISearchToolWidget.xml"/>
-	<widget label="用户登录框" preload="open" right="5" top="10"
+	<widget label="用户登录框" preload="open" right="10" top="10"
 				url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 			config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
 	<widget label="导航条" preload="open" left="370" top="165" 
     		config="widgets/Navigation/NavigationWidget.xml" 
     		url="widgets/Navigation/NavigationWidget.swf"/>	
-	<widget label="打印" showicon="false"
+	<widget label="打印" showicon="false" preload="close" top="0" left="0"
 			url="widgets/Print/PrintWidget.swf" 
-			config="widgets/Print/PrintWidget.xml" 
-			preload="close" top="0" left="0"/>		
+			config="widgets/Print/PrintWidget.xml"/>		
 	<!-- 105.587 28.424 109.412 30.976 -->
     <map top="0" left="350" initialextent="105.5960373813381 28.96475267063883 107.9253009471935 30.399705176876623" esrilogovisible="false">
          <basemaps group="矢量地图" visible="true" selectedIcon="assets/images/mapswitch/map_down.png" unselectedIcon="assets/images/mapswitch/map_up.png">
@@ -80,19 +79,17 @@
     
     <!-- 左侧功能面板测试 -->
     <widgetcontainer url="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf"
-    	layout="cover" left="0" top="110" index="0" bottom="0" width="350" visible="true">
+    	layout="cover" left="0" top="90" index="0" bottom="0" width="350" visible="true">
     	<widget label="地图搜索" preload="open" showicon="true" icon="assets/images/headermenu/map_search.png"
                 config="widgets/Search/SearchWidget_POI.xml"
                 url="widgets/Search/SearchWidget.swf" />
-        <widget label="快速搜索结果" preload="close"
-                icon="assets/images/headermenu/map_search.png" showicon="false"
+        <widget label="快速搜索结果" preload="close" showicon="false" icon="assets/images/headermenu/map_search.png" 
                 config="widgets/PlaceNameAddress/PlaceNameAddressWidget.xml"
                 url="widgets/PlaceNameAddress/PlaceNameAddressWidget.swf" />
     	<widget label="周边查询" showicon="false" preload="close" icon="assets/images/headermenu/buffer.png"
                 config="widgets/Buffer/BufferWidget.xml"
                 url="widgets/Buffer/BufferWidget.swf"/>
-        <widget label="天气预报" showicon="false"
-        		preload="close"
+        <widget label="天气预报" preload="close" showicon="false"
 				config="widgets/Weather/WeatherWidget.xml" 
 				url="widgets/Weather/WeatherWidget.swf"/>
         <widget label="地图纠错" showicon="false" preload="close" icon="assets/images/headermenu/mapcorrection.png"

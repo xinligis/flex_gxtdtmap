@@ -2,7 +2,7 @@
 <configuration>
 	<!-- POI查询首页 -->
 	<homepage>widgets/Search/SearchWidget.swf</homepage>
-	<centerLinkX>490</centerLinkX>
+	<centerLinkX>350</centerLinkX>
 	<portallink>http://www.baidu.com</portallink>
 	<newslink>http://www.sina.com.cn</newslink>
 	<applink>http://www.youku.com</applink>

@@ -56,18 +56,16 @@
 		]]>
     </fx:Script>
 	<s:HGroup width="100%" height="100%" gap="0">
-		<s:Image id="logoIcon" source="assets/images/logo.png"/>
-		<s:Image width="100%" height="100%" fillMode="repeat" source="assets/images/banner_background.png"/>
-		<s:Image id="logoRight" source="assets/images/header_right.png"/>
+		<s:Image id="logoIcon" source="@Embed(source='assets/images/headercontroller/logo.jpg')"/>
+		<s:Image width="100%" height="100%" fillMode="repeat" source="@Embed(source='assets/images/headercontroller/banner_background.jpg')"/>
 	</s:HGroup>
-	<s:HGroup paddingTop="10" x="{centerLinkX}">
-		<mx:LinkButton label="门户首页" buttonMode="true" styleName="headerlinkbut" 
-				 click="about_clickHandler('portal')"/>
-		<mx:LinkButton label="新闻中心" buttonMode="true" styleName="headerlinkbut" 
-				 paddingLeft="10" click="about_clickHandler('news')"/>
-		<mx:LinkButton label="专题应用" buttonMode="true" styleName="headerlinkbut" 
-				 paddingLeft="10" click="about_clickHandler('app')"/>
-		<mx:LinkButton label="资源中心" buttonMode="true" styleName="headerlinkbut" 
-				 paddingLeft="10" click="about_clickHandler('res')"/>
+	<s:HGroup paddingTop="10" x="{centerLinkX}" verticalAlign="middle" horizontalAlign="center">
+		<mx:LinkButton label="门户首页" buttonMode="true" styleName="headerlinkbtn" click="about_clickHandler('portal')"/>
+		<s:Label text="|" textAlign="center" styleName="headerlabel"/>
+		<mx:LinkButton label="新闻中心" buttonMode="true" styleName="headerlinkbtn" click="about_clickHandler('news')"/>
+		<s:Label text="|" textAlign="center" styleName="headerlabel"/>
+		<mx:LinkButton label="专题应用" buttonMode="true" styleName="headerlinkbtn" click="about_clickHandler('app')"/>
+		<s:Label text="|" textAlign="center" styleName="headerlabel"/>
+		<mx:LinkButton label="资源中心" buttonMode="true" styleName="headerlinkbtn" click="about_clickHandler('res')"/>
 	</s:HGroup>
 </viewer:BaseWidget>

@@ -42,6 +42,7 @@
 			import mx.core.FlexGlobals;
 			import mx.core.IFlexDisplayObject;
 			import mx.core.UIComponent;
+			import mx.events.CloseEvent;
 			import mx.events.FlexEvent;
 			import mx.managers.PopUpManager;
 			import mx.rpc.AsyncResponder;
@@ -131,12 +132,13 @@
 				}
 				Alert.show("当期用户已经注销，请重新登录！");
 					configData.loginUser = null;
-					loginLink.text = "用户登录";
+					loginLink.label = "用户登录";
 					loginLink.toolTip = "";
 					switchLogoffWindow(false);
 					//打开登录窗口
 					switchLoginWindow(true);
 			}
+			
 			private function loginLink_clickHandler(event:MouseEvent):void
 			{
 				if(configData.loginUser == null)
@@ -248,8 +250,8 @@
 					configData.loginUser = _currentLoginUser;
 					if(_currentLoginUser!=null)
 					{
-						loginLink.text = _currentLoginUser.fullName;//+"用户";
-						loginLink.toolTip = loginLink.text;
+						loginLink.label = _currentLoginUser.fullName;//+"用户";
+						loginLink.toolTip = loginLink.label;
 					}
 					AppEvent.dispatch(AppEvent.USER_LOG_IN);
 				}
@@ -301,7 +303,7 @@
 					
 					Toast.show("注销成功");
 					
-					loginLink.text = "用户登录";
+					loginLink.label = "用户登录";
 					loginLink.toolTip = "";
 				}
 				else
@@ -327,7 +329,7 @@
 				}
 			}
 			
-			protected function cancleBtn_clickHandler(event:MouseEvent):void
+			protected function cancleBtn_clickHandler(event:Event):void
 			{
 				loginLink_clickHandler(null);
 			}
@@ -337,49 +339,56 @@
 				navigateToURL(new URLRequest(aboutURL), "_blank");    
 			}
 			
-			protected function link_mouseOverHandler(event:MouseEvent):void
+			protected function registLink_mouseOverHandler(event:MouseEvent):void
 			{
-				event.currentTarget.styleName = "linkLableOver";
+				//event.currentTarget.styleName = "linkLableOver";
+				registLink.setStyle("color","0xff8400");
 			}
 			
-			protected function link_mouseOutHandler(event:MouseEvent):void
+			protected function registLink_mouseOutHandler(event:MouseEvent):void
 			{
-				event.currentTarget.styleName = "linkLable";
+				//event.currentTarget.styleName = "linkLable";
+				registLink.setStyle("color","0x2A9FC2");
 			}
 		]]>
 	</fx:Script>
 	<fx:Declarations>
 		<!--登录窗体-->
-		<popup:PopUpWindow id="loginWindow" width="240" height="126" backgroundColor="0xf7f7f7"
-						   closeButtonVisible="false" keyDown="loginWindow_keyDownHandler(event)">
+		<popup:PopUpWindow id="loginWindow" width="400" height="230" borderVisible="false" backgroundColor="0x2B9DBF" color="0x2A9FC2"
+						   closeButtonVisible="true" keyDown="loginWindow_keyDownHandler(event)" close="cancleBtn_clickHandler(event)">
 			<popup:layout>
-				<s:VerticalLayout gap="15" horizontalAlign="center" verticalAlign="middle"/>
+				<s:VerticalLayout verticalAlign="top" paddingLeft="2" paddingRight="2" paddingBottom="2" gap="0"/>
 			</popup:layout>
-				<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center"
-						  includeIn="normal">
-					<s:Label text="用户名："/>
-					<s:TextInput id="userInput" prompt="点击输入用户名" contentBackgroundColor="0xffffff"
-										skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+			<s:VGroup width="100%" height="35" paddingLeft="20" verticalAlign="middle">
+				<s:Label text="用户登录" fontFamily="宋体" fontSize="16" fontWeight="bold" color="0xFFFFFF"/>
+			</s:VGroup>
+			<s:BorderContainer borderVisible="false" width="100%" height="100%" backgroundColor="0xFFFFFF">
+				<s:layout>
+					<s:VerticalLayout horizontalAlign="center" verticalAlign="top" paddingTop="30" paddingBottom="10" gap="10"/>
+				</s:layout>
+				<!--<s:VGroup width="100%" height="70">-->
+					<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center" includeIn="normal">
+						<s:Label text="用户名：" fontFamily="宋体" fontSize="14"/>
+						<s:TextInput id="userInput" width="250" prompt="点击输入用户名" contentBackgroundColor="0xffffff"
+									 skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+					</s:HGroup>
+					<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center" includeIn="normal">
+						<s:Label text="密  码：" fontFamily="宋体" fontSize="14"/>
+						<s:TextInput id="passwordInput" width="250" prompt="点击输入密码" contentBackgroundColor="0xffffff"
+									 displayAsPassword="true" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
+					</s:HGroup>
+				<!--</s:VGroup>-->
+				<s:HGroup width="100%" height="100%" gap="15" verticalAlign="middle" horizontalAlign="center" includeIn="normal">
+					<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/login_normal.png')"
+												  overImage="@Embed('assets/images/useroperationfloor/login_over.png')"
+												  click="commitImage_clickHandler(event)"/>
+					<s:Label id="registLink" text="注册" buttonMode="true" fontFamily="宋体" textDecoration="underline" fontSize="14"
+							 click="registryImage_clickHandler(event)"
+							 mouseOver="registLink_mouseOverHandler(event)"
+							 mouseOut="registLink_mouseOutHandler(event)"/>
 				</s:HGroup>
-				<s:HGroup width="100%" gap="2" verticalAlign="middle" horizontalAlign="center"
-						  includeIn="normal">
-					<s:Label text="密    码："/>
-					<s:TextInput id="passwordInput" prompt="点击输入密码" contentBackgroundColor="0xffffff"
-										displayAsPassword="true" skinClass="com.esri.viewer.skins.CommonTextInputSkin"/>
-				</s:HGroup>
-			<s:HGroup includeIn="normal" gap="8">
-				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/login_normal.png')"
-											  overImage="@Embed('assets/images/useroperationfloor/login_over.png')"
-											  click="commitImage_clickHandler(event)"/>
-				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/regist_normal.png')"
-											  overImage="@Embed('assets/images/useroperationfloor/regist_over.png')"
-											  click="registryImage_clickHandler(event)"/>
-				<customskinbutton:ClickButton normalImage="@Embed('assets/images/useroperationfloor/cancle_normal.png')"
-											  overImage="@Embed('assets/images/useroperationfloor/cancle_over.png')"
-											  id="cancleBtn"
-											  click="cancleBtn_clickHandler(event)"/>
-			</s:HGroup>
-			<s:Label text="正在登陆，请等候...." includeIn="loging"/>
+				<s:Label text="正在登陆，请等候...." includeIn="loging"/>
+			</s:BorderContainer>
 		</popup:PopUpWindow>
 		
 		<popup:PopUpWindow id="logoutWindow" width="240" height="126" backgroundColor="0xf7f7f7"
@@ -418,8 +427,8 @@
 											  normalImage="@Embed('assets/images/useroperationfloor/unregist_normal.png')"
 											  overImage="@Embed('assets/images/useroperationfloor/unregist_over.png')"/>
 				<customskinbutton:ClickButton click="cancleBtn_clickHandler(event)" 
-											  normalImage="@Embed('assets/images/useroperationfloor/cancle_normal.png')"
-											  overImage="@Embed('assets/images/useroperationfloor/cancle_over.png')"/>
+											  normalImage="@Embed('assets/images/useroperationfloor/cancel_normal.png')"
+											  overImage="@Embed('assets/images/useroperationfloor/cancel_over.png')"/>
 			</s:HGroup>
 		</popup:PopUpWindow>
 		
@@ -431,17 +440,10 @@
 		<s:HTTPService id="logoutHttpService" result="logoutHttpService_resultHandler(event)" method="POST"
 					   fault="logoutHttpService_faultHandler(event)"/>
 	</fx:Declarations>
-	<s:Group height="66">
-		<s:HGroup width="100%" height="30" gap="0"
-				  verticalAlign="middle">
-			<s:Label id="loginLink" text="用户登录" styleName="linkLable" buttonMode="true" 
- 					 click="loginLink_clickHandler(event)"
-					 mouseOver="link_mouseOverHandler(event)"
-					 mouseOut="link_mouseOutHandler(event)"/>
-			<s:Label text="关于我们" buttonMode="true" styleName="linkLable" 
-					 paddingLeft="10" click="about_clickHandler(event)"
-					 mouseOver="link_mouseOverHandler(event)"
-					 mouseOut="link_mouseOutHandler(event)"/>
-		</s:HGroup>	
-	</s:Group>
+	
+	<s:HGroup verticalAlign="middle" horizontalAlign="center">
+		<mx:LinkButton id="loginLink" label="用户登录" buttonMode="true" styleName="headerlinkbtn" click="loginLink_clickHandler(event)"/>
+		<s:Label text="|" textAlign="center" styleName="headerlabel"/>
+		<mx:LinkButton label="关于我们" buttonMode="true" styleName="headerlinkbtn" click="about_clickHandler(event)"/>
+	</s:HGroup>
 </viewer:BaseWidget>	

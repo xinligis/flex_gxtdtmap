@@ -99,7 +99,7 @@ esri|InfoWindow
 
 s|List
 {
-	fontFamily:"瀹嬩綋";
+	fontFamily:"宋体";
 	contentBackgroundColor:#ffffff;
 	contentBackgroundAlpha:0.9;
 	rollOverColor:#daeaf9;
@@ -110,16 +110,21 @@ s|List
 	backgroundAlpha:0;
 	borderAlpha:0;
 }
-.headerlinkbut{
+.headerlinkbtn{
 	color:#ffffff;
-	fontFamily:"瀹嬩綋";
-	fontSize:12;
-	rollOverColor:#87CEFA;
-	textRollOverColor:#ffffff;
+	fontFamily:"宋体";
+	fontSize:14;
+	rollOverColor:#E3E4E8;
+	textRollOverColor:#EA880D;
+}
+.headerlabel{
+	color:#ffffff;
+	fontFamily:"宋体";
+	fontSize:14;
 }
 .linkLable{
 	color:#ffffff;
-	fontFamily:"瀹嬩綋";
+	fontFamily:"宋体";
 	fontSize:12;
 	textDecoration:underline;
 }
@@ -127,7 +132,7 @@ s|List
 	color:#ff8400;
 }
 .copyright{
-	fontFamily:"瀹嬩綋";
+	fontFamily:"宋体";
 	fontSize:12;
 	color:#000000;
 }

@@ -22,6 +22,7 @@
 			import com.esri.viewer.AppEvent;
 			import com.esri.viewer.components.customskinbutton.CheckButton2;
 			import com.esri.viewer.components.customskinbutton.ClickButton2;
+			import com.esri.viewer.components.customskinbutton.ImageLabelButton;
 			
 			import mx.collections.ArrayCollection;
 			import mx.events.FlexEvent;
@@ -39,7 +40,7 @@
 			import widgets.ToolBar.Tools.Measure.LineTool;
 			import widgets.ToolBar.Tools.Measure.PolygonTool;
 			import widgets.ToolBar.Tools.Screenshot.ScreenshotTool;
-
+			
 			private var toolIndex:int = 0;           //工具栏上工具的序号
 			private var mainToolWidgets:Array = [];  //记录所有工具栏上的工具
 			private var urlOperationWidget:String = "";  //来自URL上的操作
@@ -72,7 +73,7 @@
 					initConfigLoaded();
 					for each(var proxy:WidgetItem in mainToolWidgets)
 					{
-						if(proxy.iconOn){
+						/*if(proxy.iconOn){
 							var checkBtn:CheckButton2 = new CheckButton2();
 							checkBtn.id = proxy.id.toString();
 							checkBtn.toolTip = proxy.name?proxy.name:"未知";
@@ -91,7 +92,18 @@
 							clickBtn.addEventListener(MouseEvent.CLICK,btn_clickHandler);
 							
 							widgetProxyGroup.addElement(clickBtn);
-						}
+						}//*/
+						
+						var clickBtn:ImageLabelButton = new ImageLabelButton();
+						clickBtn.id = proxy.id.toString();
+						clickBtn.title = proxy.name?proxy.name:"未知";
+						clickBtn.toolTip = proxy.name?proxy.name:"未知";
+						clickBtn.setStyle("normalImage",proxy.iconOff);
+						clickBtn.setStyle("overImage",proxy.iconOver);
+						clickBtn.setStyle("rightImage",(proxy.iconRight?proxy.iconRight:""));
+						clickBtn.addEventListener(MouseEvent.CLICK,btn_clickHandler);
+						
+						widgetProxyGroup.addElement(clickBtn);
 					}
 					
 				}
@@ -149,6 +161,7 @@
 							widgetItem.iconOn = xmlObj.@icon_on;
 							widgetItem.iconOff = xmlObj.@icon_off;
 							widgetItem.iconOver = xmlObj.@icon_over;
+							widgetItem.iconRight = xmlObj.@icon_right;
 							widgetItem.checked = false;
 							var toolGroupList:XMLList = XMLList(xmlObj);
 							toolIndex++;
@@ -179,6 +192,7 @@
 					widgetItem.iconOn = widgetList[p].@icon_on;
 					widgetItem.iconOff = widgetList[p].@icon_off;
 					widgetItem.iconOver = widgetList[p].@icon_over;
+					widgetItem.iconRight = widgetList[p].@icon_right;
 					widgetItem.url = widgetList[p].@widget;
 					widgetItem.checked = false;
 					
@@ -236,7 +250,8 @@
 			//主工具栏事件
 			private function btn_clickHandler(event:MouseEvent):void
 			{
-				var clickBtn:ClickButton2 = event.currentTarget as ClickButton2;
+				//var clickBtn:ClickButton2 = event.currentTarget as ClickButton2;
+				var clickBtn:ImageLabelButton = event.currentTarget as ImageLabelButton;
 				var item:WidgetItem;
 				for each(var proxy:WidgetItem in mainToolWidgets)
 				{
@@ -286,7 +301,7 @@
 			private function widgetList_widgetItemClickHandler(event:Event):void
 			{
 				var widgetItem:WidgetItem = ItemRenderer(event.target).data as WidgetItem;
-
+				
 				switch(widgetItem.name)
 				{
 					case HorizontalWidgetProxyWidget.BASETOOL_MEASURELINE:
@@ -331,7 +346,7 @@
 					}
 				}
 			}
-
+			
 			//读取常用工具所需的配置文件
 			private function readToolConfig(configPath:String):void
 			{
@@ -377,7 +392,7 @@
 						_currentTool = new ScreenshotTool() as ITool;
 						break;
 				}
-
+				
 				_currentTool.map=map;
 				_currentTool.graphicsLayer=_graphicslayer;
 				_currentTool.activateHandler=tool_activateHandler;
@@ -418,27 +433,21 @@
 			
 		]]>
 	</fx:Script>
-	<s:Group id="headerGroup" top="0" width="130" height="27">
-		<s:HGroup id="widgetProxyGroup" width="100%" height="100%" gap="15"/>
+	<s:Group id="headerGroup" top="0" width="350" height="25">
+		<s:HGroup id="widgetProxyGroup" width="100%" gap="10"/>
 		<s:BorderContainer id="widgetListContainer"
-						   y="{headerGroup.height+8}" 
-						   x="{widgetListContainerX}"
+						   y="{headerGroup.height}" x="{widgetListContainerX}"
 						   width="{widgetListDG.width + 4}" height="{widgetListDG.height + 2}"
-						   backgroundColor="#f6f6f6"
-						   backgroundAlpha="0.95"
-						   borderColor="#bbbbbb"
-						   borderVisible="true"
-						   cornerRadius="5"
+						   borderColor="0x2B9DBF" backgroundColor="0xEBEBEB"
+						   cornerRadius="3"
 						   rollOut="widgetList_rollOutHandler(event)"
 						   visible="false">
-			<s:Image top="-6" source="@Embed('assets/images/headermenu/uparrow.png')" horizontalCenter="0"/>
-			<HorizontalWidgetProxy:WidgetListDataGroup id="widgetListDG"
-													   width="100"
+			<HorizontalWidgetProxy:WidgetListDataGroup id="widgetListDG" width="100"
 													   dataProvider="{subToolWidgetArrCol}"
 													   visible="{widgetListContainer.visible}"
 													   widgetListItemClick="widgetList_widgetItemClickHandler(event)">
 				<HorizontalWidgetProxy:layout>
-					<s:VerticalLayout paddingTop="6"
+					<s:VerticalLayout paddingTop="10" paddingBottom="10"
 									  useVirtualLayout="true"
 									  verticalAlign="middle"/>
 				</HorizontalWidgetProxy:layout>

@@ -26,6 +26,10 @@
 			{
 				widgetItem = data as WidgetItem;
 				widgetLabel.text = widgetItem.name;
+				
+				/*if(widgetItem.checked){
+					this.currentState="selected";
+				}//*/
 			}
 			
 			private function itemrenderer_clickHandler(event:MouseEvent):void
@@ -57,42 +61,33 @@
 		<s:fill>
 			<s:SolidColor alpha="0"
 						  alpha.hovered="0.65"
-						  color.hovered="#e1f0fe"/>
+						  color.hovered="0x2B9DBF"/>
 		</s:fill>
 	</s:Rect>
-	<s:VGroup>
-		<s:HGroup height="30" width="100%"
+	<!--<s:VGroup>-->
+		<s:HGroup height="25" width="100%" paddingLeft="15" gap="20"
 				  buttonMode="true"
-				  paddingLeft="10"
 				  useHandCursor="true"
+				  horizontalAlign="left"
 				  verticalAlign="middle">
-			<s:Group width="25" height="30">
-				<mx:Image id="icon" source="{data.iconOff}" 
-						  visible.normal="true" 
-						  visible.selected="false" 
-						  visible.hovered="false"
-						  width="100%" height="100%"/>
-				<mx:Image id="iconover" source="{data.iconOver}"
-						  visible.normal="false" 
-						  visible.selected="false"
-						  visible.hovered="true"
-						  width="100%" height="100%"/>
-				<mx:Image id="iconon" source="{data.iconOn}"
-						  visible.normal="false" 
-						  visible.selected="true" 
-						  visible.hovered="false"
-						  width="100%" height="100%"/>
-			</s:Group>
-			<s:Label color="#072d5d" fontWeight="bold" text=">"
-					 fontFamily="微软雅黑"
-					 fontSize="10"/>
-			<s:Label id="widgetLabel"
-					 width="100%"
-					 color="#072d5d"
+			<s:Image source="{data.iconOff}" visible="true" includeInLayout="true"
+					 visible.normal="true" includeInLayout.normal="true"
+					 visible.hovered="false" includeInLayout.hovered="false"
+					 visible.selected="false" includeInLayout.selected="false"/>
+			<s:Image source="{data.iconOver}" visible="false" includeInLayout="false"
+					 visible.normal="false" includeInLayout.normal="false"
+					 visible.hovered="true" includeInLayout.hovered="true"
+					 visible.selected="false" includeInLayout.selected="false"/>
+			<s:Image source="{data.iconOn}" visible="false" includeInLayout="false"
+					 visible.normal="false" includeInLayout.normal="false"
+					 visible.hovered="false" includeInLayout.hovered="false"
+					 visible.selected="true" includeInLayout.selected="true"/>
+			<s:Label id="widgetLabel" width="100%"
+					 color="0x4D565B" color.hovered="0xEA830D" color.selected="0xEA830D"
 					 fontFamily="微软雅黑"
 					 fontSize="12"
 					 maxDisplayedLines="3"
 					 showTruncationTip="true"/>
 		</s:HGroup>
-	</s:VGroup>
+	<!--</s:VGroup>-->
 </s:ItemRenderer>

@@ -239,7 +239,7 @@
 		
 		<mx:Button id= "searchToolImage"
 				   click="searchToolImage_click(event)"
-				   skin="@Embed('assets/images/searchTool/searchNormal.png')"
-				   overSkin="@Embed('assets/images/searchTool/searchPress.png')" />
+				   skin="@Embed('assets/images/searchTool/searchNormal.jpg')"
+				   overSkin="@Embed('assets/images/searchTool/searchPress.jpg')" />
 	</s:HGroup>
 </viewer:BaseWidget>

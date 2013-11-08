@@ -3,44 +3,46 @@
 <configuration>
 	<toolwidgets>
 		<proxy name="周边查询" 
-			icon_off="assets/images/headermenu/buffer.png" 
+			icon_off="assets/images/horizontalwidgetProxy/search_up.png" 
 			icon_on="" 
-			icon_over="assets/images/headermenu/buffer.png"
+			icon_over="assets/images/horizontalwidgetProxy/search_over.png"
 			widget="widgets/Buffer/BufferWidget.swf"/>
 		<proxygroup name="专题信息" 
-			icon_off="assets/images/horizontalwidgetProxy/tool_up.png" 
+			icon_off="assets/images/horizontalwidgetProxy/thematic_up.png" 
 			icon_on=""
-			icon_over="assets/images/horizontalwidgetProxy/tool_over.png">
+			icon_over="assets/images/horizontalwidgetProxy/thematic_over.png"
+			icon_right="assets/images/horizontalwidgetProxy/arrow.png">
 			<proxy name="天气" 
-			icon_off="assets/images/horizontalwidgetProxy/tool_up.png" 
-			icon_on="assets/images/horizontalwidgetProxy/tool_down.png"
-			icon_over="assets/images/horizontalwidgetProxy/tool_over.png" 
-			widget="widgets/Weather/WeatherWidget.swf"/>
+				icon_off="assets/images/horizontalwidgetProxy/weather_up.png" 
+				icon_on="assets/images/horizontalwidgetProxy/weather_up.png"
+				icon_over="assets/images/horizontalwidgetProxy/weather_up.png" 
+				widget="widgets/Weather/WeatherWidget.swf"/>
 		</proxygroup>
 		<proxygroup name="常用工具" 
-			icon_off="assets/images/horizontalwidgetProxy/tool_up.png" 
+			icon_off="assets/images/horizontalwidgetProxy/basetool_up.png" 
 			icon_on=""
-			icon_over="assets/images/horizontalwidgetProxy/tool_over.png">
+			icon_over="assets/images/horizontalwidgetProxy/basetool_over.png"
+			icon_right="assets/images/horizontalwidgetProxy/arrow.png">
 			<!-- START 以下工具配置不可修改 -->
 			<proxy name="量距离" 
-				icon_off="assets/images/toolbar/measure.png" 
+				icon_off="assets/images/horizontalwidgetProxy/measureline_up.png" 
 				icon_on=""
-				icon_over="assets/images/horizontalwidgetProxy/tool_over.png" 
+				icon_over="assets/images/horizontalwidgetProxy/measureline_over.png" 
 				widget=""/>
 			<proxy name="量面积" 
-				icon_off="assets/images/toolbar/measure_polygon.png" 
+				icon_off="assets/images/horizontalwidgetProxy/measurepoly_up.png" 
 				icon_on=""
-				icon_over="assets/images/horizontalwidgetProxy/tool_over.png" 
+				icon_over="assets/images/horizontalwidgetProxy/measurepoly_over.png" 
 				widget=""/>
 			<proxy name="标记" 
-				icon_off="assets/images/toolbar/markertool.png" 
+				icon_off="assets/images/horizontalwidgetProxy/mark_up.png" 
 				icon_on=""
-				icon_over="assets/images/horizontalwidgetProxy/tool_over.png" 
+				icon_over="assets/images/horizontalwidgetProxy/mark_over.png" 
 				widget=""/>
 			<proxy name="截图" 
-				icon_off="assets/images/toolbar/snapshot.png" 
+				icon_off="assets/images/horizontalwidgetProxy/snap_up.png" 
 				icon_on=""
-				icon_over="assets/images/horizontalwidgetProxy/tool_over.png" 
+				icon_over="assets/images/horizontalwidgetProxy/snap_over.png" 
 				widget=""/>
 			<proxy name="打印" 
 				icon_off="assets/images/horizontalwidgetProxy/print_up.png" 
@@ -49,15 +51,15 @@
 				widget="widgets/Print/PrintWidget.swf"/>
 			<!-- END 以上工具配置不可修改 -->
 			<proxy name="纠错"
-				icon_off="assets/images/headermenu/mapcorrection.png" 
+				icon_off="assets/images/horizontalwidgetProxy/error_up.png" 
 				icon_on=""
-				icon_over="assets/images/headermenu/mapcorrection.png"  
+				icon_over="assets/images/horizontalwidgetProxy/error_over.png"  
 				widget="widgets/MapCorrection/MapCorrectionWidget.swf"/>
 		</proxygroup>
 		<proxy name="全屏" 
-				icon_off="assets/images/horizontalwidgetProxy/fullScreen_up.png"
+				icon_off="assets/images/horizontalwidgetProxy/fullscreen_up.png"
 				icon_on=""
-				icon_over="assets/images/horizontalwidgetProxy/fullScreen_over.png" 
+				icon_over="assets/images/horizontalwidgetProxy/fullscreen_over.png" 
 				widget=""/>
 	</toolwidgets>
 </configuration>

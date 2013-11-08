@@ -115,11 +115,11 @@
 					   borderAlpha="1" borderColor="#d8d8d8"
 					   backgroundColor="#FFFFFF">
 		<s:layout>
-			<s:VerticalLayout horizontalAlign="left" gap="0"/>
+			<s:VerticalLayout horizontalAlign="left" gap="0" paddingTop="0"/>
 		</s:layout>
 		<s:BorderContainer width="100%" height="32" borderVisible="false" backgroundImage="@Embed('assets/images/navibackground.gif')">
 			<s:layout>
-				<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle"/>
+				<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="10"/>
 			</s:layout>
 			<s:Image id="home" width="16" height="16" source="@Embed('assets/images/useroperationfloor/backhome.png')"/>
 			<s:Label text="首页" textAlign="left" fontFamily="宋体" fontSize="12" color="#4061ad" 

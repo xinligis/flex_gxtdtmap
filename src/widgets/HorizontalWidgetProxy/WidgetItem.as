@@ -27,6 +27,7 @@ public class WidgetItem extends EventDispatcher
     public var iconOn:String;
 	public var iconOff:String;
 	public var iconOver:String;
+	public var iconRight:String;
     public var url:String; // url
     public var name:String;
     public var widgets:Array;  //子项
