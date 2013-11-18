@@ -15,7 +15,7 @@
 			<proxy name="天气" 
 				icon_off="assets/images/horizontalwidgetProxy/weather_up.png" 
 				icon_on="assets/images/horizontalwidgetProxy/weather_up.png"
-				icon_over="assets/images/horizontalwidgetProxy/weather_up.png" 
+				icon_over="assets/images/horizontalwidgetProxy/weather_over.png" 
 				widget="widgets/Weather/WeatherWidget.swf"/>
 		</proxygroup>
 		<proxygroup name="常用工具" 
