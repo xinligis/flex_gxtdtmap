@@ -1,4 +1,5 @@
-/* CSS file - Standard Stylesheet */
+/* CSS file */
+
 @namespace s "library://ns.adobe.com/flex/spark";
 @namespace mx "library://ns.adobe.com/flex/mx";
 @namespace esri "http://www.esri.com/2008/ags";
@@ -8,75 +9,75 @@
 
 viewer|WidgetTemplate
 {
-    background-alpha: 0.8;
-    borderStyle: solid;
-    borderThickness: 1;
-    cornerRadius: 5;
-    dropShadowVisible: true;
-    horizontalScrollPolicy: off;
-    shadowDirection: right;
-    shadowDistance: 5;
-    skinClass: ClassReference("com.esri.viewer.skins.WidgetTemplateSkin");
+	background-alpha: 0.8;
+	borderStyle: solid;
+	borderThickness: 1;
+	cornerRadius: 5;
+	dropShadowVisible: true;
+	horizontalScrollPolicy: off;
+	shadowDirection: right;
+	shadowDistance: 5;
+	skinClass: ClassReference("com.esri.viewer.skins.WidgetTemplateSkin");
 }
 
 viewerComps|TitlebarButton
 {
-    skinClass: ClassReference("com.esri.viewer.skins.TitlebarButtonSkin");
+	skinClass: ClassReference("com.esri.viewer.skins.TitlebarButtonSkin");
 }
 
 .BannerTitle
 {
-    padding-bottom: 2;
-    padding-top: 4;
+	padding-bottom: 2;
+	padding-top: 4;
 }
 
 .BannerSubtitle
 {
-  
+	
 }
 
 .WidgetTitle
 {
-    fontWeight: bold;
+	fontWeight: bold;
 }
 
 
 s|VScrollBar
 {
-    skinClass: ClassReference("com.esri.viewer.skins.VScrollBarSkin");
+	skinClass: ClassReference("com.esri.viewer.skins.VScrollBarSkin");
 }
 
 mx|VScrollBar
 {
-    downArrowUpSkin: ClassReference(null);
-    downArrowOverSkin: ClassReference(null);
-    downArrowDownSkin: ClassReference(null);
-    upArrowUpSkin: ClassReference(null);
-    upArrowOverSkin: ClassReference(null);
-    upArrowDownSkin: ClassReference(null);
-    thumbDownSkin: Embed(source="assets/images/thumb.png");
-    thumbUpSkin: Embed(source="assets/images/thumb.png");
-    thumbOverSkin: Embed(source="assets/images/thumb.png");
-    trackSkin: Embed(source="assets/images/track.png");
+	downArrowUpSkin: ClassReference(null);
+	downArrowOverSkin: ClassReference(null);
+	downArrowDownSkin: ClassReference(null);
+	upArrowUpSkin: ClassReference(null);
+	upArrowOverSkin: ClassReference(null);
+	upArrowDownSkin: ClassReference(null);
+	thumbDownSkin: Embed(source="assets/images/thumb.png");
+	thumbUpSkin: Embed(source="assets/images/thumb.png");
+	thumbOverSkin: Embed(source="assets/images/thumb.png");
+	trackSkin: Embed(source="assets/images/track.png");
 }
 
 s|HScrollBar
 {
-    skinClass: ClassReference("com.esri.viewer.skins.HScrollBarSkin");
+	skinClass: ClassReference("com.esri.viewer.skins.HScrollBarSkin");
 }
 
 mx|HScrollBar
 {
 	downArrowUpSkin: ClassReference(null);
-    downArrowOverSkin: ClassReference(null);
-    downArrowDownSkin: ClassReference(null);
-    upArrowUpSkin: ClassReference(null);
-    upArrowOverSkin: ClassReference(null);
-    upArrowDownSkin: ClassReference(null);
-    thumbDownSkin: Embed(source="assets/images/thumb.png");
-    thumbUpSkin: Embed(source="assets/images/thumb.png");
-    thumbOverSkin: Embed(source="assets/images/thumb.png");
-    trackSkin: Embed(source="assets/images/track.png");
+	downArrowOverSkin: ClassReference(null);
+	downArrowDownSkin: ClassReference(null);
+	upArrowUpSkin: ClassReference(null);
+	upArrowOverSkin: ClassReference(null);
+	upArrowDownSkin: ClassReference(null);
+	thumbDownSkin: Embed(source="assets/images/thumb.png");
+	thumbUpSkin: Embed(source="assets/images/thumb.png");
+	thumbOverSkin: Embed(source="assets/images/thumb.png");
+	trackSkin: Embed(source="assets/images/track.png");
 }
 
 esri|ScaleBar
@@ -91,7 +92,7 @@ esri|InfoSymbolWindow
 
 esri|InfoWindow
 {
-/*	backgroundColor:#f6f6f6;
+	/*	backgroundColor:#f6f6f6;
 	backgroundAlpha:0.7;
 	borderColor:#d4d3d2;*/
 	skinClass:ClassReference("com.esri.viewer.skins.InfoWindowSkin");
@@ -99,11 +100,11 @@ esri|InfoWindow
 
 s|List
 {
-	fontFamily:"ËÎÌå";
+	fontFamily:"å®‹ä½“";
 	contentBackgroundColor:#ffffff;
 	contentBackgroundAlpha:0.9;
 	rollOverColor:#daeaf9;
-		
+	
 }
 .infoStyle
 {
@@ -112,19 +113,19 @@ s|List
 }
 .headerlinkbtn{
 	color:#ffffff;
-	fontFamily:"ËÎÌå";
+	fontFamily:"å®‹ä½“";
 	fontSize:14;
 	rollOverColor:#E3E4E8;
 	textRollOverColor:#EA880D;
 }
 .headerlabel{
 	color:#ffffff;
-	fontFamily:"ËÎÌå";
+	fontFamily:"å®‹ä½“";
 	fontSize:14;
 }
 .linkLable{
 	color:#ffffff;
-	fontFamily:"ËÎÌå";
+	fontFamily:"å®‹ä½“";
 	fontSize:12;
 	textDecoration:underline;
 }
@@ -132,7 +133,7 @@ s|List
 	color:#ff8400;
 }
 .copyright{
-	fontFamily:"ËÎÌå";
+	fontFamily:"å®‹ä½“";
 	fontSize:12;
 	color:#000000;
 }
