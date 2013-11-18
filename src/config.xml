@@ -95,5 +95,5 @@
         <widget label="地图纠错" showicon="false" preload="close" icon="assets/images/headermenu/mapcorrection.png"
 		    	config="widgets/MapCorrection/MapCorrectionWidget.xml" 
 		    	url="widgets/MapCorrection/MapCorrectionWidget.swf" />
-    </widgetcontainer>
+    </widgetcontainer> 
 </configuration>
