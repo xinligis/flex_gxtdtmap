@@ -2,7 +2,7 @@
 <!-- icon_off:常规,icon_on:按下,icon_over:悬停。无icon_on则用clickbutton，有icon_on则用checkbutton -->
 <configuration>
 	<toolwidgets>
-		<proxy name="周边查询" 
+		<proxy name="视野内搜索" 
 			icon_off="assets/images/horizontalwidgetProxy/search_up.png" 
 			icon_on="" 
 			icon_over="assets/images/horizontalwidgetProxy/search_over.png"

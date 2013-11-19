@@ -33,11 +33,11 @@
 			config="widgets/IPLocation/IPLocationWidget.xml" 
 			url="widgets/IPLocation/IPLoacationWidget.swf"/>
 	<!-- 工具栏上的工具列 -->
-	<widget label="水平开关代理" preload="open" top="95" right="120"   
+	<widget label="水平开关代理" preload="open" top="95" right="60"   
 			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
 			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
 	<!-- 工具栏上的地图切换 -->
-    <widget label="地图切换" preload="open" top="92" right="10" 
+    <widget label="地图切换" preload="open" top="145" right="20" 
     		config="widgets/MapSwitch/MapSwitcherWidget.xml" 
     		url="widgets/MapSwitch/MapSwitcherWidget.swf"/>	
    	<!-- 主菜单 -->		
@@ -55,7 +55,7 @@
 	<widget label="用户登录框" preload="open" right="10" top="10"
 				url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 			config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
-	<widget label="导航条" preload="open" left="370" top="165" 
+	<widget label="导航条" preload="open" left="370" top="145" 
     		config="widgets/Navigation/NavigationWidget.xml" 
     		url="widgets/Navigation/NavigationWidget.swf"/>	
 	<widget label="打印" showicon="false" preload="close" top="0" left="0"
@@ -63,13 +63,13 @@
 			config="widgets/Print/PrintWidget.xml"/>		
 	<!-- 105.587 28.424 109.412 30.976 -->
     <map top="0" left="350" initialextent="105.5960373813381 28.96475267063883 107.9253009471935 30.399705176876623" esrilogovisible="false">
-         <basemaps group="矢量地图" visible="true" selectedIcon="assets/images/mapswitch/map_down.png" unselectedIcon="assets/images/mapswitch/map_up.png">
+         <basemaps group="矢量" visible="true" selectedIcon="assets/images/mapswitch/vec.png" unselectedIcon="assets/images/mapswitch/vec.png">
  	 		<layer label="天地图地图" type="wmts" visible="true" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
  	 			wmtslayer="vec" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/vec_c/wmts"/>
  	 		<layer label="天地图地图注记" type="wmts" visible="true" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
  	 			wmtslayer="cva" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/cva_c/wmts"/>
         </basemaps>
-        <basemaps group="影像" visible="false" selectedIcon="assets/images/mapswitch/image_down.png" unselectedIcon="assets/images/mapswitch/image_up.png">
+        <basemaps group="影像" visible="false" selectedIcon="assets/images/mapswitch/img.png" unselectedIcon="assets/images/mapswitch/img.png">
          	<layer label="天地图影像" type="wmts" visible="false" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
  	 			style="default" wmtslayer="img" tileMatrixSet="c" format="tiles" url="http://t0.tianditu.com/img_c/wmts"/>
          	<layer label="天地图影像注记" type="wmts" visible="false" alpha="1" displaylevels="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17"
