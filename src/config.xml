@@ -24,6 +24,10 @@
 	<widget left="560" bottom="5" 
 			config="widgets/Copyright/CopyrightWidget.xml" 
 			url="widgets/Copyright/CopyrightWidget.swf" />
+	<!-- 导航栏 -->
+	<widget label="导航条" preload="open" left="370" top="145" 
+    		config="widgets/Navigation/NavigationWidget.xml" 
+    		url="widgets/Navigation/NavigationWidget.swf"/>	
 	<!-- 主工具栏背景 -->
 	<widget label="主工具栏"  preload="open" top="90" left="350"
 			url="widgets/CenterFloor/CenterFloorWidget.swf" 
@@ -55,9 +59,6 @@
 	<widget label="用户登录框" preload="open" right="10" top="10"
 				url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 			config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
-	<widget label="导航条" preload="open" left="370" top="145" 
-    		config="widgets/Navigation/NavigationWidget.xml" 
-    		url="widgets/Navigation/NavigationWidget.swf"/>	
 	<widget label="打印" showicon="false" preload="close" top="0" left="0"
 			url="widgets/Print/PrintWidget.swf" 
 			config="widgets/Print/PrintWidget.xml"/>		
