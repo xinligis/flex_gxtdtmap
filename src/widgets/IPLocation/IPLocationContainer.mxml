@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<popup:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx" 
+				   xmlns:popup="com.esri.viewer.components.customTitleWindow.*"
+				   xmlns:components="com.esri.viewer.components.*"
+				   borderVisible="false"
+				   backgroundColor="0x2B9DBF" color="0x4D565B"
+				   width="390" height="395" closeButtonVisible="true"
+				   creationComplete="popupwindow_creationCompleteHandler(event)"
+				   close="popupwindow_closeHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.controls.LinkButton;
+			import mx.events.CloseEvent;
+			import mx.events.FlexEvent;
+			import mx.managers.PopUpManager;
+			
+			private var chinaHashTable:Hashtable = new Hashtable();
+			private var provincesHashTable:Hashtable = new Hashtable();
+			
+			private var _config:XML;
+			
+			//配置文件
+			public function set config(value:XML):void
+			{
+				_config = value;
+			}
+
+			protected function popupwindow_creationCompleteHandler(event:FlexEvent):void
+			{
+				if(_config){
+					initIPLocation();
+					initGxGroup();
+					initIndexGroup();
+				}
+			}
+			
+			protected function popupwindow_closeHandler(event:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			
+			//读取配置文件
+			private function initIPLocation():void
+			{
+				if(_config){
+					var province:XMLList = _config.chinaprovinces.province;
+					var groupName:String = "";
+					var provinceName:String = "";
+					for (var i:int = 0; i < province.length(); i++)
+					{
+						provincesHashTable.add(String(province[i].@name),String(province[i]));
+						
+						if(groupName == province[i].@group){
+							provinceName += "," + province[i].@name;
+						}else{
+							if(i>0){
+								chinaHashTable.add(groupName,provinceName);
+							}
+							groupName = province[i].@group;
+							provinceName = province[i].@name;
+						}
+					}
+				}
+			}
+			
+			//初始化广西
+			private function initGxGroup():void
+			{
+				var gxProvince:String = provincesHashTable.find("广西");
+				var gxArray:Array = gxProvince.split(",");
+				
+				gxGroup.removeAllElements();
+				for each(var name:String in gxArray){
+					var linkButton:LinkButton = new LinkButton();
+					linkButton.label = name;
+					linkButton.setStyle("color", 0x4D565B);
+					linkButton.setStyle("rollOverColor", 0x2B9DBF);
+					linkButton.setStyle("textRollOverColor", 0xFFFFFF);
+					linkButton.addEventListener(MouseEvent.MOUSE_OUT,onOutHandler);
+					gxGroup.addElement(linkButton);
+				}
+			}
+			
+			//初始化全国索引
+			private function initIndexGroup():void
+			{
+				var chinaIndex:Array = ["全国","A","F","G","H","J","L","N","Q","S","X","Y","Z","其它"];
+				
+				indexGroup.removeAllElements();
+				for each(var name:String in chinaIndex){
+					var lnkBtn:LinkButton = new LinkButton();
+					lnkBtn.label = name;
+					lnkBtn.setStyle("paddingLeft", 0);
+					lnkBtn.setStyle("paddingRight", 0);
+					lnkBtn.setStyle("color", 0x4D565B);
+					lnkBtn.setStyle("rollOverColor", 0x2B9DBF);
+					lnkBtn.setStyle("textRollOverColor", 0xFFFFFF);
+					lnkBtn.addEventListener(MouseEvent.CLICK, onClickIndexCatalog);
+					indexGroup.addElement(lnkBtn);
+				}
+			}
+
+			//定位到广西各地市
+			private function onClickGXCatalog(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				trace(linkButton.label);
+			}
+			
+			//定位到全国各省
+			private function onClickIndexCatalog(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				trace(linkButton.label);
+				
+			}
+			
+			private function onOverHandler(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				linkButton.setStyle("color", 0x535353);
+				linkButton.setStyle("rollOverColor", 0x2B9DBF);
+				linkButton.setStyle("textRollOverColor", 0xFFFFFF);
+				linkButton.setStyle("textDecoration", "none");
+			}
+			
+			private function onOutHandler(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				linkButton.setStyle("color",0x4D565B);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<popup:layout>
+		<s:VerticalLayout gap="0" paddingLeft="2" paddingRight="2" paddingBottom="2"/>
+	</popup:layout>
+	<s:VGroup width="100%" height="24" paddingLeft="10" verticalAlign="middle">
+		<s:Label text="城市列表" fontSize="12" color="0xFFFFFF"/>
+	</s:VGroup>
+	<s:BorderContainer borderVisible="false" width="100%" height="100%" backgroundColor="0xFFFFFF">
+		<s:layout>
+			<s:VerticalLayout verticalAlign="top" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10" gap="15"/>
+		</s:layout>
+		<s:HGroup width="100%" height="40" gap="5">
+			<s:VGroup height="100%" paddingTop="5">
+				<s:Label id="gxLbl" text="广西:" fontSize="14" fontWeight="bold"/>
+			</s:VGroup>
+			<s:Group id="gxGroup" width="100%" height="40" right="3">
+				<s:layout>
+					<components:FlowLayout gapColumn="0" clipAndEnableScrolling="true"/>
+				</s:layout>
+			</s:Group>
+		</s:HGroup>
+		<mx:HRule width="95%"/>
+		<s:HGroup id="indexGroup" width="100%" gap="0" horizontalAlign="left" verticalAlign="middle"/>
+		<mx:HRule width="95%"/>
+		<s:Scroller width="100%" height="100%" horizontalScrollPolicy="auto" verticalScrollPolicy="off">
+			<s:VGroup id="provinceGroup" width="380" height="100%"/>
+		</s:Scroller>
+	</s:BorderContainer>
+</popup:PopUpWindow>

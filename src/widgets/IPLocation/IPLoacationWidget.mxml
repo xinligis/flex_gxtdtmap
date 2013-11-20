@@ -8,8 +8,8 @@
 				   xmlns:mx="library://ns.adobe.com/flex/mx"
 				   xmlns:esri="http://www.esri.com/2008/ags"
 				   xmlns:viewer="com.esri.viewer.*"
-				   xmlns:toc="com.esri.viewer.components.toc.*"
-				   widgetConfigLoaded="init()" xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*" >
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*" 
+				   widgetConfigLoaded="init()" xmlns:ipLocation="widgets.IPLocation.*" >
 	<fx:Script>
 		<![CDATA[
 			import com.esri.ags.FeatureSet;
@@ -21,7 +21,9 @@
 			import com.esri.ags.utils.GraphicUtil;
 			import com.esri.viewer.remote.RemoteHandler;
 			import com.esri.viewer.remote.RemoteResult;
+			import com.esri.viewer.utils.Hashtable;
 			
+			import mx.managers.PopUpManager;
 			import mx.controls.Alert;
 			import mx.events.CloseEvent;
 			import mx.rpc.AsyncRequest;
@@ -40,6 +42,9 @@
 			private var _fullNameField:String;
 			private var _isDebug:Boolean = false;
 			private var _extent:Extent = null;
+			
+			[Bindable]
+			private var _title:String = "广东省广州市";
 			
 			//ip定位的一个全图范围
 			private var _fullZoomRegion:Extent = null;
@@ -181,11 +186,34 @@
 				}
 			
 			}
+			
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOutHandler(event:MouseEvent):void
+			{
+				lbl.setStyle("color",0x4D565B);
+			}
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOverHandler(event:MouseEvent):void
+			{
+				lbl.setStyle("color",0xEA830D);
+			}
+			
+			protected function bordercontainer_clickHandler(event:MouseEvent):void
+			{
+				ipLocation.config = this.configXML;
+				PopUpManager.addPopUp(ipLocation,map,false);
+			}
+			
 		]]>
 	</fx:Script>	
-	
 	<fx:Declarations>
-		
+		<ipLocation:IPLocationContainer id="ipLocation" y="{this.y+this.height}" x="{this.x}"/>
 	</fx:Declarations>
 	<s:HGroup id="borderContainer" height="27" verticalAlign="middle" gap="0">
 		<s:Spacer width="10"/>
@@ -195,5 +223,16 @@
 		<s:Spacer width="20"/>
 		<s:Image id="locateBtn" source="@Embed('assets/images/iplocationwidget/unlocation.png')" visible="false" includeInLayout="false"/>
 	</s:HGroup>
+	<s:BorderContainer id="headerContainer" height="25" cornerRadius="3" buttonMode="true"
+					   color="0x4D565B" borderColor="0x2B9DBF" backgroundColor="0xEBEBEB" borderWeight="1"
+					   mouseOver="container_mouseOverHandler(event)"
+					   mouseOut="container_mouseOutHandler(event)"
+					   click="bordercontainer_clickHandler(event)">
+		<s:layout>
+			<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="5" paddingRight="5" gap="5"/>
+		</s:layout>
+		<s:Label id="lbl" text="{_title}" fontFamily="宋体" fontSize="12"/>
+		<s:Image source="@Embed('assets/images/horizontalwidgetProxy/arrow.png')"/>
+	</s:BorderContainer>
 </viewer:BaseWidget>
 
