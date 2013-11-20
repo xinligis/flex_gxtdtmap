@@ -115,6 +115,9 @@
 			}
 		}
 		
+		/**
+		 * 初始化弹出框Widget
+		 */ 
 		private function infoReady(event:AppEvent):void
 		{
 			var id:Number = Number(event.data.id);
@@ -188,6 +191,7 @@
 			resultCountLabel.text = ""+objectIdsArray.length;
 			resultTip.includeInLayout = true;
 			resultTip.visible = true;
+			stopBusyStatus();
 		}
 		
 		/**
@@ -211,7 +215,6 @@
 			query.outFields=layerObject.outFields;
 			queryTask.url=layerObject.url;
 			queryTask.execute(query, new AsyncResponder(proQueryResultByPageNum, onFault));
-			stopBusyStatus();
 		}
 		
 		/**
@@ -294,16 +297,6 @@
 			{
 				map.infoWindow.hide();
 			}
-		}
-		
-		private function clear():void
-		{
-			graphicsLayer.clear();
-			if (searchResultAC && searchResultAC.length)
-			{
-				searchResultAC.removeAll();
-			}
-			this.showInfoWindow(null);
 		}
 		
 		/**
