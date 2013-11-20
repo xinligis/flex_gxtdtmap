@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 -->
 <configuration>
-    <title>ArcGIS Viewer for Flex</title>
+    <title>广西天地图</title>
     <subtitle>a configurable web mapping application</subtitle>
     <logo>assets/images/logo.png</logo>
     <style>
