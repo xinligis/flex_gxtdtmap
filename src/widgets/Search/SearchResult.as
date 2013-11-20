@@ -24,19 +24,10 @@ public class SearchResult extends EventDispatcher
 {
 	public var index:uint; //所在的序号，基数为0
     public var title:String;
-
     public var symbol:Symbol;
-
     public var content:String;
-
     public var point:MapPoint;
-
     public var link:String;
-
 	public var multimedia:Array;
-    //public var geometry:Geometry;
-	
-	public var graphic:Graphic;
 }
-
 }

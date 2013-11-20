@@ -6,23 +6,14 @@
    		<linkfield></linkfield>
 		<!-- 主键字段名 -->
    		<oidfield>OBJECTID</oidfield>
-   		<fields all="false">
+   		<displayfields all="false">
         	 <field name="NAME" alias="名称"/>
       		 <field name="TELEPHONE" alias="电话"/>
 	  		 <field name="ADDRESS" alias="地址"/>
-  		</fields>
-		<expression>NAME Like '%[value]%'</expression>
-		<relatedtable>
-			<url></url>
-			<expression>RelateID = [value]</expression>
-			<multimediafield>URL</multimediafield>
-		</relatedtable>
-		<!--城市匹配表达式-->
-		<citymatch>PAC like '[value]%'</citymatch>
-		<districtmatch>PAC = '[value]'</districtmatch>
+  		</displayfields>
 		<!--分类匹配-->
-		<catalogmatch>TYPE = '[value]'</catalogmatch>
-		<subcatalogmatch>TYPE2='[value]'</subcatalogmatch>
+		<catalogmatch>TYPE = '[VALUE]'</catalogmatch>
+		<subcatalogmatch>TYPE2='[VALUE]'</subcatalogmatch>
 		<poicatalog name="餐饮" code="01">
 			<subcatalogs>
 				<subcatalog name="快餐" code="0101"/>
