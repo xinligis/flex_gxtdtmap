@@ -13,47 +13,55 @@
 				   width="100%" height="100%"
 				   widgetConfigLoaded="init()"
 				   initialize="widgetInitializeHandler(event)"
-				   xmlns:poiSearch="widgets.POISearch.*">
+				   xmlns:poiSearch="widgets.POISearch.*"
+				   xmlns:pageSelector="com.esri.viewer.components.pageSelector.*">
 <fx:Script>
 	<![CDATA[
+		import com.esri.ags.FeatureSet;
 		import com.esri.ags.Graphic;
+		import com.esri.ags.geometry.Geometry;
+		import com.esri.ags.geometry.MapPoint;
+		import com.esri.ags.geometry.Polygon;
+		import com.esri.ags.geometry.Polyline;
 		import com.esri.ags.layers.GraphicsLayer;
+		import com.esri.ags.symbols.PictureMarkerSymbol;
 		import com.esri.ags.symbols.Symbol;
+		import com.esri.ags.tasks.QueryTask;
+		import com.esri.ags.tasks.supportClasses.Query;
+		import com.esri.ags.utils.GraphicUtil;
 		import com.esri.viewer.AppEvent;
 		import com.esri.viewer.IInfowindowTemplate;
+		import com.esri.viewer.components.pageSelector.PageChangeEvent;
 		
 		import mx.collections.ArrayCollection;
+		import mx.controls.Alert;
+		import mx.core.UIComponent;
 		import mx.events.FlexEvent;
+		import mx.rpc.AsyncResponder;
+		import mx.utils.GraphicsUtil;
 		
+		import spark.components.supportClasses.ItemRenderer;
+		
+		//从搜索输入模块传递过来的事件
 		private var _postEvent:AppEvent;
-		// constants
 		private const ICON_URL:String = "assets/images/index/";
 		private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
 		private var infoUrl:String;
 		private var infoConfig:String;
-		
 		private var graphicsLayer:GraphicsLayer;
-		private var queryFields:XMLList;
-		private var _zoomLevel:Number = 13;
+		private var zoomLevel:Number = 5;
 		[Bindable]
-		private var lineLabel:String;
-		[Bindable]
-		private var pointLabel:String;
-		[Bindable]
-		private var polygonLabel:String;
-		[Bindable]
-		private var rectangleLabel:String;
-		[Bindable]
-		private var searchResultAC:ArrayCollection;
-		private var resultMarkerSymbol:Symbol;
-		//结果集中数据的状态
-		private var resultStatus:String = "normal";
-		//主键字段名
-		private var _oidFieldName:String="";
-		private var _searchWorker:SearchWorker = new SearchWorker();
-		private var highlightGraphic:Graphic;
+		private var searchResultAC:ArrayCollection = new ArrayCollection();
 		private var _symbolsPerPage:Array = [];
 		private var infoTemplate:IInfowindowTemplate;
+		private var layerObject:LayerObject = new LayerObject();
+		private const PAGE_COUNT:uint = 6;		//显示页码数
+		private const RECORDS_PER_PAGE:uint = 10; //每页显示的记录数
+		[Bindable]
+		private var totalPageCount:uint		//查询总页数
+		[Bindable]
+		private var totalCount:uint		//查询总个数
+		private var objectIdsArray:Array = [];	//查询结果ID数组
 		
 		private function widgetInitializeHandler(event:FlexEvent):void
 		{
@@ -64,15 +72,21 @@
 		{
 			if (configXML)
 			{
-				_oidFieldName = String(configXML.poi.oidfield);
+				//解析POI关键字查询图层
+				layerObject.url = configXML.poi.url;
+				layerObject.titlefield = configXML.poi.titlefield;
+				layerObject.expression = configXML.poi.expression;
+				layerObject.outFields = new Array();
+				layerObject.outFieldAlias = new Array();
+				var fields:XMLList = configXML.poi.displayfields.field;
+				for each (var fieldTemp:XML in fields){
+					layerObject.outFields.push(fieldTemp.@name);
+					layerObject.outFieldAlias.push(fieldTemp.@alias);
+				}
 				
 				// infoUrl
 				infoUrl = configXML.info;
 				infoConfig = configXML.infoConfig;
-				
-				graphicsLayer = new GraphicsLayer();
-				graphicsLayer.name = "POISearchResults";
-				map.addLayer(graphicsLayer);
 				
 				//加载infowindow
 				var data:Object =
@@ -85,21 +99,19 @@
 				
 				if (Number(configXML.zoomlevel) > 0)
 				{
-					_zoomLevel = Number(configXML.zoomlevel);
+					zoomLevel = Number(configXML.zoomlevel);
 				}
 				
-				_searchWorker.oidFieldName = _oidFieldName;
-				_searchWorker.graphicsLayer = graphicsLayer;
-				_searchWorker.expression = String(configXML.poicatalogs.expression);
-			}
-			map.infoWindow.addEventListener(Event.CLOSE, closeMessage);
-		}
-		
-		private function closeMessage(event:Event):void
-		{
-			if(highlightGraphic)
-			{
-				highlightGraphic.symbol = resultMarkerSymbol;
+				//序号图片
+				for(var index:int = 0; index < 10; ++index)
+				{
+					var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICON[index],22,26,0,0);
+					_symbolsPerPage.push(pictureSymbol);
+				}
+				
+				graphicsLayer = new GraphicsLayer();
+				graphicsLayer.name = "POISearchResults";
+				map.addLayer(graphicsLayer);
 			}
 		}
 		
@@ -109,365 +121,158 @@
 			if (id == this.widgetId)
 			{
 				infoTemplate = event.data.infoWidget;
-				infoTemplate.infoConfig = configXML;
-				//王红亮，2011-04-08
-				var bWidget:BaseWidget = infoTemplate as BaseWidget;
-				if(bWidget)
+				//弹出框模块加载完成之后，再处理从输入框中传递过来的数据，避免WidgetManager无法加载InfoWindow.swf而导致的错误
+				if(this._postEvent)
 				{
-					bWidget.configData = this.configData;
+					onPostprocess(this._postEvent);
 				}
 			}
 		}
 		
 		/**
-		 * 开始查询。温杨彪；2012-9-18 重构
-		 * @param filterGeometry 过滤的空间信息
-		 **/
-		private function startQuery():void
+		 * 获取查询关键字
+		 */
+		private function onPostprocess(event:AppEvent):void
 		{
-			var filter:QueryFilter = new QueryFilter();
-			if(_currentPOICatalog != null)
+			if(this.widgetId != event.data.postprocessor)
 			{
-				filter.poiCatalogCode = String(_currentPOICatalog.@code);
-				filter.url = String(configXML.poicatalogs.url);
+				return;
+			}
+			if(!configXML)
+			{
+				this._postEvent = event;
+				return;
 			}
 			else
 			{
-				filter.url = String(configXML.general.url);
-			}
-			if(_currentPOISubCatalog != null)
-			{
-				filter.subPOICatalogCode = String(_currentPOISubCatalog.@code)
-			}
-			
-			noResultGrp.visible = false;
-			noResultGrp.includeInLayout = false;
-			graphicsLayer.clear();
-			this.searchResultDG.dataProvider = null;
-			startBusyStatus();
-			
-			filter.outFields = [_oidFieldName];
-			_searchWorker.queryByFilter(filter,new AsyncResponder(queryByFilter_resultHandler,queryByFilter_faultHandler));
-		}
-		
-		private function queryByFilter_resultHandler(result:FeatureSet,token:Object = null):void
-		{
-			createSymbols()
-			stopBusyStatus();
-			if(result.attributes.length<1)
-			{
-				noResultGrp.visible = true;
-				noResultGrp.includeInLayout = true;
-				resultTip.visible = false;
-				resultTip.includeInLayout = false;
-			}
-			else
-			{
-				noResultGrp.visible = false;
-				noResultGrp.includeInLayout = false;
-				resultTip.visible = true;
-				resultTip.includeInLayout = true;
-				countLabel.text = ""+result.features.length;
-			}
-			
-			try
-			{
-				searchResultAC = createSearchResults(result);
-				var totalLength:uint = searchResultAC.length;
-				const totalPageCount:uint = (totalLength % RECORDS_PER_PAGE == 0) ? (totalLength / RECORDS_PER_PAGE) : (totalLength / RECORDS_PER_PAGE + 1);
-				
-				pagesSelector.set_TotalCount(totalPageCount);
-				switchToPage(1);
-			}
-			catch (error:Error)
-			{
-				
+				this._postEvent = null;
+				var queryData:Object = event.data;
+				var queryName:String = queryData.queryName;
+				//开始查询
+				this.queryForIds(queryName);
 			}
 		}
-		private function queryByFilter_faultHandler(fault:Fault,token:Object = null):void
-		{
-			Alert.show("查询失败\n"+fault.faultString);
-			return;
-		}
-		
-		private function onSearchResultProcess(event:AppEvent):void
-		{
-			switch(event.data.process)
-			{
-				case 1:
-					resultStatus = "start";
-					break
-				case 2:
-					resultStatus = "end";
-					break;
-			}
-		}
-		
-		
-		//create record data
-		private function createSearchResults(featureSet:FeatureSet):ArrayCollection
-		{
-			var result:ArrayCollection = new ArrayCollection();
-			for each (var graphic:Graphic in featureSet.features)
-			{
-				graphic.addEventListener(MouseEvent.CLICK, graphic_clickHandler);
-				var searchResult:SearchResult = new SearchResult();
-				searchResult.graphic = graphic;
-				var point:MapPoint = getGeomCenter(graphic);
-				if (point && !isNaN(point.x) && !isNaN(point.y)) // make sure it is a valid point
-				{
-					result.addItem(searchResult);
-					graphicsLayer.add(graphic);
-				}
-			}
-			return result;
-		}
-		
-		private function graphic_clickHandler(event:MouseEvent):void
-		{
-			var gra:Graphic = event.currentTarget as Graphic;
-			for each(var searchResult:SearchResult in searchResultDG.dataProvider)
-			{
-				if(searchResult.graphic == gra)
-				{
-					showHighlight([searchResult]);
-					break;
-				}
-			}
-			
-		}
-		
 		
 		/**
-		 * 获取几何对象的中心点
+		 * 查询满足条件的所有ID
 		 */ 
-		private function getGeomCenter(graphic:Graphic):MapPoint
+		private function queryForIds(keyword:String):void
 		{
-			var pt:MapPoint;
-			switch (graphic.geometry.type)
-			{
-				case Geometry.MAPPOINT:
-				{
-					pt = graphic.geometry as MapPoint;
-					break;
-				}
-				case Geometry.POLYLINE:
-				{
-					const pl:Polyline = graphic.geometry as Polyline;
-					const pathCount:Number = pl.paths.length;
-					const pathIndex:int = int((pathCount / 2) - 1);
-					const midPath:Array = pl.paths[pathIndex];
-					const ptCount:Number = midPath.length;
-					const ptIndex:int = int((ptCount / 2) - 1);
-					pt = pl.getPoint(pathIndex, ptIndex);
-					break;
-				}
-				case Geometry.POLYGON:
-				{
-					const poly:Polygon = graphic.geometry as Polygon;
-					pt = poly.extent.center;
-					break;
-				}
-			}
-			return pt;
+			startBusyStatus();
+			resultTip.includeInLayout = false;
+			resultTip.visible = false;
+			var queryTask:QueryTask = new QueryTask();
+			queryTask.disableClientCaching = false;
+			queryTask.useAMF = true;
+			queryTask.url = layerObject.url;
+			var query:Query=new Query();
+			query.returnGeometry = false;
+			query.where = layerObject.expression.replace("[VALUE]",keyword);
+			queryTask.executeForIds(query, new AsyncResponder(onExecuteForIdsComplete, onFault));
 		}
 		
-		private const PAGE_COUNT:uint = 6;
-		private const RECORDS_PER_PAGE:uint = 10; //每页显示的记录数
+		/**
+		 * ID结果处理函数
+		 */ 
+		private function onExecuteForIdsComplete(objectIds:Array,token:Object=null):void{
+			objectIdsArray = objectIds;
+			this.totalCount = objectIds.length;
+			var totalLength:uint = uint(objectIds.length);
+			totalPageCount = totalLength % RECORDS_PER_PAGE == 0 ? totalLength / RECORDS_PER_PAGE : (totalLength / RECORDS_PER_PAGE + 1);
+			pagesSelector.set_TotalCount(totalPageCount);	//总页数
+			if(objectIds.length>0){
+				doQueryByPageNun(1);
+			}else{
+				searchResultAC.removeAll();
+			}
+			resultCountLabel.text = ""+objectIdsArray.length;
+			resultTip.includeInLayout = true;
+			resultTip.visible = true;
+		}
 		
 		/**
-		 * 转换到某一页
-		 * @param pageNum 目标页面，base：0
-		 * @return 无
-		 * 2011-07-08
-		 */
-		private function switchToPage(pageNum:uint):void
-		{
-			var totalLength:uint = searchResultAC.length;
-			const totalPageCount:uint = totalLength % RECORDS_PER_PAGE == 0 ? totalLength / RECORDS_PER_PAGE : (totalLength / RECORDS_PER_PAGE + 1);
-			if(pageNum > totalPageCount || pageNum < 1)
-				return;
+		 * 分页查询要素
+		 */ 
+		private function doQueryByPageNun(startPageId:int):void{
+			searchResultAC.removeAll();
+			graphicsLayer.clear();
 			map.infoWindow.hide();
-			var startIndex:uint = (pageNum - 1) * RECORDS_PER_PAGE;
-			var endIndex:uint = startIndex + RECORDS_PER_PAGE;
-			endIndex = endIndex <= searchResultAC.length ? endIndex : searchResultAC.length;
-			var records:ArrayCollection = new ArrayCollection(searchResultAC.source.slice(startIndex, endIndex));
-			//恢复之前作为当前页的符号显示
-			if(searchResultDG.dataProvider)
-			{
-				for each(var item:SearchResult in searchResultDG.dataProvider)
-				{
-					item.graphic.symbol = null;
-				}
+			var queryTask:QueryTask = new QueryTask();
+			queryTask.disableClientCaching = false;
+			var query:Query=new Query();
+			var startIndexObjectIDArrayInPage:int = (startPageId - 1) * RECORDS_PER_PAGE;
+			var endIndexObjectIDArrayInPage:int = startIndexObjectIDArrayInPage + RECORDS_PER_PAGE;
+			if (endIndexObjectIDArrayInPage > this.totalCount){
+				endIndexObjectIDArrayInPage = this.totalCount;
 			}
-			//以图片符号显示当前页
-			var index:int = 0;
-			for each(item in records)
-			{
-				item.graphic.symbol = _symbolsPerPage[index];
-				item.index = index;
-				index += 1;
-			}
-			//查询当前页内的所有graphic的属性信息
-			queryProperties(records);
+			query.objectIds = objectIdsArray.slice(startIndexObjectIDArrayInPage, endIndexObjectIDArrayInPage);
+			query.returnGeometry = true;
+			query.orderByFields = [layerObject.titlefield];
+			query.outFields=layerObject.outFields;
+			queryTask.url=layerObject.url;
+			queryTask.execute(query, new AsyncResponder(proQueryResultByPageNum, onFault));
+			stopBusyStatus();
 		}
 		
 		/**
-		 * 查询数组内所有图形的属性信息
-		 */
-		private function queryProperties(records:ArrayCollection):void
-		{
-			var ids:Array = [];
-			for each(var result:SearchResult in records)
-			{
-				ids.push(result.graphic.attributes[_oidFieldName]);
-			}
-			var filter:QueryFilter = new QueryFilter();
-			filter.oids = ids;
-			//输出字段
-			var queryFieldsXML:XML;
-			var foreignKeyField:String="";
-			if(_currentPOICatalog)
-			{
-				queryFieldsXML = configXML.poicatalogs.fields[0];
-				filter.url = String(configXML.poicatalogs.url);
-				foreignKeyField= configXML.poicatalogs.foreignkeyfield;
-			}
-			else
-			{
-				queryFieldsXML = configXML.general.fields[0];
-				filter.url = String(configXML.general.url);
-				foreignKeyField = configXML.general.foreignkeyfield;
-			}
-			
-			if(!queryFieldsXML)
-			{
-				return;
-			}
-			filter.outFields = [];
-			for each (var fieldXML:XML in queryFieldsXML.field)
-			{
-				if (fieldXML.@name[0])
-				{
-					filter.outFields.push(String(fieldXML.@name[0]));
+		 * 分页查询返回结果处理
+		 */ 
+		private function proQueryResultByPageNum(featureSet:FeatureSet,token:Object=null):void{
+			var results:ArrayCollection=new ArrayCollection();
+			var features:Array=featureSet.features;
+			for (var i:int=0; i < features.length; i++){
+				var feature:Graphic=features[i];
+				var result:SearchResult=new SearchResult();	//自定义查询结果对象
+				var content:String = new String();	//显示内容
+				for (var j:int=0; j < layerObject.outFields.length; j++){
+					var att:String=layerObject.outFields[j];//字段
+					content += layerObject.outFieldAlias[j] + "：" + feature.attributes[att] + "\n";
 				}
-			}	
-			
-			//如果外键没有设置，则不查询外键  温杨彪；2011-11-29
-			if(foreignKeyField!="")
-			{
-				filter.outFields.push(foreignKeyField);
-			}
-			_searchWorker.queryDetailByIds(filter,new AsyncResponder(queryDetailByIds_resultHandler, queryByFilter_faultHandler, records));
-		}
-		
-		private function queryDetailByIds_resultHandler(featureSet:FeatureSet, records:ArrayCollection = null):void
-		{
-			var queryFieldsXML:XMLList;
-			if(_currentPOICatalog)
-			{
-				queryFields = configXML.poicatalogs.fields;
-			}
-			else
-			{
-				queryFields = configXML.general.fields;
-			}
-			var fields:XMLList = queryFields[0] ? queryFields[0].field : null;
-			
-			var queryTitleField:String;
-			var queryLinkField:String;
-			var queryForeignKeyField:String;
-			if(_currentPOICatalog)
-			{
-				queryTitleField	= configXML.poicatalogs.titlefield[0];
-				queryLinkField = configXML.poicatalogs.linkfield[0];
-				queryForeignKeyField = String(configXML.poicatalogs.foreignkeyfield);
-			}
-			else
-			{
-				queryTitleField	= configXML.general.titlefield[0];
-				queryLinkField = configXML.general.linkfield[0];
-				queryForeignKeyField = String(configXML.general.foreignkeyfield);
-			}
-			var graphic:Graphic;
-			var value:String = "";
-			var title:String = "";
-			var content:String = "";
-			var link:String = "";
-			var foreignKey:String = "";
-			var searchResult:SearchResult;
-			for (var index:uint = 0; index < featureSet.features.length; ++index)
-			{
-				title = "";
-				content = "";
-				link = "";
-				foreignKey = "";
-				graphic = featureSet.features[index];
-				for each(var fieldXML:XML in fields)
-				{
-					value = "";
-					var fieldName:String;
-					fieldName = fieldXML.@name || "";
-					fieldName = fieldName.toUpperCase();
-					for(var attribute:String in graphic.attributes)
-					{
-						if(attribute.toUpperCase() != fieldName)
-							continue;
-						value = graphic.attributes[attribute] ? String(graphic.attributes[attribute]) : "";
-						if (fieldName.toUpperCase() == queryTitleField.toUpperCase())
-						{
-							title = value;
-						}
-						else if (queryLinkField != null && queryLinkField.toString() != "" && fieldName.toUpperCase() == queryLinkField.toUpperCase())
-						{
-							link = value;
-						}
-						else if (fieldName.toUpperCase() == queryForeignKeyField.toUpperCase())
-						{
-							foreignKey = value;
-						}
-						else
-						{
-							content += (fieldXML.@alias || fieldName) + "：" + value + "\n";
-						}
-						
-					}
-				}
+				result.title = feature.attributes[layerObject.titlefield];	//弹出框标题
+				result.content = content;
+				result.index = i;
+				result.point = getGeomCenter(feature.geometry);		//要素中心点
+				results.addItem(result);
 				
-				if(content.length > 0)
-				{
-					content = content.substring(0, content.length - 1);
-				}
-				searchResult = records[index];
-				//获取外键的值，2011-08-18
-				//温杨彪修改，2011-11-29，如果外键为空，则不加外键
-				if(queryForeignKeyField.toUpperCase() != _oidFieldName && queryForeignKeyField!="")
-				{
-					searchResult.graphic.attributes[queryForeignKeyField] = foreignKey;
-				}
-				searchResult.title = title;
-				searchResult.content = content;
-				searchResult.link = link ? link : null;
+				//地图上的显示要素
+				var resultGraphic:Graphic = new Graphic(result.point,this._symbolsPerPage[i]);
+				resultGraphic.attributes=result;
+				resultGraphic.addEventListener(MouseEvent.CLICK, graphicMouseClickHandler);
+				graphicsLayer.add(resultGraphic);
 			}
-			searchResultDG.dataProvider = records;
+			searchResultAC = results;
 			map.extent = GraphicUtil.getGraphicsExtent(featureSet.features);
 		}
 		
-		/**显示graphic的属性
-		 * @param graphic 含有属性的graphic
-		 * @param fieldXML 含有字段信息的配置xml
-		 * @param titleField 标题字段
-		 * @param linkField 详细信息字段
-		 * @param foreignKeyField 外键字段
-		 */
-		private function displayField(graphic:Graphic, 
-									  fieldXML:XML,
-									  titleField:String,
-									  linkField:String = "",
-									  foreignKeyField:String=""):void
-		{
-			
+		private function onFault(info:Object, token:Object=null):void{
+			stopBusyStatus();
+			Alert.show("发现异常,请联系管理员.内容："+info.toString());
 		}
+		
+		/***
+		 * 单击图标并弹出信息框
+		 **/ 
+		private function graphicMouseClickHandler(event:MouseEvent):void
+		{
+			var gra:Graphic=event.currentTarget as Graphic;
+			var result:SearchResult=gra.attributes as SearchResult;
+			var infoWindowData:Object = {title:result.title, 
+				content:result.content,
+				point:result.point};
+			this.showInfoWindow(infoWindowData);
+		}
+		
+		/**
+		 * 单击结果列表中的某个结果
+		 */ 
+		private function clickSearchResult(event:Event):void{
+			var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+			var infoWindowData:Object = {title:result.title, 
+				content:result.content,
+				point:result.point};
+			this.showInfoWindow(infoWindowData);
+		}
+		
 		
 		/**
 		 * 弹出框
@@ -476,28 +281,20 @@
 		{
 			if (infoData)
 			{
-				//map.infoWindow.width = 320;
-				
-				//王红亮，2011-04-08
 				var infoWindowData:Object = {title:infoData.title, 
 					content:infoData.content,
-					link:infoData.link,
-					multimedia:infoData.graphic.attributes.multimedia,
-					graphic:infoData.graphic,
-					fromWidget:this};
-				
-				//温杨彪；2011-7-29   让infoWindow第一次能显示东西
+					graphic:infoData.graphic};
 				infoTemplate.data = infoWindowData;
 				map.infoWindow.content = infoTemplate as UIComponent;
 				map.infoWindow.label = infoData.title || "";
-				map.infoWindow.show(getGeomCenter(infoData.graphic));
+				map.infoWindow.show(infoData.point);
+				map.centerAt(infoData.point);
 			}
 			else
 			{
 				map.infoWindow.hide();
 			}
 		}
-		
 		
 		private function clear():void
 		{
@@ -509,87 +306,56 @@
 			this.showInfoWindow(null);
 		}
 		
-		private var hitimer:uint;
-		
-		private function mouseOverSearchResult(event:Event):void
-		{
-			clearTimeout(hitimer);
-			hitimer = setTimeout(showHighlight, 800, [ ItemRenderer(event.target).data as SearchResult ]);
-		}
-		
-		private function mouseOutSearchResult(event:Event):void
-		{
-			clearTimeout(hitimer);
-		}
-		
 		/**
-		 * 点击搜索结果后的移动屏幕，此时不需要重新搜索。主要针对“可视区域”搜索时使用
-		 **/
-		private var _isClickSearchResult:Boolean = false;
-		private function clickSearchResult(event:Event):void
-		{
-			var searchResult:SearchResult = ItemRenderer(event.target).data as SearchResult;
-			if (map.level < _zoomLevel)
-			{
-				map.level = _zoomLevel;
-			}
-			map.centerAt(getGeomCenter(searchResult.graphic));
-		}
-		
-		private function showHighlight(params:Array):void
-		{
-			var searchResult:SearchResult = params[0];
-			
-			var graphic:Graphic = searchResult.graphic;
-			if(!graphic)
-				return;
-			this.showInfoWindow(searchResult);
-			return;
-			
-			//查询该图形关联的多媒体信息
-			var queryTask:QueryTask = new QueryTask();
-			var relatedtableXML:XML;
-			queryTask.url = relatedtableXML.url;
-			queryTask.useAMF = true;
-			var query:Query = new Query();
-			query.returnGeometry = false;
-			var express:String = relatedtableXML.expression;
-			var keyValue:String;
-			var foreignKeyField:String;
-			for(var attribute:String in graphic.attributes)
-			{
-				if(foreignKeyField.toUpperCase() == attribute.toUpperCase())
-				{
-					keyValue = graphic.attributes[attribute]||"0";
+		 * 获取几何中心点
+		 */ 
+		private function getGeomCenter(geo:Geometry):MapPoint{
+			var pt:MapPoint;
+			switch (geo.type){
+				case Geometry.MAPPOINT:{
+					pt = geo as MapPoint;
+					break;
+				}case Geometry.POLYLINE:{
+					var pl:Polyline = geo as Polyline;
+					var pathCount:Number = pl.paths.length;	
+					var pathIndex:int = int((pathCount / 2) - 1);
+					var midPath:Array = pl.paths[pathIndex];
+					var ptCount:Number = midPath.length;
+					//如果一条折先只有两个折点
+					if(ptCount==2){
+						var startPoint:MapPoint = pl.getPoint(pathIndex, 0);
+						var endPoint:MapPoint = pl.getPoint(pathIndex, 1);
+						var x:Number = startPoint.x + (endPoint.x -startPoint.x)/2 ;
+						var y:Number = startPoint.y + (endPoint.y -startPoint.y)/2 ;
+						pt = new MapPoint(x,y,map.spatialReference);
+					}else{
+						var ptIndex:int = int((ptCount / 2) - 1);
+						pt = pl.getPoint(pathIndex, ptIndex);
+					}
+					break;
+				}case Geometry.POLYGON:{
+					var poly:Polygon = geo as Polygon;
+					pt = poly.extent.center;
 					break;
 				}
 			}
-			if(keyValue == "")
-			{
+			return pt;
+		}
+		
+		private function pageChangedHandler(event:PageChangeEvent):void{
+			switchToPage(event.currentPage);
+		}
+		
+		/**
+		 * 转换到某一页
+		 * @param pageNum 目标页面
+		 * @return 无
+		 */
+		private function switchToPage(pageNum:uint):void{
+			if(pageNum > totalPageCount || pageNum < 1){
 				return;
-			}
-			query.where = express.replace("[value]", keyValue);
-			var multimediaField:String = relatedtableXML.multimediafield;
-			query.outFields = [multimediaField];
-			queryTask.execute(query, new AsyncResponder(query_resultHandler, onFault, graphic));
-			
-			function query_resultHandler(featureSet:FeatureSet, token:Graphic = null):void
-			{
-				var arr:Array = [];
-				for each(var result:Graphic in featureSet.features)
-				{
-					arr.push(result.attributes[multimediaField]);
-					
-				}
-				token.attributes.multimedia = arr;
-				
-				showInfoWindow(params[0]);
-			}
-			
-			function onFault(fault:Object, token:Object = null):void
-			{
-				token.attributes.multimedia = [];
-				showInfoWindow(params[0]);
+			}else{
+				doQueryByPageNun(pageNum);
 			}
 		}
 		
@@ -623,65 +389,6 @@
 			loadingStatusGroup.visible = false;
 			loadingStatusGroup.includeInLayout = false;
 		}
-		
-		private function closeMessage(event:Event):void
-		{
-			if(highlightGraphic)
-			{
-				highlightGraphic.symbol = resultMarkerSymbol;
-			}
-		}
-		
-		protected function pagesselector1_PageChangedHandler(event:com.esri.viewer.components.pageSelector.PageChangeEvent):void
-		{
-			switchToPage(event.currentPage);
-		}
-		
-		
-		/**
-		 * 创建图层的显示符号，包括普通符号和高亮符号
-		 **/
-		private function createSymbols():void
-		{
-			//符号显示
-			var catalogXML:XML;
-			catalogXML = _currentPOICatalog;
-			const SIZE:Number = catalogXML.simplemarkersymbol.@size || 10;
-			const COLOR:Number = catalogXML.simplemarkersymbol.@color || 0x000000;
-			const ALPHA:Number = catalogXML.simplemarkersymbol.@alpha || 1.0;
-			this.resultMarkerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.STYLE_CIRCLE, SIZE, COLOR, ALPHA);
-			this.graphicsLayer.symbol = resultMarkerSymbol;
-			
-			_symbolsPerPage = [];
-			for(var index:int = 0; index < RECORDS_PER_PAGE; ++index)
-			{
-				var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(this.ICON_URL+TAG_ICON[index]);
-				_symbolsPerPage.push(pictureSymbol);
-			}
-		}
-		
-		/**
-		 * 获取查询关键字
-		 */
-		private function onPostprocess(event:AppEvent):void
-		{
-			if(this.widgetId != event.data.postprocessor)
-			{
-				return;
-			}
-			if(!configXML)
-			{
-				this._postEvent = event;
-				return;
-			}
-			else
-			{
-				this._postEvent = null;
-				var queryData:Object = event.data;
-				var queryName:String = queryData.queryName;
-				//开始查询
-			}
-		}
 	]]>
 </fx:Script>
 	<viewer:SplitWidgetTemplate id="wTemplate" fontFamily="宋体"
@@ -692,8 +399,7 @@
 		<viewer:layout>
 			<s:VerticalLayout horizontalAlign="center" verticalAlign="top" paddingLeft="7" paddingRight="7"/>
 		</viewer:layout>
-		<!-- result-->
-		<s:VGroup width="100%" horizontalAlign="left" verticalAlign="middle" paddingTop="0">
+		<s:VGroup width="100%" height="100%" horizontalAlign="left" verticalAlign="top" paddingTop="0">
 			<s:BorderContainer id="resultTip" width="100%" height="25" borderVisible="false"
 							   includeInLayout="false" visible="false"
 							   backgroundColor="0xf3f6fa">
@@ -701,7 +407,7 @@
 					<s:HorizontalLayout horizontalAlign="right" verticalAlign="middle"/>
 				</s:layout>
 				<s:Label text="共有" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
-				<s:Label id="countLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0xff8105"/>
+				<s:Label id="resultCountLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0xff8105"/>
 				<s:Label text="条结果" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
 			</s:BorderContainer>
 			<s:BorderContainer width="100%" height="25" borderVisible="false" 
@@ -718,12 +424,10 @@
 				<s:SWFLoader source="assets/images/loading.swf"/>
 				<s:Label text="正在搜索..." fontFamily="宋体" fontSize="12" color="#4061ad"/>
 			</s:VGroup>
-			<s:Scroller width="100%" maxHeight="380" verticalScrollPolicy="auto">
+			<s:Scroller width="100%"  height="100%" verticalScrollPolicy="auto">
 				<poiSearch:SearchResultDataGroup id="searchResultDG" width="100%"
-											  fontFamily="宋体"
-											  searchResultClick="clickSearchResult(event)"
-											  searchResultMouseOut="mouseOutSearchResult(event)"
-											  searchResultMouseOver="mouseOverSearchResult(event)">
+											  fontFamily="宋体" dataProvider="{searchResultAC}"
+											  searchResultClick="clickSearchResult(event)">
 					<poiSearch:layout>
 						<s:VerticalLayout gap="10"
 										  horizontalAlign="justify"
@@ -737,8 +441,8 @@
 						<s:SolidColor color="0xffffff" alpha="0"/>
 					</s:fill>
 				</s:Rect>
-				<poiSearch:PagesSelector PageChanged="pagesselector1_PageChangedHandler(event)" 
-											pageCount="6" id="pagesSelector" horizontalCenter="0"/>
+				<pageSelector:PagesSelector PageChanged="pageChangedHandler(event)" 
+											pageCount="{this.PAGE_COUNT}" id="pagesSelector" horizontalCenter="0"/>
 			</s:Group>
 		</s:VGroup>
 	</viewer:SplitWidgetTemplate>

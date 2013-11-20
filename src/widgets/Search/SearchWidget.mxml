@@ -79,11 +79,8 @@
 			import spark.components.supportClasses.ItemRenderer;
 			import spark.events.IndexChangeEvent;
 			// constants
-			private const ICON_URL:String = "assets/images/";
-			[Bindable]
-			private static var TAG_ICON:Array = ["01.png", "02.png", "03.png", "04.png", "05.png", "06.png", "07.png", "08.png", "09.png"];
-			[Bindable]
-			private var _configXML:XML;
+			private const ICON_URL:String = "assets/images/index/";
+			private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
 			private var infoUrl:String;
 			private var infoConfig:String;
 			
@@ -147,7 +144,7 @@
 					infoConfig = configXML.infoConfig;
 					
 					graphicsLayer = new GraphicsLayer();
-					graphicsLayer.name = "Search Results";
+					graphicsLayer.name = "SearchResults";
 					map.addLayer(graphicsLayer);
 					
 					//加载infowindow
@@ -208,7 +205,9 @@
 					var linkButton:LinkButton = new LinkButton();
 					linkButton.label = name;
 					linkButton.setStyle("color", 0x535353);
-					linkButton.setStyle("textDecoration", "underline");
+					linkButton.setStyle("rollOverColor", 0x2B9DBF);
+					linkButton.setStyle("textRollOverColor", 0xFFFFFF);
+					linkButton.setStyle("textDecoration", "none");
 					linkButton.addEventListener(MouseEvent.CLICK, onClickRootCatalog);
 					this.catalogGroup.addElement(linkButton);
 				}
@@ -224,7 +223,7 @@
 					case "1":
 						var index:int = 0;
 						initLeafCatalog(index);
-						catalogLabel.text = "> 餐饮";
+						catalogLabel.label = "> 餐饮";
 						
 						//设置查询的参数
 						poiXML = configXML.poicatalogs.poicatalog[index];
@@ -232,7 +231,7 @@
 					case "2":
 						index = 1;
 						initLeafCatalog(index);
-						catalogLabel.text = "> 购物";
+						catalogLabel.label = "> 购物";
 						
 						//设置查询的参数
 						poiXML = configXML.poicatalogs.poicatalog[index];
@@ -240,7 +239,7 @@
 					case "3":
 						index = 13;
 						initLeafCatalog(index);
-						catalogLabel.text = "> 企事业单位";
+						catalogLabel.label = "> 企事业单位";
 						
 						//设置查询的参数
 						poiXML = configXML.poicatalogs.poicatalog[index];
@@ -248,7 +247,7 @@
 					case "4":
 						index = 6;
 						initLeafCatalog(index);
-						catalogLabel.text = "> 金融服务";
+						catalogLabel.label = "> 金融服务";
 						
 						//设置查询的参数
 						poiXML = configXML.poicatalogs.poicatalog[index];
@@ -261,7 +260,7 @@
 			protected function catalogLabel_clickHandler(event:MouseEvent):void
 			{
 				initLeafCatalog(_rootCatalogIndex);
-				leafLabel.text = "";
+				leafLabel.label = "";
 				
 				//设置查询的参数
 				var poiXML:XML = configXML.poicatalogs.poicatalog[_rootCatalogIndex];
@@ -272,8 +271,8 @@
 			private function onClickCatalog(event:MouseEvent):void
 			{
 				this.initRootCatalog();
-				catalogLabel.text = "";
-				leafLabel.text = "";
+				catalogLabel.label = "";
+				leafLabel.label = "";
 				_currentPOICatalog = null;
 				_currentPOISubCatalog = null;
 			}
@@ -298,7 +297,7 @@
 					return;
 				
 				initLeafCatalog(index);
-				catalogLabel.text = "> " + linkButton.label;
+				catalogLabel.label = "> " + linkButton.label;
 				
 				//设置查询的参数
 				_currentPOICatalog = configXML.poicatalogs.poicatalog[index];
@@ -326,7 +325,9 @@
 					var linkButton:LinkButton = new LinkButton();
 					linkButton.label = name;
 					linkButton.setStyle("color", 0x535353);
-					linkButton.setStyle("textDecoration", "underline");
+					linkButton.setStyle("rollOverColor", 0x2B9DBF);
+					linkButton.setStyle("textRollOverColor", 0xFFFFFF);
+					linkButton.setStyle("textDecoration", "none");
 					linkButton.addEventListener(MouseEvent.CLICK, onClickLeafCatalog);
 					this.catalogGroup.addElement(linkButton);
 				}
@@ -344,7 +345,7 @@
 				var linkButton:LinkButton = event.target as LinkButton;
 				linkButton.setStyle("fontWeight","bold");
 				_lastLinkButton = linkButton;
-				leafLabel.text = "> " + linkButton.label;
+				leafLabel.label = "> " + linkButton.label;
 				var index:int = catalogGroup.getElementIndex(linkButton);
 				_currentPOISubCatalog = _currentPOICatalog.subcatalogs[0].subcatalog[index];
 				startQuery();
@@ -416,7 +417,7 @@
 					noResultGrp.includeInLayout = false;
 					resultTip.visible = true;
 					resultTip.includeInLayout = true;
-					resultCountLabel.text ="共有"+result.features.length+"条结果";
+					resultCountLabel.text =""+result.features.length;
 				}
 				
 				try
@@ -881,7 +882,7 @@
 				}
 			}
 			
-			protected function pagesselector1_PageChangedHandler(event:com.esri.viewer.components.pageSelector.PageChangeEvent):void
+			protected function pagesselector1_PageChangedHandler(event:PageChangeEvent):void
 			{
 				switchToPage(event.currentPage);
 			}
@@ -916,37 +917,47 @@
 								closed="widgetClosedHandler(event)"
 								open="widgetOpenedHandler(event)" >
 		<viewer:layout>
-			<s:VerticalLayout gap="10" horizontalAlign="center"/>
+			<s:VerticalLayout horizontalAlign="center" verticalAlign="top" paddingLeft="7" paddingRight="7"/>
 		</viewer:layout>
-		<s:VGroup id="inputGroup" gap="10" width="100%" horizontalAlign="center" clipAndEnableScrolling="true">
+		<s:VGroup id="inputGroup" width="100%" horizontalAlign="center" clipAndEnableScrolling="true" paddingTop="10">
 			<s:VGroup id="advanceSearchGroup" width="100%"
-					  visible="true" includeInLayout="true">
+					  visible="true" includeInLayout="true" gap="0">
 				<s:BorderContainer width="100%" height="25" borderVisible="false"
-								   backgroundColor="#E5EEFF">
+								   backgroundColor="#F3F6FA">
 					<s:layout>
-						<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="10"/>
+						<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle"
+											paddingLeft="1" paddingRight="1"/>
 					</s:layout>
-					<s:Label text="类别：" textAlign="left" fontFamily="宋体" fontSize="12" color="#4061ad" 
-							 fontWeight="normal" click="onClickCatalog(event);" useHandCursor="true"/>
-					<s:Label id="catalogLabel" text="" textAlign="left" right="0" color="0x015997" click="catalogLabel_clickHandler(event)" buttonMode="true"/>
-					<s:Label id="leafLabel"/>
+					<mx:LinkButton label="类别" textAlign="left" 
+								   fontFamily="宋体" fontSize="12" color="#4061ad"
+								   rollOverColor="0x2B9DBF" textRollOverColor="0xFFFFFF"
+							 	   fontWeight="normal" click="onClickCatalog(event);"/>
+					<mx:LinkButton id="catalogLabel" textAlign="left" 
+								   right="0" color="0x015997" 
+								   rollOverColor="0x2B9DBF" textRollOverColor="0xFFFFFF"
+								   click="catalogLabel_clickHandler(event)" buttonMode="true"/>
+					<mx:LinkButton id="leafLabel"
+								   rollOverColor="0x2B9DBF" textRollOverColor="0xFFFFFF"/>
 				</s:BorderContainer>
-				<s:Group id="catalogGroup" left="8" width="100%" height="65">
+				<s:BorderContainer id="catalogGroup" width="100%" height="65" 
+								   borderVisible="true" borderColor="0xEBEBEB">
 					<s:layout>
 						<components:FlowLayout gapColumn="0" clipAndEnableScrolling="true"/>
 					</s:layout>
-				</s:Group>
+				</s:BorderContainer>
 			</s:VGroup>
 		</s:VGroup>
 
 		<!-- result-->
 		<s:BorderContainer id="resultTip" width="100%" height="25" borderVisible="false"
 						   includeInLayout="false" visible="false"
-						   backgroundColor="#E5EEFF">
+						   backgroundColor="#F3F6FA">
 			<s:layout>
 				<s:HorizontalLayout horizontalAlign="right" verticalAlign="middle" paddingRight="5"/>
 			</s:layout>
-			<s:Label id="resultCountLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="#4D4D4D" />
+			<s:Label text="共有" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
+			<s:Label id="resultCountLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0xff8105"/>
+			<s:Label text="条结果" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
 		</s:BorderContainer>
 		<s:BorderContainer width="100%" height="25" borderVisible="false" 
 						   includeInLayout="false" visible="false"
@@ -975,7 +986,6 @@
 				</Search:layout>
 			</Search:SearchResultDataGroup>
 		</s:Scroller>
-		<mx:HRule width="100%" styleName="BannerRule"/>
 		<s:Group width="100%">
 			<s:Rect top="0" left="0" bottom="0" right="0">
 				<s:fill>

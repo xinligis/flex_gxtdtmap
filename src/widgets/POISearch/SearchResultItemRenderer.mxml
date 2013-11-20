@@ -45,9 +45,8 @@
 
             private var lastResultSymbol:Symbol;
 			private const ICON_URL:String = "assets/images/index/";
-			[Bindable]
-			private static var TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
-			private static var TAG_ICONSELECT:Array = ["ah.png", "bh.png", "ch.png", "dh.png", "eh.png", "fh.png", "gh.png", "hh.png", "ih.png", "jh.png"];
+			private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
+			private const TAG_ICONSELECT:Array = ["ah.png", "bh.png", "ch.png", "dh.png", "eh.png", "fh.png", "gh.png", "hh.png", "ih.png", "jh.png"];
             private function itemrenderer_dataChangeHandler(event:FlexEvent):void
             {
                 searchResult = data as SearchResult;

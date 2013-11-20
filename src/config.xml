@@ -84,9 +84,9 @@
     	<widget label="地图搜索" preload="open" showicon="true" icon="assets/images/headermenu/map_search.png"
                 config="widgets/Search/SearchWidget_POI.xml"
                 url="widgets/Search/SearchWidget.swf" />
-        <widget label="快速搜索结果" preload="close" showicon="false" icon="assets/images/headermenu/map_search.png" 
-                config="widgets/PlaceNameAddress/PlaceNameAddressWidget.xml"
-                url="widgets/PlaceNameAddress/PlaceNameAddressWidget.swf" />
+        <widget label="POI快速搜索结果" preload="close" showicon="false" icon="assets/images/headermenu/map_search.png" 
+                config="widgets/POISearch/POISearchWidget.xml"
+                url="widgets/POISearch/POISearchWidget.swf" />
     	<widget label="周边查询" showicon="false" preload="close" icon="assets/images/headermenu/buffer.png"
                 config="widgets/Buffer/BufferWidget.xml"
                 url="widgets/Buffer/BufferWidget.swf"/>

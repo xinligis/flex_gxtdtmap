@@ -66,25 +66,6 @@
 		]]>
 	</fx:Script>
 	<s:HGroup>
-		<!--
-		<s:Group width="100%" height="40">
-			<s:Rect left="0" right="0" top="0" bottom="0" radiusX="2" radiusY="2">
-				<s:fill>
-					<s:SolidColor color="0xffffff" alpha="0"/>
-				</s:fill>
-				<s:stroke>
-					<s:SolidColorStroke color="#d8d8d8"/>
-				</s:stroke>
-			</s:Rect>
-			<s:Rect left="1" right="1" top="1" bottom="1" radiusX="10" radiusY="10">
-				<s:stroke>
-					<s:SolidColorStroke color="#f8f8f8" alpha="0.8"/>
-				</s:stroke>
-			</s:Rect>
-			<s:HGroup width="100%" paddingTop="5" paddingLeft="20" verticalAlign="middle">
-			</s:HGroup>
-		</s:Group>
-		-->
 		<s:BorderContainer borderVisible="false" width="100%" height="40" backgroundColor="0xEAEFF1" cornerRadius="5">
 			<s:layout>
 				<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="10" paddingRight="10"/>

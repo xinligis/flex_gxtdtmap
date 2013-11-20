@@ -1,16 +1,15 @@
 ﻿<?xml version="1.0" ?>
 <configuration>
 	<poicatalogs>
-		<url>http://124.205.245.98:8181/OneMapServer/rest/services/CQPOI/MapServer/0</url>
+		<url>http://222.178.118.101/RemoteRest/services/CQ_POI/MapServer/0</url>
 		<titlefield>NAME</titlefield>
    		<linkfield></linkfield>
 		<!-- 主键字段名 -->
    		<oidfield>OBJECTID</oidfield>
    		<fields all="false">
-        	<field name="NAME" alias="名称"/>
-        	<!--field name="JC" alias="简称"/-->
-        	<field name="TELEPHONE" alias="电话号码"/>
-			<field name="ADDNAME" alias="地址"/>
+        	 <field name="NAME" alias="名称"/>
+      		 <field name="TELEPHONE" alias="电话"/>
+	  		 <field name="ADDRESS" alias="地址"/>
   		</fields>
 		<expression>NAME Like '%[value]%'</expression>
 		<relatedtable>

@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <processWidget>widgets/PlaceNameAddress/PlaceNameAddressWidget.swf</processWidget>
+  <processWidget>widgets/POISearch/POISearchWidget.swf</processWidget>
 </configuration>
