@@ -882,7 +882,7 @@
 				}
 			}
 			
-			protected function pagesselector1_PageChangedHandler(event:com.esri.viewer.components.pageSelector.PageChangeEvent):void
+			protected function pagesselector1_PageChangedHandler(event:PageChangeEvent):void
 			{
 				switchToPage(event.currentPage);
 			}

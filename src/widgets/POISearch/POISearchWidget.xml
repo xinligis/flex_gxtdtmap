@@ -8,7 +8,6 @@
       <field name="TELEPHONE" alias="电话"/>
 	  <field name="ADDRESS" alias="地址"/>
   	</displayfields>
-  	<oidfield>OBJECTID</oidfield>
   	<expression>NAME LIKE '%[VALUE]%'</expression>
   </poi>
   
