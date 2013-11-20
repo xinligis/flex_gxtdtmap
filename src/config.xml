@@ -77,7 +77,7 @@
         </basemaps>
     </map>
     
-    <!-- 左侧功能面板测试 -->
+    <!-- 左侧功能面板 -->
     <widgetcontainer url="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf"
     	layout="cover" left="0" top="90" index="0" bottom="0" width="350" visible="true">
     	<widget label="地图搜索" preload="open" showicon="true" icon="assets/images/headermenu/map_search.png"
