@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<viewer:BaseWidget xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:components="com.esri.viewer.components.*"
+				   width="335" height="180"
+				   widgetConfigLoaded="init()">
+	<fx:Declarations>
+		<s:Bounce id="bounce"/>
+	</fx:Declarations>
+	<viewer:states>
+		<s:State name="show"/>
+		<s:State name="pull"/>
+	</viewer:states>
+	<viewer:transitions>
+		<s:Transition fromState="show" toState="pull">
+			<s:Sequence>
+				<s:Fade duration="100" target="{conentContainer}"/>
+				<s:Move easer="{bounce}" targets="{[conentContainer]}"/>
+			</s:Sequence>
+		</s:Transition>
+		<s:Transition fromState="pull" toState="show">
+			<s:Sequence>
+				<s:Move easer="{bounce}" targets="{[conentContainer]}"/>
+				<s:Fade duration="100" target="{conentContainer}"/>
+			</s:Sequence>
+		</s:Transition>
+	</viewer:transitions>
+	<fx:Script>
+		<![CDATA[
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.WidgetStates;
+			
+			import mx.controls.LinkButton;
+			import mx.events.FlexEvent;
+			import mx.utils.StringUtil;
+			
+			import spark.components.HGroup;
+			
+			private var _postprocessorWidgetID:Number = -1; //视野内搜索处理WidgetID
+			private var searchValue:String = ""; //查询值
+			private var searchType:Number = 0;	//查询类型，0：根据POI类型编码搜索，1：根据关键字搜索
+			private function init():void
+			{
+				if (configXML)
+				{
+					_postprocessorWidgetID = super.siblingWidgetId(String(configXML.processWidget));
+					//添加对视野内搜索处理widget打开状态的监听
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
+					//初始化分类面板
+					initRootCatalog();
+					this.currentState="show";
+				}
+			}
+			
+			/**
+			 * 功能：处理Widget加载并打开之后，向该widget发送要处理的数据
+			 */ 
+			private function onOpenedPostprocessor(event:AppEvent):void
+			{
+				//判断视野内搜索处理widget状态是否为打开，并且widgetID一致
+				if(event.data.state as String == WidgetStates.WIDGET_OPENED && _postprocessorWidgetID == event.data.id as Number)
+				{
+					var data:Object = new Object();
+					data.searchType = searchType;
+					data.postprocessor = _postprocessorWidgetID;
+					data.queryName = StringUtil.trim(searchValue);	//查询关键字
+					AppEvent.dispatch(AppEvent.POST_PROCESS, data);
+				}
+			}
+			
+			/**
+			 * 分类信息
+			 */
+			private function initRootCatalog():void
+			{
+				this.catalogGroup.removeAllElements();
+				var poiXMLList:XMLList = configXML.poicatalogs.poicatalog;
+				for(var i:Number = 0; i < poiXMLList.length(); i++)
+				{
+					var poiNameLabel:Label = new Label();
+					poiNameLabel.text = poiXMLList[i].@name;
+					poiNameLabel.setStyle("color", 0x535353);
+					poiNameLabel.setStyle("fontFamily", "宋体");
+					poiNameLabel.setStyle("fontSize", 12);
+					var subCatalogXML:XMLList = poiXMLList[i].subcatalogs.subcatalog as XMLList;
+					var hGrop:HGroup = new HGroup();
+					hGrop.horizontalAlign = "left";
+					hGrop.verticalAlign = "middle";
+					hGrop.addElement(poiNameLabel);
+					for(var j:Number=0; j< subCatalogXML.length();j++){
+						var linkButton:LinkButton = new LinkButton();
+						linkButton.id = subCatalogXML[j].@code;
+						linkButton.label = subCatalogXML[j].@name;
+						linkButton.setStyle("color", 0x4061ad);
+						linkButton.setStyle("rollOverColor", 0x2B9DBF);
+						linkButton.setStyle("textRollOverColor", 0xFFFFFF);
+						linkButton.setStyle("fontFamily", "宋体");
+						linkButton.setStyle("fontSize", 12);
+						linkButton.setStyle("textDecoration", "none");
+						linkButton.addEventListener(MouseEvent.CLICK, onClickCatalog);
+						hGrop.addElement(linkButton);
+					}
+					this.catalogGroup.addElement(hGrop);
+				}
+			}
+			
+			/**
+			 * 点击分类查询
+			 */
+			private function onClickCatalog(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				searchValue = linkButton.id;
+				//打开视野内搜索处理widget
+				AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+			}
+			
+			private function keyword_clickHandler(event:MouseEvent):void
+			{
+				if(keyword.text == "查找其他关键词")
+				{
+					keyword.text = "";
+				}
+			}
+			
+			private function keyword_mouseOutHandler(event:MouseEvent):void
+			{
+				if(keyword.text == "")
+				{
+					keyword.text = "查找其他关键词";
+				}
+			}
+			
+			private function seachHandler():void
+			{
+				if(keyword.text == "")
+				{
+					mx.controls.Alert.show("查询名称不能为空！","提示");
+					return;
+				}else{
+					//打开视野内搜索处理widget
+					searchValue = keyword.text;
+					searchType = 1;
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+				}
+			}
+			
+			private function pullUp(event:MouseEvent):void
+			{
+				this.currentState= "pull";
+			}
+			
+		]]>
+	</fx:Script>
+		<s:BorderContainer width="100%" borderColor="0xEBEBEB">
+			<s:layout>
+				<s:VerticalLayout horizontalAlign="left" verticalAlign="top" gap="0"/>
+			</s:layout>
+			<s:BorderContainer width="100%" height="25" borderVisible="false"
+							   backgroundColor="#F3F6FA">
+				<s:layout>
+					<s:HorizontalLayout paddingLeft="7" horizontalAlign="left" verticalAlign="middle"/>
+				</s:layout>
+				<s:Label text="在屏幕范围内搜索" fontFamily="宋体" fontSize="12"
+						 color="#4061ad" fontWeight="normal" 
+						 verticalAlign="middle"/>
+				<s:Image source="@Embed(source='assets/images/pullup.png')"
+						 horizontalAlign="right"
+						 buttonMode="true"
+						 click="pullUp(event)"/>
+			</s:BorderContainer>
+			<s:VGroup id="conentContainer" visible.show="true" visible.pull="false">
+				<s:VGroup id="catalogGroup" width="100%"  paddingLeft="7" gap="5" paddingTop="10">
+				</s:VGroup>
+				<s:HGroup width="100%" paddingTop="10"  paddingLeft="7">
+					<s:TextInput id="keyword" width="70%" 
+								 text="查找其他关键词"
+								 mouseOut="keyword_mouseOutHandler(event)"
+								 enter="seachHandler()"
+								 click="keyword_clickHandler(event)"/>
+					<s:Button label="搜索" fontFamily="宋体" fontSize="12"
+							  color="#4061ad" fontWeight="normal" click="seachHandler()"/>
+				</s:HGroup>
+			</s:VGroup>
+		</s:BorderContainer>
+</viewer:BaseWidget>

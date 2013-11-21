@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" ?>
+<configuration>
+	<poicatalogs>
+		<poicatalog name="餐饮美食">
+			<subcatalogs>
+				<subcatalog name="快餐" code="0101"/>
+				<subcatalog name="西餐" code="0102"/>
+				<subcatalog name="海鲜" code="0104"/>
+				<subcatalog name="火锅" code="0106"/>
+				<subcatalog name="咖啡" code="0109"/>
+			</subcatalogs>
+		</poicatalog>
+		<poicatalog name="文体娱乐">
+			<subcatalogs>
+				<subcatalog name="影剧院" code="0508"/>
+				<subcatalog name="公园" code="0515"/>
+				<subcatalog name="体育馆" code="0517"/>
+				<subcatalog name="KTV" code="0519"/>
+				<subcatalog name="酒吧" code="0520"/>
+			</subcatalogs>
+		</poicatalog>
+		<poicatalog name="金融服务">
+			<subcatalogs>
+				<subcatalog name="银行" code="0601"/>
+				<subcatalog name="证券" code="0602"/>
+				<subcatalog name="保险" code="0603"/>				
+			</subcatalogs>
+		</poicatalog>
+		<poicatalog name="旅游景点">
+			<subcatalogs>
+				<subcatalog name="景点景区" code="1201"/>
+				<subcatalog name="宗教场所" code="1202"/>
+				<subcatalog name="旅行社" code="1203"/>
+			</subcatalogs>
+		</poicatalog>
+	</poicatalogs>
+	<processWidget>widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf</processWidget>
+</configuration>

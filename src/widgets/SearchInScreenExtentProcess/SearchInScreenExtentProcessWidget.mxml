@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--/**
+* 视野内搜索查询展示结果
+* @ver 1.0
+* @created 05-02-2012 09:00:46
+*/
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:viewer="com.esri.viewer.*" 
+				   width="100%" height="100%"
+				   widgetConfigLoaded="init()"
+				   initialize="widgetInitializeHandler(event)"
+				   xmlns:poiSearch="widgets.SearchInScreenExtentProcess.*"
+				   xmlns:pageSelector="com.esri.viewer.components.pageSelector.*">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.Graphic;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.geometry.MapPoint;
+			import com.esri.ags.geometry.Polygon;
+			import com.esri.ags.geometry.Polyline;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.symbols.PictureMarkerSymbol;
+			import com.esri.ags.symbols.Symbol;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.ags.utils.GraphicUtil;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.IInfowindowTemplate;
+			import com.esri.viewer.components.pageSelector.PageChangeEvent;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.UIComponent;
+			import mx.events.FlexEvent;
+			import mx.rpc.AsyncResponder;
+			import mx.utils.GraphicsUtil;
+			
+			import spark.components.supportClasses.ItemRenderer;
+			
+			//从搜索输入模块传递过来的事件
+			private var _postEvent:AppEvent;
+			private const ICON_URL:String = "assets/images/index/";
+			private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
+			private var infoUrl:String;
+			private var infoConfig:String;
+			private var graphicsLayer:GraphicsLayer;
+			private var zoomLevel:Number = 5;
+			[Bindable]
+			private var searchResultAC:ArrayCollection = new ArrayCollection();
+			private var _symbolsPerPage:Array = [];
+			private var infoTemplate:IInfowindowTemplate;
+			private var layerObject:LayerObject = new LayerObject();
+			private const PAGE_COUNT:uint = 6;		//显示页码数
+			private const RECORDS_PER_PAGE:uint = 10; //每页显示的记录数
+			[Bindable]
+			private var totalPageCount:uint		//查询总页数
+			[Bindable]
+			private var totalCount:uint		//查询总个数
+			private var objectIdsArray:Array = [];	//查询结果ID数组
+			
+			private function widgetInitializeHandler(event:FlexEvent):void
+			{
+				AppEvent.addListener(AppEvent.POST_PROCESS,onPostprocess);
+			}
+			
+			private function init():void
+			{
+				if (configXML)
+				{
+					//解析POI关键字查询图层
+					layerObject.url = configXML.poi.url;
+					layerObject.titlefield = configXML.poi.titlefield;
+					layerObject.expression = configXML.poi.expression;
+					layerObject.subcatalogmatch = configXML.poi.subcatalogmatch;
+					layerObject.outFields = new Array();
+					layerObject.outFieldAlias = new Array();
+					var fields:XMLList = configXML.poi.displayfields.field;
+					for each (var fieldTemp:XML in fields){
+						layerObject.outFields.push(fieldTemp.@name);
+						layerObject.outFieldAlias.push(fieldTemp.@alias);
+					}
+					
+					// infoUrl
+					infoUrl = configXML.info;
+					infoConfig = configXML.infoConfig;
+					
+					//加载infowindow
+					var data:Object =
+						{
+							id: String(this.widgetId),
+							url: infoUrl,
+							config: infoConfig
+						};
+					AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET, data, infoReady);
+					
+					if (Number(configXML.zoomlevel) > 0)
+					{
+						zoomLevel = Number(configXML.zoomlevel);
+					}
+					
+					//序号图片
+					for(var index:int = 0; index < 10; ++index)
+					{
+						var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICON[index],22,26,0,0);
+						_symbolsPerPage.push(pictureSymbol);
+					}
+					
+					graphicsLayer = new GraphicsLayer();
+					graphicsLayer.name = "POISearchResults";
+					map.addLayer(graphicsLayer);
+				}
+			}
+			
+			/**
+			 * 初始化弹出框Widget
+			 */ 
+			private function infoReady(event:AppEvent):void
+			{
+				var id:Number = Number(event.data.id);
+				if (id == this.widgetId)
+				{
+					infoTemplate = event.data.infoWidget;
+					//弹出框模块加载完成之后，再处理从输入框中传递过来的数据，避免WidgetManager无法加载InfoWindow.swf而导致的错误
+					if(this._postEvent)
+					{
+						onPostprocess(this._postEvent);
+					}
+				}
+			}
+			
+			/**
+			 * 获取查询关键字
+			 */
+			private function onPostprocess(event:AppEvent):void
+			{
+				if(this.widgetId != event.data.postprocessor)
+				{
+					return;
+				}
+				if(!configXML)
+				{
+					this._postEvent = event;
+					return;
+				}
+				else
+				{
+					this._postEvent = null;
+					var queryData:Object = event.data;
+					var queryName:String = queryData.queryName;
+					var searchType:Number = new Number(queryData.searchType);
+					//开始查询
+					this.queryForIds(queryName,searchType);
+				}
+			}
+			
+			/**
+			 * 查询满足条件的所有ID
+			 */ 
+			private function queryForIds(keyword:String,searchType:Number):void
+			{
+				startBusyStatus();
+				resultTip.includeInLayout = false;
+				resultTip.visible = false;
+				var queryTask:QueryTask = new QueryTask();
+				queryTask.disableClientCaching = false;
+				queryTask.useAMF = true;
+				queryTask.url = layerObject.url;
+				var query:Query=new Query();
+				query.returnGeometry = false;
+				query.geometry = map.extent;
+				if(searchType==0){
+					query.where = layerObject.subcatalogmatch.replace("[VALUE]",keyword);
+				}else{
+					query.where = layerObject.expression.replace("[VALUE]",keyword);
+				}
+				queryTask.executeForIds(query, new AsyncResponder(onExecuteForIdsComplete, onFault));
+			}
+			
+			/**
+			 * ID结果处理函数
+			 */ 
+			private function onExecuteForIdsComplete(objectIds:Array,token:Object=null):void{
+				objectIdsArray = objectIds;
+				this.totalCount = objectIds.length;
+				var totalLength:uint = uint(objectIds.length);
+				totalPageCount = totalLength % RECORDS_PER_PAGE == 0 ? totalLength / RECORDS_PER_PAGE : (totalLength / RECORDS_PER_PAGE + 1);
+				pagesSelector.set_TotalCount(totalPageCount);	//总页数
+				if(objectIds.length>0){
+					doQueryByPageNun(1);
+				}else{
+					searchResultAC.removeAll();
+				}
+				resultCountLabel.text = ""+objectIdsArray.length;
+				resultTip.includeInLayout = true;
+				resultTip.visible = true;
+				stopBusyStatus();
+			}
+			
+			/**
+			 * 分页查询要素
+			 */ 
+			private function doQueryByPageNun(startPageId:int):void{
+				searchResultAC.removeAll();
+				graphicsLayer.clear();
+				map.infoWindow.hide();
+				var queryTask:QueryTask = new QueryTask();
+				queryTask.disableClientCaching = false;
+				var query:Query=new Query();
+				var startIndexObjectIDArrayInPage:int = (startPageId - 1) * RECORDS_PER_PAGE;
+				var endIndexObjectIDArrayInPage:int = startIndexObjectIDArrayInPage + RECORDS_PER_PAGE;
+				if (endIndexObjectIDArrayInPage > this.totalCount){
+					endIndexObjectIDArrayInPage = this.totalCount;
+				}
+				query.objectIds = objectIdsArray.slice(startIndexObjectIDArrayInPage, endIndexObjectIDArrayInPage);
+				query.returnGeometry = true;
+				query.orderByFields = [layerObject.titlefield];
+				query.outFields=layerObject.outFields;
+				queryTask.url=layerObject.url;
+				queryTask.execute(query, new AsyncResponder(proQueryResultByPageNum, onFault));
+			}
+			
+			/**
+			 * 分页查询返回结果处理
+			 */ 
+			private function proQueryResultByPageNum(featureSet:FeatureSet,token:Object=null):void{
+				var results:ArrayCollection=new ArrayCollection();
+				var features:Array=featureSet.features;
+				for (var i:int=0; i < features.length; i++){
+					var feature:Graphic=features[i];
+					var result:SearchResult=new SearchResult();	//自定义查询结果对象
+					var content:String = new String();	//显示内容
+					for (var j:int=0; j < layerObject.outFields.length; j++){
+						var att:String=layerObject.outFields[j];//字段
+						content += layerObject.outFieldAlias[j] + "：" + feature.attributes[att] + "\n";
+					}
+					result.title = feature.attributes[layerObject.titlefield];	//弹出框标题
+					result.content = content;
+					result.index = i;
+					result.point = getGeomCenter(feature.geometry);		//要素中心点
+					results.addItem(result);
+					
+					//地图上的显示要素
+					var resultGraphic:Graphic = new Graphic(result.point,this._symbolsPerPage[i]);
+					resultGraphic.attributes=result;
+					resultGraphic.addEventListener(MouseEvent.CLICK, graphicMouseClickHandler);
+					graphicsLayer.add(resultGraphic);
+				}
+				searchResultAC = results;
+				map.extent = GraphicUtil.getGraphicsExtent(featureSet.features);
+			}
+			
+			private function onFault(info:Object, token:Object=null):void{
+				stopBusyStatus();
+				Alert.show("发现异常,请联系管理员.内容："+info.toString());
+			}
+			
+			/***
+			 * 单击图标并弹出信息框
+			 **/ 
+			private function graphicMouseClickHandler(event:MouseEvent):void
+			{
+				var gra:Graphic=event.currentTarget as Graphic;
+				var result:SearchResult=gra.attributes as SearchResult;
+				var infoWindowData:Object = {title:result.title, 
+					content:result.content,
+					point:result.point};
+				this.showInfoWindow(infoWindowData);
+			}
+			
+			/**
+			 * 单击结果列表中的某个结果
+			 */ 
+			private function clickSearchResult(event:Event):void{
+				var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+				var infoWindowData:Object = {title:result.title, 
+					content:result.content,
+					point:result.point};
+				this.showInfoWindow(infoWindowData);
+			}
+			
+			
+			/**
+			 * 弹出框
+			 */ 
+			override public function showInfoWindow(infoData:Object):void
+			{
+				if (infoData)
+				{
+					var infoWindowData:Object = {title:infoData.title, 
+						content:infoData.content,
+						graphic:infoData.graphic};
+					infoTemplate.data = infoWindowData;
+					map.infoWindow.content = infoTemplate as UIComponent;
+					map.infoWindow.label = infoData.title || "";
+					map.infoWindow.show(infoData.point);
+					map.centerAt(infoData.point);
+				}
+				else
+				{
+					map.infoWindow.hide();
+				}
+			}
+			
+			/**
+			 * 获取几何中心点
+			 */ 
+			private function getGeomCenter(geo:Geometry):MapPoint{
+				var pt:MapPoint;
+				switch (geo.type){
+					case Geometry.MAPPOINT:{
+						pt = geo as MapPoint;
+						break;
+					}case Geometry.POLYLINE:{
+						var pl:Polyline = geo as Polyline;
+						var pathCount:Number = pl.paths.length;	
+						var pathIndex:int = int((pathCount / 2) - 1);
+						var midPath:Array = pl.paths[pathIndex];
+						var ptCount:Number = midPath.length;
+						//如果一条折先只有两个折点
+						if(ptCount==2){
+							var startPoint:MapPoint = pl.getPoint(pathIndex, 0);
+							var endPoint:MapPoint = pl.getPoint(pathIndex, 1);
+							var x:Number = startPoint.x + (endPoint.x -startPoint.x)/2 ;
+							var y:Number = startPoint.y + (endPoint.y -startPoint.y)/2 ;
+							pt = new MapPoint(x,y,map.spatialReference);
+						}else{
+							var ptIndex:int = int((ptCount / 2) - 1);
+							pt = pl.getPoint(pathIndex, ptIndex);
+						}
+						break;
+					}case Geometry.POLYGON:{
+						var poly:Polygon = geo as Polygon;
+						pt = poly.extent.center;
+						break;
+					}
+				}
+				return pt;
+			}
+			
+			private function pageChangedHandler(event:PageChangeEvent):void{
+				switchToPage(event.currentPage);
+			}
+			
+			/**
+			 * 转换到某一页
+			 * @param pageNum 目标页面
+			 * @return 无
+			 */
+			private function switchToPage(pageNum:uint):void{
+				if(pageNum > totalPageCount || pageNum < 1){
+					return;
+				}else{
+					doQueryByPageNun(pageNum);
+				}
+			}
+			
+			private function widgetClosedHandler(event:Event):void
+			{
+				map.removeLayer(graphicsLayer);
+				this.showInfoWindow(null);
+			}
+			
+			private function widgetOpenedHandler(event:Event):void
+			{
+				if (graphicsLayer)
+				{
+					map.addLayer(graphicsLayer);
+				}
+			}
+			
+			/**
+			 * 启动正在忙碌的状态
+			 */
+			private function startBusyStatus():void
+			{
+				loadingStatusGroup.visible = true;
+				loadingStatusGroup.includeInLayout = true;
+			}
+			/**
+			 * 关闭正在忙碌的状态
+			 */
+			private function stopBusyStatus():void
+			{
+				loadingStatusGroup.visible = false;
+				loadingStatusGroup.includeInLayout = false;
+			}
+		]]>
+	</fx:Script>
+	<viewer:SplitWidgetTemplate id="wTemplate" fontFamily="宋体"
+								width="100%" height="100%"
+								backgroundColor="#FFFFFF"
+								closed="widgetClosedHandler(event)"
+								open="widgetOpenedHandler(event)" >
+		<viewer:layout>
+			<s:VerticalLayout horizontalAlign="center" verticalAlign="top" paddingLeft="7" paddingRight="7"/>
+		</viewer:layout>
+		<s:VGroup width="100%" height="100%" horizontalAlign="left" verticalAlign="top" paddingTop="0">
+			<s:BorderContainer id="resultTip" width="100%" height="25" borderVisible="false"
+							   includeInLayout="false" visible="false"
+							   backgroundColor="0xf3f6fa">
+				<s:layout>
+					<s:HorizontalLayout horizontalAlign="right" verticalAlign="middle"/>
+				</s:layout>
+				<s:Label text="共有" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
+				<s:Label id="resultCountLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0xff8105"/>
+				<s:Label text="条结果" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
+			</s:BorderContainer>
+			<s:BorderContainer width="100%" height="25" borderVisible="false" 
+							   includeInLayout="false" visible="false"
+							   backgroundColor="#E5EEFF" id="noResultGrp">
+				<s:layout>
+					<s:HorizontalLayout horizontalAlign="right" gap="18" verticalAlign="middle"  paddingRight="5"/>
+				</s:layout>
+				<s:Image source="assets/images/attention.png" />
+				<s:Label text="没有搜到您要的信息" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="normal"/>
+			</s:BorderContainer>
+			<s:VGroup id="loadingStatusGroup" width="100%" horizontalAlign="center" gap="5" includeInLayout="false" visible="false"
+					  horizontalCenter="0" verticalCenter="0">
+				<s:SWFLoader source="assets/images/loading.swf"/>
+				<s:Label text="正在搜索..." fontFamily="宋体" fontSize="12" color="#4061ad"/>
+			</s:VGroup>
+			<s:Scroller width="100%"  height="100%" verticalScrollPolicy="auto">
+				<poiSearch:SearchResultDataGroup id="searchResultDG" width="100%"
+												 fontFamily="宋体" dataProvider="{searchResultAC}"
+												 searchResultClick="clickSearchResult(event)">
+					<poiSearch:layout>
+						<s:VerticalLayout gap="10"
+										  horizontalAlign="justify"
+										  useVirtualLayout="true"/>
+					</poiSearch:layout>
+				</poiSearch:SearchResultDataGroup>
+			</s:Scroller>
+			<s:Group width="100%">
+				<s:Rect top="0" left="0" bottom="0" right="0">
+					<s:fill>
+						<s:SolidColor color="0xffffff" alpha="0"/>
+					</s:fill>
+				</s:Rect>
+				<pageSelector:PagesSelector PageChanged="pageChangedHandler(event)" 
+											pageCount="{this.PAGE_COUNT}" id="pagesSelector" horizontalCenter="0"/>
+			</s:Group>
+		</s:VGroup>
+	</viewer:SplitWidgetTemplate>
+</viewer:BaseWidget>

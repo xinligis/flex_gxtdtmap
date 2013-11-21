@@ -6,7 +6,7 @@
 			icon_off="assets/images/horizontalwidgetProxy/search_up.png" 
 			icon_on="" 
 			icon_over="assets/images/horizontalwidgetProxy/search_over.png"
-			widget="widgets/Buffer/BufferWidget.swf"/>
+			widget="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
 		<proxygroup name="专题信息" 
 			icon_off="assets/images/horizontalwidgetProxy/thematic_up.png" 
 			icon_on=""

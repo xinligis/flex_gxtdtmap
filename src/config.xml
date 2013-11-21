@@ -57,11 +57,14 @@
 			url="widgets/POISearchTool/POISearchToolWidget.swf" 
 			config="widgets/POISearchTool/POISearchToolWidget.xml"/>
 	<widget label="用户登录框" preload="open" right="10" top="10"
-				url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
-	 			config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
+			url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
+	 		config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
 	<widget label="打印" showicon="false" preload="close" top="0" left="0"
 			url="widgets/Print/PrintWidget.swf" 
-			config="widgets/Print/PrintWidget.xml"/>		
+			config="widgets/Print/PrintWidget.xml"/>
+	<widget label="视野内搜索" preload="closed" top="120" right="110" 
+			config="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.xml" 
+			url="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
 	<!-- 105.587 28.424 109.412 30.976 -->
     <map top="0" left="350" initialextent="105.5960373813381 28.96475267063883 107.9253009471935 30.399705176876623" esrilogovisible="false">
          <basemaps group="矢量" visible="true" selectedIcon="assets/images/mapswitch/vec.png" unselectedIcon="assets/images/mapswitch/vec.png">
@@ -87,9 +90,9 @@
         <widget label="POI快速搜索结果" preload="close" showicon="false" icon="assets/images/headermenu/map_search.png" 
                 config="widgets/POISearch/POISearchWidget.xml"
                 url="widgets/POISearch/POISearchWidget.swf" />
-    	<widget label="周边查询" showicon="false" preload="close" icon="assets/images/headermenu/buffer.png"
-                config="widgets/Buffer/BufferWidget.xml"
-                url="widgets/Buffer/BufferWidget.swf"/>
+    	<widget label="视野内搜索处理" showicon="false" preload="close"
+                config="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.xml"
+                url="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf"/>
         <widget label="天气预报" preload="close" showicon="false"
 				config="widgets/Weather/WeatherWidget.xml" 
 				url="widgets/Weather/WeatherWidget.swf"/>

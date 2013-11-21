@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" ?>
+<configuration>
+	<poi>
+		<url>http://222.178.118.101/RemoteRest/services/CQ_POI/MapServer/0</url>
+		<titlefield>NAME</titlefield>
+   		<linkfield></linkfield>
+		<!-- 主键字段名 -->
+   		<oidfield>OBJECTID</oidfield>
+   		<displayfields all="false">
+        	 <field name="NAME" alias="名称"/>
+      		 <field name="TELEPHONE" alias="电话"/>
+	  		 <field name="ADDRESS" alias="地址"/>
+  		</displayfields>
+  		<expression>NAME LIKE '%[VALUE]%'</expression>
+  		<!--分类匹配-->
+		<subcatalogmatch>TYPE2='[VALUE]'</subcatalogmatch>
+	</poi>
+    <zoomlevel>13</zoomlevel>
+    <info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
+    <infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+</configuration>
