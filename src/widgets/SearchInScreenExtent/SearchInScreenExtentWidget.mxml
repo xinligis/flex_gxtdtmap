@@ -5,35 +5,54 @@
 				   xmlns:mx="library://ns.adobe.com/flex/mx"
 				   xmlns:viewer="com.esri.viewer.*"
 				   xmlns:components="com.esri.viewer.components.*"
-				   width="335" height="180"
+				   width="340" height="180"
 				   widgetConfigLoaded="init()">
 	<fx:Declarations>
-		<s:Bounce id="bounce"/>
+		<!-- 打开或收起类型搜索条件面板 -->
+		<s:Parallel id="pullUpFadeResize" 
+					duration="1000" 
+					target="{searchPanel}">
+			<s:Fade alphaFrom="1.0"
+					alphaTo="0.0"/>
+			<s:Resize widthTo="0" 
+					  heightTo="0" 
+					  effectEnd="pullUp_effectEndHandler(event)"/>
+		</s:Parallel> 
+		<s:Parallel id="showFadeResize" 
+					target="{searchPanel}">
+			<s:Resize duration="500"
+					  widthTo="100" 
+					  heightTo="120"/>
+			<s:Fade duration="1500"
+					alphaFrom="0"
+					alphaTo="1"/>
+		</s:Parallel>
+		<!-- 打开或收起整个面板 -->
+		<s:Parallel id="fadeResizeHide" 
+					duration="1000" 
+					target="{conentContainer}">
+			<s:Fade alphaFrom="1.0"
+					alphaTo="0.0"/>
+			<s:Resize widthTo="0" 
+					  heightTo="0"/>
+		</s:Parallel>        
+		<s:Parallel id="fadeResizeShow" 
+					target="{conentContainer}">
+			<s:Resize duration="1000"
+					  widthTo="100" 
+					  heightTo="120"/>
+			<s:Fade duration="2000"
+					alphaFrom="0.0"
+					alphaTo="1.0"/>
+		</s:Parallel>
 	</fx:Declarations>
-	<viewer:states>
-		<s:State name="show"/>
-		<s:State name="pull"/>
-	</viewer:states>
-	<viewer:transitions>
-		<s:Transition fromState="show" toState="pull">
-			<s:Sequence>
-				<s:Fade duration="100" target="{conentContainer}"/>
-				<s:Move easer="{bounce}" targets="{[conentContainer]}"/>
-			</s:Sequence>
-		</s:Transition>
-		<s:Transition fromState="pull" toState="show">
-			<s:Sequence>
-				<s:Move easer="{bounce}" targets="{[conentContainer]}"/>
-				<s:Fade duration="100" target="{conentContainer}"/>
-			</s:Sequence>
-		</s:Transition>
-	</viewer:transitions>
 	<fx:Script>
 		<![CDATA[
 			import com.esri.viewer.AppEvent;
 			import com.esri.viewer.WidgetStates;
 			
 			import mx.controls.LinkButton;
+			import mx.events.EffectEvent;
 			import mx.events.FlexEvent;
 			import mx.utils.StringUtil;
 			
@@ -41,6 +60,8 @@
 			
 			private var _postprocessorWidgetID:Number = -1; //视野内搜索处理WidgetID
 			private var searchValue:String = ""; //查询值
+			[Bindable]
+			private var searchValueLabel:String = ""; //查询显示值，用于面板中的提示
 			private var searchType:Number = 0;	//查询类型，0：根据POI类型编码搜索，1：根据关键字搜索
 			private function init():void
 			{
@@ -51,7 +72,6 @@
 					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
 					//初始化分类面板
 					initRootCatalog();
-					this.currentState="show";
 				}
 			}
 			
@@ -114,8 +134,10 @@
 			{
 				var linkButton:LinkButton = event.target as LinkButton;
 				searchValue = linkButton.id;
+				searchValueLabel = linkButton.label;
 				//打开视野内搜索处理widget
 				AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+				pullUpFadeResize.play();
 			}
 			
 			private function keyword_clickHandler(event:MouseEvent):void
@@ -145,26 +167,52 @@
 					searchValue = keyword.text;
 					searchType = 1;
 					AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
+					searchValueLabel = keyword.text;
+					pullUpFadeResize.play();
 				}
 			}
 			
 			private function pullUp(event:MouseEvent):void
 			{
-				this.currentState= "pull";
+				fadeResizeHide.play();
 			}
 			
+			private function oPenAll(event:MouseEvent):void
+			{
+				fadeResizeShow.play();
+			}
+			
+			
+			/**
+			 * 收起面板
+			 */ 
+			private function pullUp_effectEndHandler(event:EffectEvent):void
+			{
+				searchPanel.visible = false;
+				currentSearchGroup.visible = true;
+			}
+			
+			/**
+			 * 更改条件
+			 */ 
+			private function changeSearchLink_clickHandler(event:MouseEvent):void
+			{
+				searchPanel.visible = true;
+				currentSearchGroup.visible = false;
+				showFadeResize.play();
+			}
 		]]>
 	</fx:Script>
-		<s:BorderContainer width="100%" borderColor="0xEBEBEB">
+		<s:BorderContainer id="conentContainer" width="100%" borderColor="0xEBEBEB">
 			<s:layout>
-				<s:VerticalLayout horizontalAlign="left" verticalAlign="top" gap="0"/>
+				<s:VerticalLayout horizontalAlign="left" verticalAlign="top" gap="5"/>
 			</s:layout>
 			<s:BorderContainer width="100%" height="25" borderVisible="false"
 							   backgroundColor="#F3F6FA">
 				<s:layout>
 					<s:HorizontalLayout paddingLeft="7" horizontalAlign="left" verticalAlign="middle"/>
 				</s:layout>
-				<s:Label text="在屏幕范围内搜索" fontFamily="宋体" fontSize="12"
+				<s:Label text="在屏幕范围内搜索" width="300" fontFamily="宋体" fontSize="12"
 						 color="#4061ad" fontWeight="normal" 
 						 verticalAlign="middle"/>
 				<s:Image source="@Embed(source='assets/images/pullup.png')"
@@ -172,18 +220,33 @@
 						 buttonMode="true"
 						 click="pullUp(event)"/>
 			</s:BorderContainer>
-			<s:VGroup id="conentContainer" visible.show="true" visible.pull="false">
-				<s:VGroup id="catalogGroup" width="100%"  paddingLeft="7" gap="5" paddingTop="10">
+			<s:Group  width="100%" height="100%">
+				<!-- 屏幕视野内分类搜索面板 -->
+				<s:VGroup id="searchPanel">
+					<s:VGroup id="catalogGroup" width="100%"  paddingLeft="7" gap="3">
+					</s:VGroup>
+					<s:HGroup width="100%" paddingLeft="7">
+						<s:TextInput id="keyword" width="250" 
+									 text="查找其他关键词"
+									 mouseOut="keyword_mouseOutHandler(event)"
+									 enter="seachHandler()"
+									 click="keyword_clickHandler(event)"/>
+						<s:Button label="搜索" fontFamily="宋体" fontSize="12"
+								  color="#4061ad" fontWeight="normal" click="seachHandler()"/>
+					</s:HGroup>
 				</s:VGroup>
-				<s:HGroup width="100%" paddingTop="10"  paddingLeft="7">
-					<s:TextInput id="keyword" width="70%" 
-								 text="查找其他关键词"
-								 mouseOut="keyword_mouseOutHandler(event)"
-								 enter="seachHandler()"
-								 click="keyword_clickHandler(event)"/>
-					<s:Button label="搜索" fontFamily="宋体" fontSize="12"
-							  color="#4061ad" fontWeight="normal" click="seachHandler()"/>
+				<s:HGroup id="currentSearchGroup" visible="false" 
+						  horizontalAlign="left" verticalAlign="middle" 
+						  paddingLeft="7" paddingBottom="2">
+					<s:Label text="当前搜索:" fontFamily="宋体" fontSize="12" fontWeight="normal"/>
+					<s:Label text="{searchValueLabel}"
+							 width="180"
+							 fontFamily="宋体" fontSize="12" fontWeight="bold"/>
+					<mx:LinkButton label="更改条件" useHandCursor="true" paddingRight="7" 
+								   fontFamily="宋体" fontSize="12" fontWeight="normal"
+								   color="0x4061ad" textDecoration="underline"
+								   click="changeSearchLink_clickHandler(event)"/>
 				</s:HGroup>
-			</s:VGroup>
+			</s:Group>
 		</s:BorderContainer>
 </viewer:BaseWidget>
