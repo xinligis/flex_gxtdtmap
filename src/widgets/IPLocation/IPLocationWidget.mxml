@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+客户端IP定位widget
+马红涛  2012-02-16
+-->
+<viewer:BaseWidget xmlns:fx="http://ns.adobe.com/mxml/2009"
+				   xmlns:s="library://ns.adobe.com/flex/spark"
+				   xmlns:mx="library://ns.adobe.com/flex/mx"
+				   xmlns:esri="http://www.esri.com/2008/ags"
+				   xmlns:viewer="com.esri.viewer.*"
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
+				   xmlns:ipLocation="widgets.IPLocation.*"
+				   widgetConfigLoaded="init()">
+	<fx:Script>
+		<![CDATA[
+			import com.esri.ags.FeatureSet;
+			import com.esri.ags.geometry.Extent;
+			import com.esri.ags.geometry.Geometry;
+			import com.esri.ags.layers.GraphicsLayer;
+			import com.esri.ags.tasks.QueryTask;
+			import com.esri.ags.tasks.supportClasses.Query;
+			import com.esri.ags.utils.GraphicUtil;
+			import com.esri.viewer.AppEvent;
+			import com.esri.viewer.remote.RemoteHandler;
+			import com.esri.viewer.remote.RemoteResult;
+			import com.esri.viewer.utils.Hashtable;
+			
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.managers.PopUpManager;
+			import mx.rpc.AsyncRequest;
+			import mx.rpc.AsyncResponder;
+			import mx.rpc.AsyncToken;
+			import mx.rpc.Fault;
+			import mx.rpc.events.FaultEvent;
+			import mx.utils.StringUtil;
+		
+			private const ICON_BASE:String = "assets/images/iplocationwidget/";
+			
+			private var _pac:String;
+			private var _ip:String;
+			private var _fullNameField:String;
+			private var _isDebug:Boolean = false;
+			private var _extent:Extent = null;
+			
+			[Bindable]
+			private var _title:String = "正在获取您的位置信息..";
+			private var _provinceWidget:String = "widgets/IPLocation/IPLocationContainerWidget.swf";
+			private var _isProvinceWidgetOpen:Boolean = false;
+			
+			//ip定位的一个全图范围
+			private var _fullZoomRegion:Extent = null;
+			
+			private function init():void
+			{
+				if(configXML)
+				{
+					_provinceWidget = configXML.provincewidget;
+					
+					//缩放的全图范围
+					if(configXML.hasOwnProperty("zoomregion"))
+					{
+						_fullZoomRegion = new Extent(Number(configXML.zoomregion.@xmin),
+							Number(configXML.zoomregion.@ymin),
+							Number(configXML.zoomregion.@xmax),
+							Number(configXML.zoomregion.@ymax),
+							map.spatialReference);
+					}
+					
+					//调用后台getPAC方法获取PAC码。温杨彪
+					var remotefunction:String = String(configXML.remotefunction) || "ipLocation";
+					_fullNameField = String(configXML.cityDivision.fullnamefield);
+					if(String(configXML.debug) == "true")
+					{
+						_isDebug = true;
+					}
+					RemoteHandler.invoke(remotefunction,null,
+						new AsyncResponder(getPAC_resultHandler,getPAC_faultHandler));
+					
+					AppEvent.addListener(AppEvent.IPLOCATION_CLICK,clickCityHandler);
+				}
+			}
+			
+			//读取当前IP所在的位置
+			private function getPAC_resultHandler(result:RemoteResult,token:Object = null):void
+			{
+				if(result == null)
+				{
+					return;
+				}
+				if(result==null||result.code != RemoteResult.RESULT_OK || result.content.toString() == "")
+				{
+					//说明没有查到PAC码
+					_title = "无法获取您的位置信息";
+				}
+				else
+				{
+					if(_isDebug)
+					{
+						Alert.show(result.content.toString());
+					}
+					var results:Array = result.content.toString().split(",");
+					_pac = results[0];
+					_ip = results[1];
+					doQueryByPAC();
+				}
+			}
+			
+			private function getPAC_faultHandler(fault:Fault,token:Object = null):void
+			{
+				trace("get PAC code error");
+				_title="无法获取您的位置信息";
+			}
+			
+			private function doQueryByPAC():void
+			{
+				_pac = StringUtil.trim(_pac);
+				if(_pac == "")
+				{
+					_title="无法获取您的位置信息";
+				}else{
+					var strWhere:String = configXML.cityDivision.districtmatch;
+					strWhere = strWhere.replace("[value]", _pac);
+					doQuery(strWhere,[_fullNameField]);
+				}
+			}
+			
+			//根据行政区编码查找对应的名称
+			private function doQuery(where:String,outFields:Array):void
+			{				
+				var queryTask:QueryTask = new QueryTask();
+				queryTask.url = String(configXML.cityDivision.url);
+				queryTask.useAMF = true;
+				
+				var query:Query = new Query();	
+				query.returnGeometry = true;
+				query.where = where;			
+				query.outFields = outFields;
+				queryTask.execute(query, new AsyncResponder(queryExtent_compeleteHandler, queryExtent_faultHandler));
+			}
+			
+			private function queryExtent_compeleteHandler(featureSet:FeatureSet, token:Object = null):void
+			{
+				if(featureSet.features.length == 0)
+				{
+					trace("没有可定位的城市");
+					if(_isDebug)
+					{
+						Alert.show("没有可定位的城市");
+					}
+					_title="没有可定位的城市";
+				}
+				else
+				{
+					_extent = GraphicUtil.getGraphicsExtent(featureSet.features);
+					_title = featureSet.attributes[0][_fullNameField];
+					locateMap();
+				}
+			}
+			
+			private function queryExtent_faultHandler(info:Object, token:Object = null):void
+			{
+				trace(info.toString());
+			}
+			
+			private function locateMap():void
+			{
+				if(_extent != null)
+				{
+					if(_fullZoomRegion!=null)
+					{
+						if(_fullZoomRegion.intersects(_extent) == false)
+						{
+							Alert.show("正在定位的区域可能没有地图，是否定位？","", Alert.YES|Alert.NO,map,alert_closeHandler);
+						}
+						else
+						{
+							map.extent = _extent;
+						}
+					}
+					else
+					{
+						map.extent = _extent;
+					}
+				}
+			}
+			
+			private function alert_closeHandler(event:CloseEvent):void
+			{
+				if(event.detail == Alert.YES)
+				{
+					map.extent = _extent;
+				}
+			
+			}
+			
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOutHandler(event:MouseEvent):void
+			{
+				lbl.setStyle("color",0x4D565B);
+			}
+			
+			/**
+			 * 鼠标事件处理
+			 */
+			protected function container_mouseOverHandler(event:MouseEvent):void
+			{
+				lbl.setStyle("color",0xEA830D);
+			}
+			
+			protected function bordercontainer_clickHandler(event:MouseEvent):void
+			{
+				var id:int = super.siblingWidgetId(_provinceWidget);
+				if(!_isProvinceWidgetOpen){
+					AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+				}else{
+					AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+				}
+				_isProvinceWidgetOpen = !_isProvinceWidgetOpen;
+			}
+			
+			private function clickCityHandler(event:AppEvent):void
+			{
+				trace(event.data.province+":"+event.data.city);
+				var strWhere:String = "";
+				strWhere = "PROV = '" + event.data.province + "' and NAME='" + event.data.city + "'";
+				doQuery(strWhere,[_fullNameField]);
+			}
+			
+		]]>
+	</fx:Script>
+	<s:BorderContainer id="headerContainer" height="25" cornerRadius="3" buttonMode="true"
+					   color="0x4D565B" borderColor="0x2B9DBF" backgroundColor="0xEBEBEB" borderWeight="1"
+					   mouseOver="container_mouseOverHandler(event)"
+					   mouseOut="container_mouseOutHandler(event)"
+					   click="bordercontainer_clickHandler(event)">
+		<s:layout>
+			<s:HorizontalLayout horizontalAlign="left" verticalAlign="middle" paddingLeft="5" paddingRight="5" gap="5"/>
+		</s:layout>
+		<s:Label id="lbl" text="{_title}" fontFamily="宋体" fontSize="12"/>
+		<s:Image source="@Embed('assets/images/horizontalwidgetProxy/arrow.png')"/>
+	</s:BorderContainer>
+</viewer:BaseWidget>
+
