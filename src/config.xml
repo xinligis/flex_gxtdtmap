@@ -24,28 +24,24 @@
 	<widget left="560" bottom="5" 
 			config="widgets/Copyright/CopyrightWidget.xml" 
 			url="widgets/Copyright/CopyrightWidget.swf" />
-	<!-- 导航栏 -->
-	<widget label="导航条" preload="open" left="370" top="145" 
-    		config="widgets/Navigation/NavigationWidget.xml" 
-    		url="widgets/Navigation/NavigationWidget.swf"/>	
 	<!-- 主工具栏背景 -->
-	<widget label="主工具栏"  preload="open" top="90" left="350"
+	<widget label="主工具栏"  top="90" left="350"
 			url="widgets/CenterFloor/CenterFloorWidget.swf" 
 	 		config="widgets/CenterFloor/CenterFloorWidget.xml"/>
 	<!-- 工具栏上的IP定位 -->
-	<widget label="IP定位" preload="open" top="92" left="360"  
+	<widget label="IP定位" top="95" left="360"  
 			config="widgets/IPLocation/IPLocationWidget.xml" 
-			url="widgets/IPLocation/IPLoacationWidget.swf"/>
+			url="widgets/IPLocation/IPLocationWidget.swf"/>
 	<!-- 工具栏上的工具列 -->
-	<widget label="水平开关代理" preload="open" top="95" right="60"   
+	<widget label="水平开关代理" top="95" right="60"   
 			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
 			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
 	<!-- 工具栏上的地图切换 -->
-    <widget label="地图切换" preload="open" top="145" right="20" 
+    <widget label="地图切换" top="145" right="20" 
     		config="widgets/MapSwitch/MapSwitcherWidget.xml" 
     		url="widgets/MapSwitch/MapSwitcherWidget.swf"/>	
    	<!-- 主菜单 -->		
-	<widget preload="close" top="0" left="0"
+	<widget top="0" left="0"
 			config="widgets/HeaderController/HeaderControllerWidget.xml" 
 			url="widgets/HeaderController/HeaderControllerWidget.swf" />
 	<!-- 鹰眼图 -->
@@ -53,15 +49,12 @@
 			config="widgets/OverviewMap/OverviewMapWidget.xml" 
 			url="widgets/OverviewMap/OverviewMapWidget.swf"/>
 	<!-- 地图搜索 -->
-	<widget label="快捷搜索工具条" preload="open" left="350" top="35" 
+	<widget label="快捷搜索工具条" left="350" top="35" 
 			url="widgets/POISearchTool/POISearchToolWidget.swf" 
 			config="widgets/POISearchTool/POISearchToolWidget.xml"/>
-	<widget label="用户登录框" preload="open" right="10" top="10"
+	<widget label="用户登录框" right="10" top="10"
 			url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 		config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
-	<widget label="打印" showicon="false" preload="close" top="0" left="0"
-			url="widgets/Print/PrintWidget.swf" 
-			config="widgets/Print/PrintWidget.xml"/>
 	<widget label="视野内搜索" preload="closed" top="120" right="110" 
 			config="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.xml" 
 			url="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
@@ -100,4 +93,17 @@
 		    	config="widgets/MapCorrection/MapCorrectionWidget.xml" 
 		    	url="widgets/MapCorrection/MapCorrectionWidget.swf" />
     </widgetcontainer> 
+    <widgetcontainer url="widgets/CoverWidgetContainer/CoverWidgetContainerWidget.swf"
+    	layout="cover" index="0" top="0">
+    	<widget label="打印" showicon="false" preload="open" top="0" left="0"
+				config="widgets/Print/PrintWidget.xml"
+				url="widgets/Print/PrintWidget.swf"/>
+	 	<widget label="定位查找" showicon="false" preload="close" top="35" left="360"  
+				config="widgets/IPLocation/IPLocationWidget.xml" 
+				url="widgets/IPLocation/IPLocationContainerWidget.swf"/>
+		<!-- 导航栏 -->
+		<widget label="导航条" preload="open" left="370" top="53" 
+    			config="widgets/Navigation/NavigationWidget.xml" 
+    			url="widgets/Navigation/NavigationWidget.swf"/>
+    </widgetcontainer>
 </configuration>
