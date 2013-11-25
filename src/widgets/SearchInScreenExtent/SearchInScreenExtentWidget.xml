@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" ?>
 <configuration>
+	<proxywidget name="视野内搜索" 
+			icon_off="assets/images/horizontalwidgetProxy/search_up.png" 
+			icon_over="assets/images/horizontalwidgetProxy/search_over.png"
+			widget="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf"/>
 	<poicatalogs>
 		<poicatalog name="餐饮美食">
 			<subcatalogs>
@@ -34,5 +38,4 @@
 			</subcatalogs>
 		</poicatalog>
 	</poicatalogs>
-	<processWidget>widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf</processWidget>
 </configuration>

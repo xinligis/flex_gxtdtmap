@@ -3,5 +3,5 @@
     <!-- geo, dms, mercator -->
     <outputunit>mercator</outputunit>
     <numberformatter precision="1"/>
-    <label template="x:{0}    y:{1}" color="0x000000" fontSize="12" fontWeight="normal"/>
+    <label template="经度:{0}    纬度:{1}" color="0x000000" fontSize="12" fontWeight="normal"/>
 </configuration>

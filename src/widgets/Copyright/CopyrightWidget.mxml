@@ -34,6 +34,6 @@
 	</fx:Script>
 	
 	<s:HGroup>
-		<s:Label text="{copyrightContent}" styleName="copyright"/>
+		<s:Label text="{copyrightContent}" styleName="copyright" fontFamily="宋体" color="0x2B9DBF" fontWeight="bold"/>
 	</s:HGroup>
 </viewer:BaseWidget>
