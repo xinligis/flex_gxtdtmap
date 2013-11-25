@@ -17,58 +17,61 @@
     <application path="index.mxml"/>
   </applications>
   <modules>
-    <module application="src/index.mxml" destPath="widgets/UserCorrection/UserCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/UserCorrection/UserCorrectionWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/AttachedMap/AttachedMapWidget.swf" optimize="true" sourcePath="src/widgets/AttachedMap/AttachedMapWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/MapCorrection/MapCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/MapCorrection/MapCorrectionWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Legend/LegendWidget.swf" optimize="true" sourcePath="src/widgets/Legend/LegendWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/HeaderController/HeaderControllerWidget.swf" optimize="true" sourcePath="src/widgets/HeaderController/HeaderControllerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/PlaceNameAddress/PlaceNameAddressWidget.swf" optimize="true" sourcePath="src/widgets/PlaceNameAddress/PlaceNameAddressWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Shortcut/ShortcutWidget.swf" optimize="true" sourcePath="src/widgets/Shortcut/ShortcutWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/OverviewMap/OverviewMapWidget.swf" optimize="true" sourcePath="src/widgets/OverviewMap/OverviewMapWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserApplication/UserApplicationWidget.swf" optimize="true" sourcePath="src/widgets/UserApplication/UserApplicationWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/CoverWidgetContainer/CoverWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/CoverWidgetContainer/CoverWidgetContainerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserGroupManager/UserGroupManagerWidget.swf" optimize="true" sourcePath="src/widgets/UserGroupManager/UserGroupManagerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/TrafficCondition/TrafficConditionWidget.swf" optimize="true" sourcePath="src/widgets/TrafficCondition/TrafficConditionWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/MapContrast/MapContrastWidget.swf" optimize="true" sourcePath="src/widgets/MapContrast/MapContrastWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/InfoTemplates/CameraInfoWidget.swf" optimize="true" sourcePath="src/widgets/InfoTemplates/CameraInfoWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/VerticalWidgetProxy/VerticalWidgetProxyWidget.swf" optimize="true" sourcePath="src/widgets/VerticalWidgetProxy/VerticalWidgetProxyWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/IPLocation/IPLoacationWidget.swf" optimize="true" sourcePath="src/widgets/IPLocation/IPLoacationWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserSpace/UserSpaceWidget.swf" optimize="true" sourcePath="src/widgets/UserSpace/UserSpaceWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf" optimize="true" sourcePath="src/widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/NetworkAnalyst/NetworkAnalystWidget.swf" optimize="true" sourcePath="src/widgets/NetworkAnalyst/NetworkAnalystWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Navigation/NavigationWidget.swf" optimize="true" sourcePath="src/widgets/Navigation/NavigationWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/Weather/WeatherWidget.swf" optimize="true" sourcePath="src/widgets/Weather/WeatherWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/LayerList/LayerListWidget.swf" optimize="true" sourcePath="src/widgets/LayerList/LayerListWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/VerticalWidgetProxy/VerticalWidgetProxyWidget.swf" optimize="true" sourcePath="src/widgets/VerticalWidgetProxy/VerticalWidgetProxyWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Navigation/NavigationWidget.swf" optimize="true" sourcePath="src/widgets/Navigation/NavigationWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserSpace/UserSpaceWidget.swf" optimize="true" sourcePath="src/widgets/UserSpace/UserSpaceWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/ClosestFacility/ClosestFacilityWidget.swf" optimize="true" sourcePath="src/widgets/ClosestFacility/ClosestFacilityWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/MapSwitch/MapSwitcherWidget.swf" optimize="true" sourcePath="src/widgets/MapSwitch/MapSwitcherWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/WidgetContainer/WidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/WidgetContainer/WidgetContainerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/ServiceArea/ServiceAreaWidget.swf" optimize="true" sourcePath="src/widgets/ServiceArea/ServiceAreaWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Coordinate/CoordinateWidget.swf" optimize="true" sourcePath="src/widgets/Coordinate/CoordinateWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Print/PrintWidget.swf" optimize="true" sourcePath="src/widgets/Print/PrintWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/OverviewMap/OverviewMapWidget.swf" optimize="true" sourcePath="src/widgets/OverviewMap/OverviewMapWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/AttachedMap/AttachedMapWidget.swf" optimize="true" sourcePath="src/widgets/AttachedMap/AttachedMapWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserApplication/UserApplicationWidget.swf" optimize="true" sourcePath="src/widgets/UserApplication/UserApplicationWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/Bookmark/BookmarkWidget.swf" optimize="true" sourcePath="src/widgets/Bookmark/BookmarkWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/TabbedWidgetContainer/TabbedWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/TabbedWidgetContainer/TabbedWidgetContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf" optimize="true" sourcePath="src/widgets/SearchInScreenExtent/SearchInScreenExtentWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Coordinate/CoordinateWidget.swf" optimize="true" sourcePath="src/widgets/Coordinate/CoordinateWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Copyright/CopyrightWidget.swf" optimize="true" sourcePath="src/widgets/Copyright/CopyrightWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/GeneralWidgetContainer/GeneralWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/GeneralWidgetContainer/GeneralWidgetContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/MapSwitch/MapSwitcherWidget.swf" optimize="true" sourcePath="src/widgets/MapSwitch/MapSwitcherWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserOperationFloor/UserOperationFloorWidget.swf" optimize="true" sourcePath="src/widgets/UserOperationFloor/UserOperationFloorWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/NetworkAnalyst/NetworkAnalystWidget.swf" optimize="true" sourcePath="src/widgets/NetworkAnalyst/NetworkAnalystWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/PlaceNameAddress/PlaceNameAddressWidget.swf" optimize="true" sourcePath="src/widgets/PlaceNameAddress/PlaceNameAddressWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Swipe/SwipeWidget.swf" optimize="true" sourcePath="src/widgets/Swipe/SwipeWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/ServiceArea/ServiceAreaWidget.swf" optimize="true" sourcePath="src/widgets/ServiceArea/ServiceAreaWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/LeftWidgetContainer/LeftWidgetContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/CustomerServiceLayer/CustomerServiceLayerWidget.swf" optimize="true" sourcePath="src/widgets/CustomerServiceLayer/CustomerServiceLayerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/MapContrast/MapContrastWidget.swf" optimize="true" sourcePath="src/widgets/MapContrast/MapContrastWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/ResourceCenter/ResourceCenterWidget.swf" optimize="true" sourcePath="src/widgets/ResourceCenter/ResourceCenterWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/PlaceNameSearchTool/PlaceNameSearchToolWidget.swf" optimize="true" sourcePath="src/widgets/PlaceNameSearchTool/PlaceNameSearchToolWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/InfoTemplates/CameraInfoWidget.swf" optimize="true" sourcePath="src/widgets/InfoTemplates/CameraInfoWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/TrafficCondition/TrafficConditionWidget.swf" optimize="true" sourcePath="src/widgets/TrafficCondition/TrafficConditionWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserGroupManager/UserGroupManagerWidget.swf" optimize="true" sourcePath="src/widgets/UserGroupManager/UserGroupManagerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/POISearchTool/POISearchToolWidget.swf" optimize="true" sourcePath="src/widgets/POISearchTool/POISearchToolWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Buffer/BufferWidget.swf" optimize="true" sourcePath="src/widgets/Buffer/BufferWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/ToolBar/ToolBarWidget.swf" optimize="true" sourcePath="src/widgets/ToolBar/ToolBarWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/HotSpot/HotSpotWidget.swf" optimize="true" sourcePath="src/widgets/HotSpot/HotSpotWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/CoverWidgetContainer/CoverWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/CoverWidgetContainer/CoverWidgetContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserCorrection/UserCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/UserCorrection/UserCorrectionWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf" optimize="true" sourcePath="src/widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Search/SearchWidget.swf" optimize="true" sourcePath="src/widgets/Search/SearchWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Legend/LegendWidget.swf" optimize="true" sourcePath="src/widgets/Legend/LegendWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/InfoTemplates/MarkerInfoWidget.swf" optimize="true" sourcePath="src/widgets/InfoTemplates/MarkerInfoWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/LayerList/LayerListWidget.swf" optimize="true" sourcePath="src/widgets/LayerList/LayerListWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/WidgetContainer/WidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/WidgetContainer/WidgetContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf" optimize="true" sourcePath="src/widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserService/UserServiceWidget.swf" optimize="true" sourcePath="src/widgets/UserService/UserServiceWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/MapCorrection/MapCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/MapCorrection/MapCorrectionWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Weather/WeatherInfoWidget.swf" optimize="true" sourcePath="src/widgets/Weather/WeatherInfoWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/Shortcut/ShortcutWidget.swf" optimize="true" sourcePath="src/widgets/Shortcut/ShortcutWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/IPLocation/IPLocationContainerWidget.swf" optimize="true" sourcePath="src/widgets/IPLocation/IPLocationContainerWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/UserMap/UserMapWidget.swf" optimize="true" sourcePath="src/widgets/UserMap/UserMapWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/BusTransfer/BusTransferWidget.swf" optimize="true" sourcePath="src/widgets/BusTransfer/BusTransferWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/TrafficCondition/TrafficConditionWidget.swf" optimize="true" sourcePath="src/widgets/TrafficCondition/TrafficConditionWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/HeaderController/HeaderControllerWidget.swf" optimize="true" sourcePath="src/widgets/HeaderController/HeaderControllerWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/BaseMapIdentify/BaseMapIdentifyWidget.swf" optimize="true" sourcePath="src/widgets/BaseMapIdentify/BaseMapIdentifyWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/ToolBar/ToolBarWidget.swf" optimize="true" sourcePath="src/widgets/ToolBar/ToolBarWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/CustomerServiceLayer/CustomerServiceLayerWidget.swf" optimize="true" sourcePath="src/widgets/CustomerServiceLayer/CustomerServiceLayerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/MapCorrection/MapCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/MapCorrection/MapCorrectionWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Print/PrintWidget.swf" optimize="true" sourcePath="src/widgets/Print/PrintWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Buffer/BufferWidget.swf" optimize="true" sourcePath="src/widgets/Buffer/BufferWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/POISearchTool/POISearchToolWidget.swf" optimize="true" sourcePath="src/widgets/POISearchTool/POISearchToolWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/TabbedWidgetContainer/TabbedWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/TabbedWidgetContainer/TabbedWidgetContainerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/GeneralWidgetContainer/GeneralWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/GeneralWidgetContainer/GeneralWidgetContainerWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Weather/WeatherInfoWidget.swf" optimize="true" sourcePath="src/widgets/Weather/WeatherInfoWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserOperationFloor/UserOperationFloorWidget.swf" optimize="true" sourcePath="src/widgets/UserOperationFloor/UserOperationFloorWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/ResourceCenter/ResourceCenterWidget.swf" optimize="true" sourcePath="src/widgets/ResourceCenter/ResourceCenterWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Search/SearchWidget.swf" optimize="true" sourcePath="src/widgets/Search/SearchWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/PlaceNameSearchTool/PlaceNameSearchToolWidget.swf" optimize="true" sourcePath="src/widgets/PlaceNameSearchTool/PlaceNameSearchToolWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserService/UserServiceWidget.swf" optimize="true" sourcePath="src/widgets/UserService/UserServiceWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Swipe/SwipeWidget.swf" optimize="true" sourcePath="src/widgets/Swipe/SwipeWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/UserMap/UserMapWidget.swf" optimize="true" sourcePath="src/widgets/UserMap/UserMapWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/InfoTemplates/MarkerInfoWidget.swf" optimize="true" sourcePath="src/widgets/InfoTemplates/MarkerInfoWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf" optimize="true" sourcePath="src/widgets/LeftWidgetContainer/LeftWidgetContainerWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/CenterFloor/CenterFloorWidget.swf" optimize="true" sourcePath="src/widgets/CenterFloor/CenterFloorWidget.mxml"/>
-    <module application="src/index.mxml" destPath="widgets/Copyright/CopyrightWidget.swf" optimize="true" sourcePath="src/widgets/Copyright/CopyrightWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/IPLocation/IPLocationWidget.swf" optimize="true" sourcePath="src/widgets/IPLocation/IPLocationWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/MapCorrection/MapCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/MapCorrection/MapCorrectionWidget.mxml"/>
   </modules>
   <buildCSSFiles/>
   <flashCatalyst validateFlashCatalystCompatibility="false"/>

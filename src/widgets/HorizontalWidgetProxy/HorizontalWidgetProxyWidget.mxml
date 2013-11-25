@@ -433,7 +433,7 @@
 			
 		]]>
 	</fx:Script>
-	<s:Group id="headerGroup" top="0" width="350" height="25">
+	<s:Group id="headerGroup" top="0" height="25">
 		<s:HGroup id="widgetProxyGroup" width="100%" gap="10"/>
 		<s:BorderContainer id="widgetListContainer"
 						   y="{headerGroup.height}" x="{widgetListContainerX}"

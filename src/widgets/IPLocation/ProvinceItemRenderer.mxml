@@ -2,58 +2,70 @@
 <s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009"
 				xmlns:s="library://ns.adobe.com/flex/spark"
 				xmlns:mx="library://ns.adobe.com/flex/mx"
-				xmlns:viewer="com.esri.viewer.components.*"
+				xmlns:components="com.esri.viewer.components.*"
 				autoDrawBackground="false"
+			 	width="100%"
 				dataChange="itemrenderer_dataChangeHandler(event)"
-				minHeight="40">
+			    creationComplete="itemrenderer_creationCompleteHandler(event)">
 	<fx:Declarations>
 		<!--<mx:SetStyleAction id="rollOverColorStyle" name="color" value="0x1C00C7"/>-->
 	</fx:Declarations>
 	
 	<fx:Script>
 		<![CDATA[
+			import com.esri.viewer.utils.Hashtable;
+			
 			import mx.events.FlexEvent;
 			import mx.utils.StringUtil;
 			
-			private const PROVINCE_CLICK:String = "searchResultClick";
-			private const PROVINCE_MOUSE_OVER:String = "searchResultMouseOver";
-			private const PROVINCE_MOUSE_OUT:String = "searchResultMouseOut";
-			
-			private var result:Object = null;//{group:"A",province:hashtable}
+			private var result:Object = null;//{group:"A",provinces:hashtable}
 
 			private function itemrenderer_dataChangeHandler(event:FlexEvent):void
 			{
 				result = data;
 				if (result)
 				{
+					if(result.group!="其它"){
+						indexLbl.text = result.group;
+					}else{
+						indexLbl.text = "";
+					}
+					var provinceHashTable:Hashtable = result.provinces;
+					initItems(provinceHashTable);
 				}
 			}
 			
-			private function itemrenderer_clickHandler(event:MouseEvent):void
+			//创建省与地市按钮
+			private function initItems(provinceHashTable:Hashtable):void
 			{
-				dispatchEvent(new Event(PROVINCE_CLICK, true)); // bubbles
+				provincesGroup.removeAllElements();
+				var keys:Array = provinceHashTable.getKeySet();
+				for each(var provinceName:String in keys){
+					var cities:String = provinceHashTable.find(provinceName);
+					var obj:Object = {
+						province:provinceName,
+						cities:cities.split(",")
+					};
+					
+					var provinceGroup:ProvinceGroup = new ProvinceGroup();
+					provinceGroup.provinceObj = obj;
+					provincesGroup.addElement(provinceGroup);
+				}
 			}
 			
-			private function itemrenderer_mouseOverHandler(event:MouseEvent):void
+			protected function itemrenderer_creationCompleteHandler(event:FlexEvent):void
 			{
-				dispatchEvent(new Event(PROVINCE_MOUSE_OVER, true));
+				trace(provincesGroup.width);
 			}
 			
-			private function itemrenderer_mouseOutHandler(event:MouseEvent):void
-			{
-				dispatchEvent(new Event(PROVINCE_MOUSE_OUT, true)); // bubbles
-			}
 		]]>
 	</fx:Script>
-	
-	<s:HGroup width="100%" height="40" gap="5">
-		<s:VGroup height="100%" paddingTop="5">
-			<s:Label id="gxLbl" text="广西:" fontSize="14" fontWeight="bold"/>
+	<fx:Declarations>
+	</fx:Declarations>
+	<s:HGroup width="100%" gap="10">
+		<s:VGroup width="20" height="100%" paddingTop="3" horizontalAlign="left">
+			<s:Label id="indexLbl" fontFamily="宋体" fontSize="18" fontWeight="bold"/>
 		</s:VGroup>
-		<s:Group id="gxGroup" width="100%" height="40" right="3">
-			<s:layout>
-				<components:FlowLayout gapColumn="0" clipAndEnableScrolling="true"/>
-			</s:layout>
-		</s:Group>
+		<s:VGroup id="provincesGroup" width="100%" gap="5" clipAndEnableScrolling="false"/>
 	</s:HGroup>
 </s:ItemRenderer>

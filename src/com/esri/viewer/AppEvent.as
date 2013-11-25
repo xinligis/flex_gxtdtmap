@@ -363,6 +363,8 @@ public class AppEvent extends Event
 	 */
 	public static const BASE_BACK_HOME:String = "backhome";
 	
+	public static const IPLOCATION_CLICK:String = "ipLocationClick";
+	
     //--------------------------------------------------------------------------
     //
     //  Constructor

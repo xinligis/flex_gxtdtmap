@@ -16,24 +16,24 @@
     </style>
     <!-- 自定义BlazeDS对象访问代理 -->
     <amfchannel uri="digitalMap-amf.endpoint"/>
-    <!-- 比例尺上的坐标值 -->
-	<widget left="353" bottom="5" 
-			config="widgets/Coordinate/CoordinateWidget.xml" 
-			url="widgets/Coordinate/CoordinateWidget.swf" />
 	<!-- 版权信息 -->
-	<widget left="560" bottom="5" 
+	<widget left="580" bottom="5" 
 			config="widgets/Copyright/CopyrightWidget.xml" 
 			url="widgets/Copyright/CopyrightWidget.swf" />
+	<!-- 导航栏 -->
+	<widget label="导航条" left="370" top="145" 
+    		config="widgets/Navigation/NavigationWidget.xml" 
+    		url="widgets/Navigation/NavigationWidget.swf"/>	
 	<!-- 主工具栏背景 -->
 	<widget label="主工具栏"  top="90" left="350"
 			url="widgets/CenterFloor/CenterFloorWidget.swf" 
 	 		config="widgets/CenterFloor/CenterFloorWidget.xml"/>
 	<!-- 工具栏上的IP定位 -->
-	<widget label="IP定位" top="95" left="360"  
+	<widget label="IP定位" top="92" left="360"  
 			config="widgets/IPLocation/IPLocationWidget.xml" 
 			url="widgets/IPLocation/IPLocationWidget.swf"/>
 	<!-- 工具栏上的工具列 -->
-	<widget label="水平开关代理" top="95" right="60"   
+	<widget label="水平开关代理" top="95" right="20"   
 			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
 			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
 	<!-- 工具栏上的地图切换 -->
@@ -55,7 +55,8 @@
 	<widget label="用户登录框" right="10" top="10"
 			url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 		config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
-	<widget label="视野内搜索" preload="closed" top="120" right="110" 
+	<widget label="视野内搜索" top="95" right="315"
+			preload="close"
 			config="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.xml" 
 			url="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
 	<!-- 105.587 28.424 109.412 30.976 -->
