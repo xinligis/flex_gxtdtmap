@@ -78,6 +78,7 @@
 						new AsyncResponder(getPAC_resultHandler,getPAC_faultHandler));
 					
 					AppEvent.addListener(AppEvent.IPLOCATION_CLICK,clickCityHandler);
+					AppEvent.addListener(AppEvent.IPLOCATIONWIDGET_CLOSE,ipLocationCloseHandler);
 				}
 			}
 			
@@ -167,7 +168,7 @@
 			{
 				if(_extent != null)
 				{
-					if(_fullZoomRegion!=null)
+					/*if(_fullZoomRegion!=null)
 					{
 						if(_fullZoomRegion.intersects(_extent) == false)
 						{
@@ -181,7 +182,9 @@
 					else
 					{
 						map.extent = _extent;
-					}
+					}//*/
+					
+					map.extent = _extent;
 				}
 			}
 			
@@ -222,11 +225,18 @@
 				_isProvinceWidgetOpen = !_isProvinceWidgetOpen;
 			}
 			
+			private function ipLocationCloseHandler(event:AppEvent):void
+			{
+				_isProvinceWidgetOpen = !_isProvinceWidgetOpen;
+				var id:int = super.siblingWidgetId(_provinceWidget);
+				AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+			}
+			
 			private function clickCityHandler(event:AppEvent):void
 			{
 				trace(event.data.province+":"+event.data.city);
 				var strWhere:String = "";
-				strWhere = "PROV = '" + event.data.province + "' and NAME='" + event.data.city + "'";
+				strWhere = "SHORTNAME='" + event.data.city + "'";
 				doQuery(strWhere,[_fullNameField]);
 			}
 			

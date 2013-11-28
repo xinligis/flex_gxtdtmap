@@ -82,7 +82,12 @@
 			private var objectIdsArray:Array = [];	//查询结果ID数组
 			private const ICON_URL:String = "assets/images/index/";
 			private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
+			private const TAG_ICONSELECT:Array = ["ah.png", "bh.png", "ch.png", "dh.png", "eh.png", "fh.png", "gh.png", "hh.png", "ih.png", "jh.png"];
 			private var _symbolsPerPage:Array = [];
+			private var selectedSymbols:Array = [];
+			
+			[Bindable]
+			private var bannersArray:ArrayCollection = new ArrayCollection();
 			
 			//当前选中的POI大类
 			private var _currentPOICatalog:XML = null;
@@ -94,6 +99,15 @@
 			{
 				if (configXML)
 				{
+					var banners:XMLList = configXML.banners.banner;
+					for (var i:int = 0; i < banners.length(); i++)
+					{
+						var banner:BannerObj = new BannerObj();
+						banner.name = banners[i].@name;
+						banner.url = banners[i].@url;
+						banner.img = banners[i].@img;
+						bannersArray.addItem(banner);
+					}
 					
 					// infoUrl
 					infoUrl = configXML.info;
@@ -137,7 +151,32 @@
 				{
 					var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICON[index],22,26,0,0);
 					_symbolsPerPage.push(pictureSymbol);
+					
+					var selectedPictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICONSELECT[index],22,26,0,0);
+					selectedSymbols.push(selectedPictureSymbol);
 				}
+				
+				AppEvent.addListener(AppEvent.BASE_BACK_HOME, backHomeHandler);
+			}
+			
+			private function backHomeHandler(event:AppEvent):void
+			{
+				searchResultAC.removeAll();
+				if (graphicsLayer)
+				{
+					graphicsLayer.clear();
+				}
+				
+				setResultTipsVisible(false);
+				setImgGroupVisible(true);
+				
+				this.initRootCatalog();
+				catalogLabel.label = "";
+				subCatalogLabel.label = "";
+				_currentPOICatalog = null;
+				_currentPOISubCatalog = null;
+				
+				pagesSelector.set_TotalCount(0);
 			}
 			
 			/**
@@ -202,7 +241,7 @@
 				}
 				
 				initSubCatalog(index);
-				catalogLabel.label = "> " + linkButton.label;
+				catalogLabel.label = ">  " + linkButton.label;
 				
 				//设置查询的参数
 				_currentPOICatalog = configXML.poicatalogs.poicatalog[index];
@@ -293,9 +332,9 @@
 			 */ 
 			private function queryForIds(expression:String,value:String):void
 			{
+				setImgGroupVisible(false);
 				startBusyStatus();
-				resultTip.includeInLayout = false;
-				resultTip.visible = false;
+				setResultTipsVisible(false);
 				var queryTask:QueryTask = new QueryTask();
 				queryTask.disableClientCaching = false;
 				queryTask.useAMF = true;
@@ -321,8 +360,7 @@
 					searchResultAC.removeAll();
 				}
 				resultCountLabel.text = ""+objectIdsArray.length;
-				resultTip.includeInLayout = true;
-				resultTip.visible = true;
+				setResultTipsVisible(true);
 				stopBusyStatus();
 			}
 			
@@ -367,21 +405,32 @@
 					result.content = content;
 					result.index = i;
 					result.point = getGeomCenter(feature.geometry);		//要素中心点
-					results.addItem(result);
 					
 					//地图上的显示要素
 					var resultGraphic:Graphic = new Graphic(result.point,this._symbolsPerPage[i]);
 					resultGraphic.attributes=result;
 					resultGraphic.addEventListener(MouseEvent.CLICK, graphicMouseClickHandler);
+					
+					result.graphic = resultGraphic;
+					results.addItem(result);
 					graphicsLayer.add(resultGraphic);
 				}
 				searchResultAC = results;
 				map.extent = GraphicUtil.getGraphicsExtent(featureSet.features);
+				setMapLevel();
 			}
 			
 			private function onFault(info:Object, token:Object=null):void{
 				stopBusyStatus();
 				Alert.show("发现异常,请联系管理员.内容："+info.toString());
+			}
+			
+			//将地图缩小一级
+			private function setMapLevel():void
+			{
+				if(map.level>0){
+					map.zoomOut();
+				}
 			}
 			
 			/***
@@ -395,6 +444,18 @@
 					content:result.content,
 					point:result.point};
 				this.showInfoWindow(infoWindowData);
+			}
+			
+			protected function searchResultMouseOverHandler(event:Event):void
+			{
+				var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+				result.graphic.symbol = selectedSymbols[result.index];
+			}
+			
+			protected function searchResultMouseOutHandler(event:Event):void
+			{
+				var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+				result.graphic.symbol = _symbolsPerPage[result.index];
 			}
 			
 			/**
@@ -492,8 +553,10 @@
 			
 			private function widgetOpenedHandler(event:Event):void
 			{
+				searchResultAC.removeAll();
 				if (graphicsLayer)
 				{
+					graphicsLayer.clear();
 					map.addLayer(graphicsLayer);
 				}
 			}
@@ -514,6 +577,28 @@
 				loadingStatusGroup.visible = false;
 				loadingStatusGroup.includeInLayout = false;
 			}
+			
+			//设置结果总数显示与否
+			private function setResultTipsVisible(visible:Boolean):void
+			{
+				resultTip.visible = visible;
+				resultTip.includeInLayout = visible;
+			}
+			
+			//设置广告显示与否
+			private function setImgGroupVisible(visible:Boolean):void
+			{
+				imgGroup.visible = visible;
+				imgGroup.includeInLayout = visible;
+			}
+			
+			//广告
+			protected function bannerClickHandler(event:Event):void
+			{
+				var banner:BannerObj=ItemRenderer(event.target).data as BannerObj;
+				navigateToURL(new URLRequest(banner.url), "_blank");
+			}
+			
 		]]>
 	</fx:Script>
 	<viewer:SplitWidgetTemplate id="wTemplate" fontFamily="宋体"
@@ -552,6 +637,17 @@
 				</s:BorderContainer>
 			</s:VGroup>
 		</s:VGroup>
+		
+		<!--广告-->
+		<s:VGroup id="imgGroup" width="100%" horizontalAlign="center" paddingTop="30" gap="10">
+			<Search:BannerDataGroup id="bannerDG" width="100%"
+									dataProvider="{bannersArray}"
+								 	bannerClick="bannerClickHandler(event)">
+				<Search:layout>
+					<s:VerticalLayout gap="5" horizontalAlign="center" verticalAlign="middle"/>
+				</Search:layout>
+			</Search:BannerDataGroup>
+		</s:VGroup>
 
 		<!-- result-->
 		<s:BorderContainer id="resultTip" width="100%" height="25" borderVisible="false"
@@ -564,15 +660,6 @@
 			<s:Label id="resultCountLabel" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0xff8105"/>
 			<s:Label text="条结果" fontFamily="宋体"  verticalAlign="middle" fontSize="12" color="0x747678"/>
 		</s:BorderContainer>
-		<s:BorderContainer width="100%" height="25" borderVisible="false" 
-						   includeInLayout="false" visible="false"
-						   backgroundColor="#E5EEFF" id="noResultGrp">
-			<s:layout>
-				<s:HorizontalLayout horizontalAlign="right" gap="18" verticalAlign="middle"  paddingRight="5"/>
-			</s:layout>
-			<s:Image source="assets/images/attention.png" />
-			<s:Label text="没有搜到您要的信息" textAlign="left" fontFamily="宋体" color="#4a535f" fontSize="12" fontWeight="normal"/>
-		</s:BorderContainer>
 		<s:VGroup id="loadingStatusGroup" horizontalAlign="center" gap="5" includeInLayout="false" visible="false"
 				  horizontalCenter="0" verticalCenter="0">
 			<s:SWFLoader source="assets/images/loading.swf"/>
@@ -581,7 +668,9 @@
 		<s:Scroller width="100%" height="100%">
 			<Search:SearchResultDataGroup id="searchResultDG" width="100%"
 										  fontFamily="宋体" dataProvider="{searchResultAC}"
-										  searchResultClick="clickSearchResult(event)">
+										  searchResultClick="clickSearchResult(event)"
+										  searchResultMouseOver="searchResultMouseOverHandler(event)"
+										  searchResultMouseOut="searchResultMouseOutHandler(event)">
 				<Search:layout>
 					<s:VerticalLayout gap="2"
 									  horizontalAlign="justify"

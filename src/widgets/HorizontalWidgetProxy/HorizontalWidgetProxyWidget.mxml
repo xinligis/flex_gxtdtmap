@@ -46,7 +46,7 @@
 			private var urlOperationWidget:String = "";  //来自URL上的操作
 			
 			[Bindable]
-			private var subToolWidgetArrCol:ArrayCollection;  //子工具项
+			private var subToolWidgetArrCol:ArrayCollection = new ArrayCollection();  //子工具项
 			
 			//常用工具
 			private var _graphicslayer:GraphicsLayer = new GraphicsLayer();
@@ -73,27 +73,6 @@
 					initConfigLoaded();
 					for each(var proxy:WidgetItem in mainToolWidgets)
 					{
-						/*if(proxy.iconOn){
-							var checkBtn:CheckButton2 = new CheckButton2();
-							checkBtn.id = proxy.id.toString();
-							checkBtn.toolTip = proxy.name?proxy.name:"未知";
-							checkBtn.setStyle("normalImage",proxy.iconOff);
-							checkBtn.setStyle("selectedImage",proxy.iconOn);
-							checkBtn.setStyle("overImage",proxy.iconOver);
-							checkBtn.addEventListener("checkChange",btn_checkChangeHandler);
-							
-							widgetProxyGroup.addElement(checkBtn);
-						}else{
-							var clickBtn:ClickButton2 = new ClickButton2();
-							clickBtn.id = proxy.id.toString();
-							clickBtn.toolTip = proxy.name?proxy.name:"未知";
-							clickBtn.setStyle("normalImage",proxy.iconOff);
-							clickBtn.setStyle("overImage",proxy.iconOver);
-							clickBtn.addEventListener(MouseEvent.CLICK,btn_clickHandler);
-							
-							widgetProxyGroup.addElement(clickBtn);
-						}//*/
-						
 						var clickBtn:ImageLabelButton = new ImageLabelButton();
 						clickBtn.id = proxy.id.toString();
 						clickBtn.title = proxy.name?proxy.name:"未知";
@@ -113,6 +92,7 @@
 				//处理常用工具
 				addGraphicsLayer();
 				AppEvent.addListener(AppEvent.POST_PROCESS,post_processHandler);
+				AppEvent.addListener(AppEvent.SEARCHINEXTENT_CLOSE,searchInExentCloseHandler);
 			}
 			
 			//加载graphicslayer，供所有常用工具使用
@@ -222,35 +202,10 @@
 					}
 				}
 			}
-			
-			//主工具栏事件
-			private function btn_checkChangeHandler(event:Event):void
-			{
-				var checkBtn:CheckButton2 = event.currentTarget as CheckButton2;
-				var item:WidgetItem;
-				for each(var proxy:WidgetItem in mainToolWidgets)
-				{
-					if(proxy.id.toString() == checkBtn.id){
-						item = proxy;
-						break;
-					}
-				}
-				
-				//查找widget
-				if(item.url){
-					var id:int = super.siblingWidgetId(item.url);
-					if(checkBtn.checked){
-						AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
-					}else{
-						AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
-					}
-				}
-			}
-			
+
 			//主工具栏事件
 			private function btn_clickHandler(event:MouseEvent):void
 			{
-				//var clickBtn:ClickButton2 = event.currentTarget as ClickButton2;
 				var clickBtn:ImageLabelButton = event.currentTarget as ImageLabelButton;
 				var item:WidgetItem;
 				for each(var proxy:WidgetItem in mainToolWidgets)
@@ -263,7 +218,7 @@
 				
 				//子菜单
 				if(item.isGroup){
-					subToolWidgetArrCol = new ArrayCollection();
+					subToolWidgetArrCol.removeAll();
 					for each (var subItem:WidgetItem in item.widgets)
 					{
 						subToolWidgetArrCol.addItem(subItem);
@@ -279,14 +234,36 @@
 						//打印
 						if(item.url == "widgets/Print/PrintWidget.swf"){
 							AppEvent.dispatch(AppEvent.WIDGET_RUN,{widgetId:id,state:"open"});
+						}//视野内搜索
+						else if(item.url == "widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"){
+							if(item.checked){
+								AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+							}else{
+								AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+							}
+							item.checked = !item.checked;
 						}else{
 							AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
-						}		
+						}
 					}else{
 						//全屏
 						if(item.name == "全屏"){
 							map.stage.displayState = StageDisplayState.FULL_SCREEN;
 						}
+					}
+				}
+			}
+			
+			//关闭视野内搜索
+			private function searchInExentCloseHandler(event:AppEvent):void
+			{
+				for each(var proxy:WidgetItem in mainToolWidgets)
+				{
+					if(proxy.url == event.data.toString()){
+						var id:int = super.siblingWidgetId(proxy.url);
+						AppEvent.dispatch(AppEvent.WIDGET_CLOSE, id);
+						proxy.checked = !proxy.checked;
+						break;
 					}
 				}
 			}
@@ -341,8 +318,16 @@
 					default:
 					{
 						//其他
-						var id:int = super.siblingWidgetId(widgetItem.url);
-						AppEvent.dispatch(AppEvent.WIDGET_RUN, id);
+						var widgetId:int = super.siblingWidgetId(widgetItem.url);
+						if(widgetItem.iconOn){
+							if(widgetItem.checked){
+								AppEvent.dispatch(AppEvent.WIDGET_RUN, widgetId);
+							}else{
+								AppEvent.dispatch(AppEvent.WIDGET_CLOSE, widgetId);
+							}
+						}else{
+							AppEvent.dispatch(AppEvent.WIDGET_RUN, widgetId);
+						}
 					}
 				}
 			}
@@ -411,10 +396,12 @@
 			{
 				AppEvent.dispatch(AppEvent.POST_PROCESS,{data:"toolActive"});
 			}
+			//释放处理方法
 			private function tool_deactivateHandler(tool:ITool):void
 			{
 				_currentTool = null;
 			}
+			//运行widget处理方法
 			private function tool_runWidgetHandler(tool:ITool,url:String,data:Object = null,callback:Function=null):void
 			{
 				for each(var widget:Object in configData.widgets)
@@ -426,6 +413,7 @@
 					}
 				}
 			}
+			//后运行处理方法
 			private function postProcessHandler(type:String,data:Object):void
 			{
 				dispatchEvent(new PostProcessEvent(type,data));

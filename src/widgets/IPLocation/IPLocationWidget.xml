@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 	<cityDivision>
-		<url>http://www.digitalcq.com:8399/arcgis/rest/services/PAC/MapServer/0</url>
+		<url>http://192.168.1.105:6080/arcgis/rest/services/province/MapServer/0</url>
 		<districtmatch>PAC = '[value]'</districtmatch>
-		<fullnamefield>FullName</fullnamefield>
+		<fullnamefield>FULLNAME</fullnamefield>
 	</cityDivision>
 <!-- 	<remoteobject destination="digitalMapDestination" getpac="RemoteInvoke"/> -->
 	<remotefunction>IPLocationFacade.getPAC</remotefunction>

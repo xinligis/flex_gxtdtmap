@@ -3,12 +3,12 @@
 				xmlns:s="library://ns.adobe.com/flex/spark"
 				xmlns:mx="library://ns.adobe.com/flex/mx"
 				xmlns:HorizontalWidgetProxy="widgets.HorizontalWidgetProxy.*"
-				autoDrawBackground="true"
-				buttonMode="true"
-				width="100%"
+				autoDrawBackground="true" buttonMode="true"
+				width="100%" minHeight="30"
 				click="itemrenderer_clickHandler(event)"
 				dataChange="itemrenderer_dataChangeHandler(event)"
-				minHeight="30"
+			 	mouseOut="itemrenderer_mouseOutHandler(event)"
+			 	mouseOver="itemrenderer_mouseOverHandler(event)"
 				useHandCursor="true">
 	<fx:Script>
 		<![CDATA[
@@ -27,8 +27,8 @@
 				widgetItem = data as WidgetItem;
 				widgetLabel.text = widgetItem.name;
 				
-				/*if(widgetItem.checked){
-					this.currentState="selected";
+				if(widgetItem.checked){
+					this.currentState="checked";
 				}//*/
 			}
 			
@@ -40,54 +40,67 @@
 			
 			private function checkChange():void
 			{
+				widgetItem.checked = !widgetItem.checked;
+				
 				if(widgetItem.checked){
-					widgetItem.checked = false;
-					this.currentState="normal";
-				}else{
-					widgetItem.checked = true;
-					this.currentState="selected";
+					this.currentState="checked";
+				}//*/
+			}
+			
+			protected function itemrenderer_mouseOutHandler(event:MouseEvent):void
+			{
+				if(widgetItem.checked)
+				{
+					currentState = "checked";
+				}
+				else
+				{
+					currentState = "normal";
 				}
 			}
+			
+			protected function itemrenderer_mouseOverHandler(event:MouseEvent):void
+			{
+				if(!widgetItem.checked)
+				{
+					currentState = "over";
+				}
+			}
+			
 		]]>
 	</fx:Script>
 	
 	<s:states>
 		<s:State name="normal"/>
-		<s:State name="hovered"/>
-		<s:State name="selected"/>
+		<s:State name="over"/>
+		<s:State name="checked"/>
 	</s:states>
-	
+	<!--
 	<s:Rect left="0" right="0" top="0" bottom="0">
 		<s:fill>
 			<s:SolidColor alpha="0"
-						  alpha.hovered="0.65"
-						  color.hovered="0x2B9DBF"/>
+						  alpha.over="0.65"
+						  color.over="0x2B9DBF"/>
 		</s:fill>
 	</s:Rect>
-	<!--<s:VGroup>-->
-		<s:HGroup height="25" width="100%" paddingLeft="15" gap="20"
-				  buttonMode="true"
-				  useHandCursor="true"
-				  horizontalAlign="left"
-				  verticalAlign="middle">
-			<s:Image source="{data.iconOff}" visible="true" includeInLayout="true"
-					 visible.normal="true" includeInLayout.normal="true"
-					 visible.hovered="false" includeInLayout.hovered="false"
-					 visible.selected="false" includeInLayout.selected="false"/>
-			<s:Image source="{data.iconOver}" visible="false" includeInLayout="false"
-					 visible.normal="false" includeInLayout.normal="false"
-					 visible.hovered="true" includeInLayout.hovered="true"
-					 visible.selected="false" includeInLayout.selected="false"/>
-			<s:Image source="{data.iconOn}" visible="false" includeInLayout="false"
-					 visible.normal="false" includeInLayout.normal="false"
-					 visible.hovered="false" includeInLayout.hovered="false"
-					 visible.selected="true" includeInLayout.selected="true"/>
-			<s:Label id="widgetLabel" width="100%"
-					 color="0x4D565B" color.hovered="0xEA830D" color.selected="0xEA830D"
-					 fontFamily="微软雅黑"
-					 fontSize="12"
-					 maxDisplayedLines="3"
-					 showTruncationTip="true"/>
-		</s:HGroup>
-	<!--</s:VGroup>-->
+	-->
+	<s:HGroup height="25" width="100%" paddingLeft="15" gap="20"
+			  buttonMode="true"
+			  useHandCursor="true"
+			  horizontalAlign="left"
+			  verticalAlign="middle">
+		<s:Image source="{data.iconOff}" visible="true" includeInLayout="true"
+				 visible.over="false" includeInLayout.over="false"
+				 visible.checked="false" includeInLayout.checked="false"/>
+		<s:Image source="{data.iconOver}" visible="false" includeInLayout="false"
+				 visible.over="true" includeInLayout.over="true"/>
+		<s:Image source="{data.iconOn}" visible="false" includeInLayout="false"
+				 visible.checked="true" includeInLayout.checked="true"/>
+		<s:Label id="widgetLabel" width="100%"
+				 color="0x4D565B" color.over="0xEA830D" color.checked="0xEA830D"
+				 fontFamily="微软雅黑"
+				 fontSize="12"
+				 maxDisplayedLines="3"
+				 showTruncationTip="true"/>
+	</s:HGroup>
 </s:ItemRenderer>

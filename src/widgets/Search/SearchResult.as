@@ -29,5 +29,6 @@ public class SearchResult extends EventDispatcher
     public var point:MapPoint;
     public var link:String;
 	public var multimedia:Array;
+	public var graphic:Graphic;
 }
 }

@@ -24,10 +24,10 @@
     	<line color="0xff0000" size="2"></line>
     </lineController>
     
-    <!--线测量控制器-->
+    <!--面测量控制器-->
     <polygonContrller>
-    	<border color="0x0000ff" size="1.5"></border>
-    	<fillsymbol color="0x00ffff" alpha="0.5"></fillsymbol>
+    	<border color="0xda0000" size="1.5"/>
+    	<fillsymbol color="0xCCCCCC" alpha="0.5"/>
     </polygonContrller>
     
     <!--一条测量完毕的线段的展示-->
@@ -60,8 +60,8 @@
     
     <!--面测量完的展示-->
     <polygonElement>
-    	<border color="0x0000ff" size="1.5"></border>
-    	<fillsymbol color="0x00ffff" alpha="0.5"></fillsymbol>
+    	<border color="0xda0000" size="1.5"/>
+    	<fillsymbol color="0xCCCCCC" alpha="0.5"/>
     	<!--删除按钮-->
     	<deleteButton>
     		<symbol source="assets/images/measure/delete.png" xoffset="25" yoffset="15" tooltip="点击清除"></symbol>

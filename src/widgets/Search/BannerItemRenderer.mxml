@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:ItemRenderer xmlns:fx="http://ns.adobe.com/mxml/2009" 
+				xmlns:s="library://ns.adobe.com/flex/spark" 
+				xmlns:mx="library://ns.adobe.com/flex/mx"
+				autoDrawBackground="false"
+				click="itemrenderer_clickHandler(event)"
+				dataChange="itemrenderer_dataChangeHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			private const BANNER_CLICK:String = "bannerClick";
+			[Bindable]
+			private var banner:BannerObj;
+			
+			private function itemrenderer_dataChangeHandler(event:FlexEvent):void
+			{
+				banner = data as BannerObj;
+				
+				if (banner)
+				{
+					tagIamge.source = banner.img;
+				}
+			}
+			
+			private function itemrenderer_clickHandler(event:MouseEvent):void
+			{
+				dispatchEvent(new Event(BANNER_CLICK, true)); // bubbles
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:Image id="tagIamge" buttonMode="true"/>
+</s:ItemRenderer>

@@ -3,6 +3,8 @@ package widgets.ToolBar.Tools.Screenshot
 	import com.esri.ags.events.DrawEvent;
 	import com.esri.ags.geometry.Extent;
 	import com.esri.ags.geometry.MapPoint;
+	import com.esri.ags.symbols.SimpleFillSymbol;
+	import com.esri.ags.symbols.SimpleLineSymbol;
 	import com.esri.ags.tools.DrawTool;
 	import com.esrichina.om.componet.ResizeDragContainer;
 	
@@ -54,12 +56,12 @@ package widgets.ToolBar.Tools.Screenshot
 			_drawTool.map=map;
 			_drawTool.addEventListener(DrawEvent.DRAW_END,draw_endHandler);
 			
-			
-			
+			//创建默认polygon
+			var outLineSym:SimpleLineSymbol=new SimpleLineSymbol("solid",0xda0000,1,2);
+			var polygonSymbol:SimpleFillSymbol = new SimpleFillSymbol("solid",0xCCCCCC,0.5,outLineSym);
+			_drawTool.fillSymbol = polygonSymbol;
 			
 			createButtons();
-			
-			
 		}
 		
 		//创建保存、打印、取消按钮
@@ -160,7 +162,7 @@ package widgets.ToolBar.Tools.Screenshot
 			rect.left=0;
 			rect.right=0;
 			rect.stroke=new SolidColorStroke(0xda0000,2);
-			rect.fill=new SolidColor(0xffffff,0.4);
+			rect.fill=new SolidColor(0xCCCCCC,0.5);
 			_ssExtent.addElement(rect);
 			_ssExtent.addElement(_vgroup);
 			_ssExtent.addElement(_cancelButton);

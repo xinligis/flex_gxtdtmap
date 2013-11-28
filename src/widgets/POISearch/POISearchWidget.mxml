@@ -46,6 +46,7 @@
 		private var _postEvent:AppEvent;
 		private const ICON_URL:String = "assets/images/index/";
 		private const TAG_ICON:Array = ["a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png", "i.png", "j.png"];
+		private const TAG_ICONSELECT:Array = ["ah.png", "bh.png", "ch.png", "dh.png", "eh.png", "fh.png", "gh.png", "hh.png", "ih.png", "jh.png"];
 		private var infoUrl:String;
 		private var infoConfig:String;
 		private var graphicsLayer:GraphicsLayer;
@@ -53,6 +54,7 @@
 		[Bindable]
 		private var searchResultAC:ArrayCollection = new ArrayCollection();
 		private var _symbolsPerPage:Array = [];
+		private var selectedSymbols:Array = [];
 		private var infoTemplate:IInfowindowTemplate;
 		private var layerObject:LayerObject = new LayerObject();
 		private const PAGE_COUNT:uint = 6;		//显示页码数
@@ -107,6 +109,9 @@
 				{
 					var pictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICON[index],22,26,0,0);
 					_symbolsPerPage.push(pictureSymbol);
+					
+					var selectedPictureSymbol:PictureMarkerSymbol = new PictureMarkerSymbol(ICON_URL+TAG_ICONSELECT[index],22,26,0,0);
+					selectedSymbols.push(selectedPictureSymbol);
 				}
 				
 				graphicsLayer = new GraphicsLayer();
@@ -235,16 +240,27 @@
 				result.content = content;
 				result.index = i;
 				result.point = getGeomCenter(feature.geometry);		//要素中心点
-				results.addItem(result);
-				
+
 				//地图上的显示要素
 				var resultGraphic:Graphic = new Graphic(result.point,this._symbolsPerPage[i]);
 				resultGraphic.attributes=result;
 				resultGraphic.addEventListener(MouseEvent.CLICK, graphicMouseClickHandler);
+				
+				result.graphic = resultGraphic;
+				results.addItem(result);
 				graphicsLayer.add(resultGraphic);
 			}
 			searchResultAC = results;
 			map.extent = GraphicUtil.getGraphicsExtent(featureSet.features);
+			setMapLevel();
+		}
+		
+		//将地图缩小一级
+		private function setMapLevel():void
+		{
+			if(map.level>0){
+				map.zoomOut();
+			}
 		}
 		
 		private function onFault(info:Object, token:Object=null):void{
@@ -263,6 +279,18 @@
 				content:result.content,
 				point:result.point};
 			this.showInfoWindow(infoWindowData);
+		}
+		
+		protected function searchResultMouseOverHandler(event:Event):void
+		{
+			var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+			result.graphic.symbol = selectedSymbols[result.index];
+		}
+		
+		protected function searchResultMouseOutHandler(event:Event):void
+		{
+			var result:SearchResult=ItemRenderer(event.target).data as SearchResult;
+			result.graphic.symbol = _symbolsPerPage[result.index];
 		}
 		
 		/**
@@ -354,12 +382,15 @@
 		
 		private function widgetClosedHandler(event:Event):void
 		{
+			graphicsLayer.clear();
 			map.removeLayer(graphicsLayer);
 			this.showInfoWindow(null);
 		}
 		
 		private function widgetOpenedHandler(event:Event):void
 		{
+			searchResultAC.removeAll();
+			
 			if (graphicsLayer)
 			{
 				map.addLayer(graphicsLayer);
@@ -382,6 +413,7 @@
 			loadingStatusGroup.visible = false;
 			loadingStatusGroup.includeInLayout = false;
 		}
+		
 	]]>
 </fx:Script>
 	<viewer:SplitWidgetTemplate id="wTemplate" fontFamily="宋体"
@@ -420,7 +452,9 @@
 			<s:Scroller width="100%"  height="100%" verticalScrollPolicy="auto">
 				<poiSearch:SearchResultDataGroup id="searchResultDG" width="100%"
 											  fontFamily="宋体" dataProvider="{searchResultAC}"
-											  searchResultClick="clickSearchResult(event)">
+											  searchResultClick="clickSearchResult(event)"
+											  searchResultMouseOver="searchResultMouseOverHandler(event)"
+											  searchResultMouseOut="searchResultMouseOutHandler(event)">
 					<poiSearch:layout>
 						<s:VerticalLayout gap="10"
 										  horizontalAlign="justify"

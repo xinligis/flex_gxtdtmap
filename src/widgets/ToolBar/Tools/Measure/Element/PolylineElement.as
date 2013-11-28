@@ -99,6 +99,7 @@ package widgets.ToolBar.Tools.Measure.Element
 		
 		/**删除按钮**/
 		private var _deleteGraphic:Graphic=null;
+		private var deleteGraphicName:String = "deleteGraphic";
 		
 		/**起点的符号样式**/
 		private var _startSymbol:MarkerSymbol;
@@ -191,6 +192,7 @@ package widgets.ToolBar.Tools.Measure.Element
 			markerSym.xoffset=Number(String(_config.deleteButton.symbol.@xoffset));
 			markerSym.yoffset=Number(String(_config.deleteButton.symbol.@yoffset));
 			_deleteGraphic=new Graphic(null,markerSym,{element:this});
+			_deleteGraphic.id = deleteGraphicName;
 			_deleteGraphic.addEventListener(MouseEvent.CLICK,function(event:MouseEvent):void
 			{
 				clean();
@@ -217,12 +219,10 @@ package widgets.ToolBar.Tools.Measure.Element
 		}
 		public function clean():void
 		{
-			var g:Graphic = _graphics.pop();
-			while(g!=null)
-			{
-				_graphcisLayer.remove(g);
-				g= _graphics.pop();
-			}
+			removeEditEvent();
+			_editTool.deactivate();
+			_graphcisLayer.map.removeEventListener(MouseEvent.CLICK,map_clickHandler);
+			_graphcisLayer.clear();
 		}
 		
 		/**
@@ -312,6 +312,7 @@ package widgets.ToolBar.Tools.Measure.Element
 		
 		private function map_clickHandler(event:MouseEvent):void
 		{
+			removeEditEvent();
 			_editTool.deactivate();
 			_graphcisLayer.map.removeEventListener(MouseEvent.CLICK,map_clickHandler);
 			bindEditEvent();
@@ -435,7 +436,9 @@ package widgets.ToolBar.Tools.Measure.Element
 			for(var i:int=0;i<length;i++)
 			{
 				var g:Graphic=_graphics[i];
-				g.addEventListener(MouseEvent.CLICK,lineGraphic_clickHandler);
+				if(g.id!=deleteGraphicName){
+					g.addEventListener(MouseEvent.CLICK,lineGraphic_clickHandler);
+				}
 			}
 		}
 		/**
@@ -447,7 +450,9 @@ package widgets.ToolBar.Tools.Measure.Element
 			for(var i:int=0;i<length;i++)
 			{
 				var g:Graphic=_graphics[i];
-				g.removeEventListener(MouseEvent.CLICK,lineGraphic_clickHandler);
+				if(g.id!=deleteGraphicName){
+					g.removeEventListener(MouseEvent.CLICK,lineGraphic_clickHandler);
+				}
 			}
 		}
 		

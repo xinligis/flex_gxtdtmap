@@ -5,39 +5,40 @@
 				   xmlns:mx="library://ns.adobe.com/flex/mx"
 				   xmlns:viewer="com.esri.viewer.*"
 				   xmlns:components="com.esri.viewer.components.*"
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
 				   widgetConfigLoaded="init()"
-				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+				   creationComplete="creationCompleteHandler(event)">
 	<fx:Declarations>
 		<!-- 打开或收起类型搜索条件面板 -->
-		<s:Parallel id="pullUpFadeResize" 
-					duration="1000" 
+		<s:Parallel id="groupFadeResizeHide" 
 					target="{searchPanel}">
-			<s:Fade alphaFrom="1.0"
-					alphaTo="0.0"/>
-			<s:Resize widthTo="340" 
-					  heightTo="20" 
-					  effectEnd="pullUp_effectEndHandler(event)"/>
-		</s:Parallel> 
-		<s:Parallel id="showFadeResize" 
-					target="{searchPanel}">
-			<s:Resize duration="500"
-					  widthTo="340" 
-					  heightTo="140"/>
-			<s:Fade duration="1500"
+			<s:Fade duration="400"
 					alphaFrom="1.0"
 					alphaTo="0.0"/>
+			<s:Resize duration="700"
+					  widthTo="330" 
+					  heightTo="18" 
+					  effectEnd="pullUp_effectEndHandler(event)"/>
+		</s:Parallel> 
+		<s:Parallel id="groupFadeResizeShow"
+					target="{searchPanel}">
+			<s:Resize duration="400"
+					  widthTo="330" 
+					  heightTo="120"/>
+			<s:Fade duration="700"
+				    alphaFrom="0.0"
+					alphaTo="1.0"/>
 		</s:Parallel>
 		<!-- 打开或收起整个面板 -->
 		<s:Parallel id="fadeResizeHide"
 					target="{conentContainer}">
-			<s:Fade id="fadeHide" 
+			<s:Fade duration="400"
 					alphaFrom="1.0"
-					duration="500"
 					alphaTo="0.0"/>
-			<s:Resize id="resizeHide"
-					  duration="1500"
+			<s:Resize duration="700"
 					  widthTo="0" 
-					  heightTo="0"/>
+					  heightTo="0"
+					  effectEnd="content_effectEndHandler(event)"/>
 		</s:Parallel>        
 		<s:Sequence id="fadeResizeShow"
 					target="{conentContainer}"
@@ -72,16 +73,17 @@
 			{
 				if (configXML)
 				{
-					searchInScreenBut.title = configXML.proxywidget.@name;
-					searchInScreenBut.toolTip = configXML.proxywidget.@name;
-					searchInScreenBut.setStyle("normalImage",configXML.proxywidget.@icon_off);
-					searchInScreenBut.setStyle("overImage",configXML.proxywidget.@icon_over);
 					_postprocessorWidgetID = super.siblingWidgetId(String(configXML.proxywidget.@widget));
 					//添加对视野内搜索处理widget打开状态的监听
 					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED, onOpenedPostprocessor);
 					//初始化分类面板
 					initRootCatalog();
 				}
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				trace("");
 			}
 			
 			//工具按钮
@@ -152,7 +154,7 @@
 				searchValueLabel = linkButton.label;
 				//打开视野内搜索处理widget
 				AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
-				pullUpFadeResize.play();
+				groupFadeResizeHide.play();
 			}
 			
 			private function keyword_clickHandler(event:MouseEvent):void
@@ -183,14 +185,20 @@
 					searchType = 1;
 					AppEvent.dispatch(AppEvent.WIDGET_RUN, _postprocessorWidgetID);
 					searchValueLabel = keyword.text;
-					pullUpFadeResize.play();
+					groupFadeResizeHide.play();
 				}
+			}
+			
+			//关闭widget
+			protected function content_effectEndHandler(event:EffectEvent):void
+			{
+				//AppEvent.dispatch(AppEvent.SEARCHINEXTENT_CLOSE,"widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf");
 			}
 			
 			private function pullUp(event:MouseEvent):void
 			{
-				conentContainer.visible = false;
-				fadeResizeHide.play();
+				//fadeResizeHide.play();
+				AppEvent.dispatch(AppEvent.SEARCHINEXTENT_CLOSE,"widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf");
 			}
 			
 			/**
@@ -199,7 +207,9 @@
 			private function pullUp_effectEndHandler(event:EffectEvent):void
 			{
 				searchPanel.visible = false;
+				searchPanel.includeInLayout = false;
 				currentSearchGroup.visible = true;
+				currentSearchGroup.includeInLayout = true;
 			}
 			
 			/**
@@ -208,11 +218,13 @@
 			private function changeSearchLink_clickHandler(event:MouseEvent):void
 			{
 				searchPanel.visible = true;
+				searchPanel.includeInLayout = true;
 				currentSearchGroup.visible = false;
-				showFadeResize.play();
+				currentSearchGroup.includeInLayout = false;
+				groupFadeResizeShow.play();
 			}
 			
-			private function searchInScreen_clickHandler(event:MouseEvent):void
+			/*private function searchInScreen_clickHandler(event:MouseEvent):void
 			{
 				if(conentContainer.visible){
 					conentContainer.visible = false;
@@ -221,34 +233,32 @@
 					conentContainer.visible = true;
 					//fadeResizeShow.play();
 				}
-			}
+			}//*/
+			
 		]]>
 	</fx:Script>
-	<customskinbutton:ImageLabelButton id="searchInScreenBut" click="searchInScreen_clickHandler(event)"/>
-	<s:BorderContainer width="100%" id="conentContainer" visible="false" includeInLayout="false" borderColor="0xEBEBEB">
+	<s:BorderContainer width="350" id="conentContainer" borderVisible="false" backgroundColor="0x2B9DBF" color="0x4D565B">
 		<s:layout>
-			<s:VerticalLayout horizontalAlign="left" verticalAlign="top" gap="5"/>
+			<s:VerticalLayout horizontalAlign="left" verticalAlign="top" gap="2" paddingLeft="2" paddingRight="2" paddingBottom="2"/>
 		</s:layout>
-		<s:BorderContainer width="100%" height="25" borderVisible="false"
-						   backgroundColor="#F3F6FA">
-			<s:layout>
-				<s:HorizontalLayout paddingLeft="7" horizontalAlign="left" verticalAlign="middle"/>
-			</s:layout>
-			<s:Label text="在屏幕范围内搜索" width="300" fontFamily="宋体" fontSize="12"
-					 color="0x4061ad" fontWeight="normal" 
+		<s:HGroup width="100%" height="24" paddingLeft="10" paddingRight="10" horizontalAlign="left" verticalAlign="middle">
+			<s:Label text="在屏幕范围内搜索" width="100%" fontFamily="宋体" fontSize="12"
+					 color="0xFFFFFF" fontWeight="normal" 
 					 verticalAlign="middle"/>
 			<s:Image source="@Embed(source='assets/images/pullup.png')"
 					 horizontalAlign="right"
 					 buttonMode="true"
 					 click="pullUp(event)"/>
-		</s:BorderContainer>
-		<s:Group  width="100%">
+		</s:HGroup>
+		<s:BorderContainer borderVisible="false" width="100%" height="100%" backgroundColor="0xFFFFFF">
+			<s:layout>
+				<s:VerticalLayout verticalAlign="top" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"/>
+			</s:layout>
 			<!-- 屏幕视野内分类搜索面板 -->
 			<s:VGroup id="searchPanel" width="100%">
-				<s:VGroup id="catalogGroup" width="100%"  paddingLeft="7" gap="3">
-				</s:VGroup>
-				<s:HGroup width="100%" paddingLeft="7">
-					<s:TextInput id="keyword" width="250" 
+				<s:VGroup id="catalogGroup" width="100%" gap="3"/>
+				<s:HGroup width="100%">
+					<s:TextInput id="keyword" width="100%" 
 								 text="查找其他关键词"
 								 color="0xC0C0C0"
 								 borderColor="0xC0C0C0"
@@ -258,22 +268,23 @@
 								 mouseOut="keyword_mouseOutHandler(event)"
 								 enter="seachHandler()"
 								 click="keyword_clickHandler(event)"/>
-					<s:Button label="搜索" fontFamily="宋体" fontSize="12"
-							  color="#4061ad" fontWeight="normal" click="seachHandler()"/>
+					<mx:Button skin="@Embed('assets/images/search/searchNormal.png')"
+							   overSkin="@Embed('assets/images/search/searchPress.png')"
+							   right="15"
+							   click="seachHandler()"/>
 				</s:HGroup>
 			</s:VGroup>
-			<s:HGroup id="currentSearchGroup" visible="false" 
-					  horizontalAlign="left" verticalAlign="middle" 
-					  paddingLeft="7" paddingBottom="2">
+			<s:HGroup id="currentSearchGroup" width="100%" visible="false" includeInLayout="false"
+					  horizontalAlign="left" verticalAlign="middle" paddingRight="20">
 				<s:Label text="当前搜索:" fontFamily="宋体" fontSize="12" fontWeight="normal"/>
 				<s:Label text="{searchValueLabel}"
-						 width="180"
+						 width="100%"
 						 fontFamily="宋体" fontSize="12" fontWeight="bold"/>
 				<mx:LinkButton label="更改条件" useHandCursor="true" paddingRight="7" 
 							   fontFamily="宋体" fontSize="12" fontWeight="normal"
 							   color="0x4061ad" textDecoration="underline"
 							   click="changeSearchLink_clickHandler(event)"/>
 			</s:HGroup>
-		</s:Group>
+		</s:BorderContainer>
 	</s:BorderContainer>
 </viewer:BaseWidget>

@@ -72,6 +72,7 @@
     <module application="src/index.mxml" destPath="widgets/CenterFloor/CenterFloorWidget.swf" optimize="true" sourcePath="src/widgets/CenterFloor/CenterFloorWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/IPLocation/IPLocationWidget.swf" optimize="true" sourcePath="src/widgets/IPLocation/IPLocationWidget.mxml"/>
     <module application="src/index.mxml" destPath="widgets/MapCorrection/MapCorrectionWidget.swf" optimize="true" sourcePath="src/widgets/MapCorrection/MapCorrectionWidget.mxml"/>
+    <module application="src/index.mxml" destPath="widgets/POISearch/POISearchWidget.swf" optimize="true" sourcePath="src/widgets/POISearch/POISearchWidget.mxml"/>
   </modules>
   <buildCSSFiles/>
   <flashCatalyst validateFlashCatalystCompatibility="false"/>

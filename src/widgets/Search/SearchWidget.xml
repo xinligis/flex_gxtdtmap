@@ -170,4 +170,11 @@
     <zoomlevel>13</zoomlevel>
     <info>widgets/InfoTemplates/CameraInfoWidget.swf</info>
     <infoConfig>widgets/InfoTemplates/IWT_Point.xml</infoConfig>
+    <banners>
+    	<banner name="百度地图" url="http://map.baidu.com" img="assets/images/banners/banner_baidu.jpg"/>
+    	<banner name="百度地图" url="http://map.baidu.com" img="assets/images/banners/banner_car.jpg"/>
+    	<banner name="百度地图" url="http://map.baidu.com" img="assets/images/banners/banner_mobile.jpg"/>
+    	<banner name="百度地图" url="http://map.baidu.com" img="assets/images/banners/banner_sanwei.jpg"/>
+    	<banner name="百度地图" url="http://map.baidu.com" img="assets/images/banners/banner_baidu.jpg"/>
+    </banners>
 </configuration>

@@ -59,7 +59,7 @@
 		<field>NAME</field>
 		<field>PAC</field>
 	</outFields>
-	<cityServiceUrl>http://124.205.245.98:8181/OneMapServer/rest/services/CQWeatherGraph10/MapServer/0</cityServiceUrl>
+	<cityServiceUrl>http://www.digitalcq.com:8399/arcgis/rest/services/CQWeatherGraph/MapServer/0</cityServiceUrl>
 	<info>widgets/Weather/WeatherInfoWidget.swf</info>
 	<infoConfig>widgets/Weather/WeatherInfoWidget.xml</infoConfig>
 </configuration>

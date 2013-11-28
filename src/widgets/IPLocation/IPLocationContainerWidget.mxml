@@ -7,11 +7,11 @@
 				   xmlns:popup="com.esri.viewer.components.customTitleWindow.*"
 				   xmlns:components="com.esri.viewer.components.*"
 				   xmlns:ipLocation="widgets.IPLocation.*"
-				   width="390" height="395"
 				   widgetConfigLoaded="init()"
 				   creationComplete="popupwindow_creationCompleteHandler(event)">
 	<fx:Script>
 		<![CDATA[
+			import com.esri.viewer.AppEvent;
 			import com.esri.viewer.utils.Hashtable;
 			
 			import mx.collections.ArrayCollection;
@@ -19,9 +19,9 @@
 			import mx.events.CloseEvent;
 			import mx.events.FlexEvent;
 			import mx.managers.PopUpManager;
-			import com.esri.viewer.AppEvent;
 			
-			private var chinaIndex:Array = ["全国","A","F","G","H","J","L","N","Q","S","X","Y","Z","其它"];
+			private var chinaIndex:Array = ["A","F","G","H","J","L","N","Q","S","X","Y","Z","其它"];
+			private var chinaCities:Array = ["全国","北京","天津","上海","广州","深圳","成都","南京","杭州","武汉","重庆"];
 			private var chinaHashTable:Hashtable = new Hashtable();
 			private var provincesHashTable:Hashtable = new Hashtable();
 			[Bindable]
@@ -32,24 +32,14 @@
 				if(configXML){
 					initIPLocation();
 					initGxGroup();
+					initCitiesGroup();
 					initIndexGroup();
 					createAllProivcesGroup();
 				}
-				
-				//AppEvent.addListener(AppEvent.IPLOCATION_CLICK,clickCityHandler);
 			}
 
 			protected function popupwindow_creationCompleteHandler(event:FlexEvent):void
 			{
-				/*if(configXML){
-					//initIPLocation();
-					initGxGroup();
-					initIndexGroup();
-					createAllProivcesGroup();
-				}
-				
-				AppEvent.addListener(AppEvent.IPLOCATION_CLICK,clickCityHandler);
-				//*/
 			}
 			
 			//读取配置文件
@@ -98,6 +88,20 @@
 				}
 			}
 			
+			private function initCitiesGroup():void
+			{
+				cityGroup.removeAllElements();
+				for each(var name:String in chinaCities){
+					var lnkBtn:LinkButton = new LinkButton();
+					lnkBtn.label = name;
+					lnkBtn.setStyle("color", 0x4D565B);
+					lnkBtn.setStyle("rollOverColor", 0x2B9DBF);
+					lnkBtn.setStyle("textRollOverColor", 0xFFFFFF);
+					lnkBtn.addEventListener(MouseEvent.CLICK, onClickCities);
+					cityGroup.addElement(lnkBtn);
+				}
+			}
+			
 			//初始化全国索引
 			private function initIndexGroup():void
 			{
@@ -105,8 +109,8 @@
 				for each(var name:String in chinaIndex){
 					var lnkBtn:LinkButton = new LinkButton();
 					lnkBtn.label = name;
-					lnkBtn.setStyle("paddingLeft", 0);
-					lnkBtn.setStyle("paddingRight", 0);
+					lnkBtn.setStyle("paddingLeft", 3);
+					lnkBtn.setStyle("paddingRight", 3);
 					lnkBtn.setStyle("color", 0x4D565B);
 					lnkBtn.setStyle("rollOverColor", 0x2B9DBF);
 					lnkBtn.setStyle("textRollOverColor", 0xFFFFFF);
@@ -120,7 +124,7 @@
 			{
 				provincesArray.removeAll();
 				for each(var index:String in chinaIndex){
-					if(index == "全国") continue;
+					//if(index == "全国") continue;
 					createProvicesGroup(index);
 				}
 			}
@@ -145,25 +149,42 @@
 			private function onClickGXCatalog(event:MouseEvent):void
 			{
 				var linkButton:LinkButton = event.target as LinkButton;
-				trace(linkButton.label);
+				var obj:Object = {
+					province:"广西",
+					city:linkButton.label
+				};
+				
+				AppEvent.dispatch(AppEvent.IPLOCATION_CLICK,obj);
+			}
+			
+			//定位到热门城市
+			private function onClickCities(event:MouseEvent):void
+			{
+				var linkButton:LinkButton = event.target as LinkButton;
+				if(linkButton.label=="全国"){
+					provincesArray.removeAll();
+					createAllProivcesGroup();
+				}else{
+					var obj:Object = {
+						province:"",
+						city:linkButton.label
+					};
+					
+					AppEvent.dispatch(AppEvent.IPLOCATION_CLICK,obj);
+				}
 			}
 			
 			//定位到全国各省
 			private function onClickIndexCatalog(event:MouseEvent):void
 			{
 				var linkButton:LinkButton = event.target as LinkButton;
-				trace(linkButton.label);
 				provincesArray.removeAll();
-				if(linkButton.label=="全国"){
-					createAllProivcesGroup();
-				}else{
-					createProvicesGroup(linkButton.label);
-				}
+				createProvicesGroup(linkButton.label);
 			}
 			
-			private function clickCityHandler(event:AppEvent):void
+			private function img_closeWidget(event:MouseEvent):void
 			{
-				trace(event.data.province+":"+event.data.city);
+				AppEvent.dispatch(AppEvent.IPLOCATIONWIDGET_CLOSE,this.widgetId);
 			}
 			
 		]]>
@@ -173,14 +194,17 @@
 	</fx:Declarations>
 	<s:BorderContainer width="390" height="395" borderVisible="false" backgroundColor="0x2B9DBF" color="0x4D565B">
 		<s:layout>
-			<s:VerticalLayout gap="0" paddingLeft="2" paddingRight="2" paddingBottom="2"/>
+			<s:VerticalLayout gap="2" paddingLeft="2" paddingRight="2" paddingBottom="2"/>
 		</s:layout>
-		<s:VGroup width="100%" height="24" paddingLeft="10" verticalAlign="middle">
-			<s:Label text="城市列表" fontSize="12" color="0xFFFFFF"/>
-		</s:VGroup>
+		<s:HGroup width="100%" height="24" paddingLeft="10" paddingRight="10" verticalAlign="middle">
+			<s:Label text="城市列表" fontFamily="宋体" fontSize="12" color="0xFFFFFF" width="100%"/>
+			<s:Image source="@Embed(source='assets/images/iplocation/popup_close.png')"
+					 buttonMode="true"
+					 click="img_closeWidget(event)"/>
+		</s:HGroup>
 		<s:BorderContainer borderVisible="false" width="100%" height="100%" backgroundColor="0xFFFFFF">
 			<s:layout>
-				<s:VerticalLayout verticalAlign="top" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10" gap="15"/>
+				<s:VerticalLayout verticalAlign="top" paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10" gap="10"/>
 			</s:layout>
 			<s:HGroup width="100%" height="40" gap="5">
 				<s:VGroup height="100%" paddingTop="5">
@@ -193,7 +217,14 @@
 				</s:Group>
 			</s:HGroup>
 			<mx:HRule width="95%"/>
-			<s:HGroup id="indexGroup" width="100%" gap="0" horizontalAlign="left" verticalAlign="middle"/>
+			<s:VGroup width="100%" gap="5">
+				<s:Group id="cityGroup" width="100%" height="40" right="3">
+					<s:layout>
+						<components:FlowLayout gapColumn="0" clipAndEnableScrolling="true"/>
+					</s:layout>
+				</s:Group>
+				<s:HGroup id="indexGroup" width="100%" gap="0" horizontalAlign="left" verticalAlign="middle"/>
+			</s:VGroup>
 			<mx:HRule width="95%"/>
 			<s:Scroller width="100%" height="100%">
 				<ipLocation:ProvinceDataGroup id="searchResultDG" width="100%"

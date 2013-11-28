@@ -21,7 +21,7 @@
 			config="widgets/Coordinate/CoordinateWidget.xml" 
 			url="widgets/Coordinate/CoordinateWidget.swf" />
 	<!-- 版权信息 -->
-	<widget left="560" bottom="5" 
+	<widget left="600" bottom="5" 
 			config="widgets/Copyright/CopyrightWidget.xml" 
 			url="widgets/Copyright/CopyrightWidget.swf" />
 	<!-- 主工具栏背景 -->
@@ -33,7 +33,7 @@
 			config="widgets/IPLocation/IPLocationWidget.xml" 
 			url="widgets/IPLocation/IPLocationWidget.swf"/>
 	<!-- 工具栏上的工具列 -->
-	<widget label="水平开关代理" preload="open" top="95" right="60"   
+	<widget label="水平开关代理" preload="open" top="95" right="20"   
 			config="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.xml" 
 			url="widgets/HorizontalWidgetProxy/HorizontalWidgetProxyWidget.swf"/>
 	<!-- 工具栏上的地图切换 -->
@@ -55,9 +55,6 @@
 	<widget label="用户登录框" preload="open" right="10" top="10"
 			url="widgets/UserOperationFloor/UserOperationFloorWidget.swf" 
 	 		config="widgets/UserOperationFloor/UserOperationFloorWidget.xml"/>
-	<widget label="视野内搜索" preload="closed" top="120" right="110" 
-			config="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.xml" 
-			url="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
 	<!-- 105.587 28.424 109.412 30.976 -->
     <map top="0" left="350" initialextent="105.5960373813381 28.96475267063883 107.9253009471935 30.399705176876623" esrilogovisible="false">
          <basemaps group="矢量" visible="true" selectedIcon="assets/images/mapswitch/vec.png" unselectedIcon="assets/images/mapswitch/vec.png">
@@ -78,7 +75,7 @@
     <widgetcontainer url="widgets/LeftWidgetContainer/LeftWidgetContainerWidget.swf"
     	layout="cover" left="0" top="90" index="0" bottom="0" width="350" visible="true">
     	<widget label="地图搜索" preload="open" showicon="true" icon="assets/images/headermenu/map_search.png"
-                config="widgets/Search/SearchWidget_POI.xml"
+                config="widgets/Search/SearchWidget.xml"
                 url="widgets/Search/SearchWidget.swf" />
         <widget label="POI快速搜索结果" preload="close" showicon="false" icon="assets/images/headermenu/map_search.png" 
                 config="widgets/POISearch/POISearchWidget.xml"
@@ -86,24 +83,31 @@
     	<widget label="视野内搜索处理" showicon="false" preload="close"
                 config="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.xml"
                 url="widgets/SearchInScreenExtentProcess/SearchInScreenExtentProcessWidget.swf"/>
-        <widget label="天气预报" preload="close" showicon="false"
-				config="widgets/Weather/WeatherWidget.xml" 
-				url="widgets/Weather/WeatherWidget.swf"/>
         <widget label="地图纠错" showicon="false" preload="close" icon="assets/images/headermenu/mapcorrection.png"
 		    	config="widgets/MapCorrection/MapCorrectionWidget.xml" 
 		    	url="widgets/MapCorrection/MapCorrectionWidget.swf" />
     </widgetcontainer> 
     <widgetcontainer url="widgets/CoverWidgetContainer/CoverWidgetContainerWidget.swf"
     	layout="cover" index="0" top="0">
-    	<widget label="打印" showicon="false" preload="open" top="0" left="0"
+    	<widget label="视野内搜索" preload="close" top="35" right="180" 
+			config="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.xml" 
+			url="widgets/SearchInScreenExtent/SearchInScreenExtentWidget.swf"/>
+    	<widget label="打印" preload="open" top="0" left="0"
 				config="widgets/Print/PrintWidget.xml"
 				url="widgets/Print/PrintWidget.swf"/>
-	 	<widget label="定位查找" showicon="false" preload="close" top="35" left="360"  
+	 	<widget label="定位查找" preload="close" top="35" left="360"  
 				config="widgets/IPLocation/IPLocationWidget.xml" 
 				url="widgets/IPLocation/IPLocationContainerWidget.swf"/>
 		<!-- 导航栏 -->
 		<widget label="导航条" preload="open" left="370" top="53" 
     			config="widgets/Navigation/NavigationWidget.xml" 
     			url="widgets/Navigation/NavigationWidget.swf"/>
+    	<widget label="天气预报" preload="close" showicon="false"
+				config="widgets/Weather/WeatherWidget.xml" 
+				url="widgets/Weather/WeatherWidget.swf"/>
+		<widget label="个人空间" preload="close" showicon="false"
+       			left="70" top="50"
+                config="widgets/UserSpace/UserSpaceWidget.xml"
+                url="widgets/UserSpace/UserSpaceWidget.swf" />
     </widgetcontainer>
 </configuration>

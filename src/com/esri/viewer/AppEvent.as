@@ -362,9 +362,18 @@ public class AppEvent extends Event
 	 * 返回到POI信息查询页面
 	 */
 	public static const BASE_BACK_HOME:String = "backhome";
-	
+	/**
+	 * 点击IP定位中的城市
+	 */
 	public static const IPLOCATION_CLICK:String = "ipLocationClick";
-	
+	/**
+	 * 关闭IP定位widget
+	 */
+	public static const IPLOCATIONWIDGET_CLOSE:String = "ipLocationWidgetClose";
+	/**
+	 * 关闭视野内搜索widget
+	 */
+	public static const SEARCHINEXTENT_CLOSE:String="searchInExtentClose";
     //--------------------------------------------------------------------------
     //
     //  Constructor

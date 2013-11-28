@@ -14,8 +14,8 @@
 				   xmlns:viewer="com.esri.viewer.*"
 				   implements="com.esri.viewer.IInfowindowTemplate"
 				   xmlns:sho="com.esri.viewer.components.sho.ui.*"
-				   dataChange="basewidget1_dataChangeHandler(event)" 
-				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*">
+				   xmlns:customskinbutton="com.esri.viewer.components.customskinbutton.*"
+				   dataChange="basewidget1_dataChangeHandler(event)">
 	<fx:Script>
 		<![CDATA[
 			import com.esri.ags.Graphic;
@@ -197,9 +197,7 @@
 	</fx:Script>
 	<fx:Declarations>
 	</fx:Declarations>
-	<s:SkinnableContainer id="infoCanvas"
-						  width="330"
-						  >
+	<s:SkinnableContainer id="infoCanvas" width="330">
 		<s:Label text="您可将您地图上的标注内容分享给好友" fontFamily="宋体" 
 				 fontSize="12" color="#4061ad" top="16" left="25" />
 		<s:VGroup horizontalCenter="0" left="25" top="45" gap="10" horizontalAlign="left" fontFamily="宋体">

@@ -4,12 +4,14 @@ package widgets.Print.element
 	
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
+	import flash.events.MouseEvent;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	import flash.utils.setTimeout;
 	
 	import mx.controls.Image;
 	import mx.core.UIComponent;
+	import mx.events.DragEvent;
 	import mx.graphics.ImageSnapshot;
 	import mx.graphics.SolidColorStroke;
 	
@@ -60,8 +62,8 @@ package widgets.Print.element
 			}
 			
 			this.addElement(_mapImg);
-			
 		}
+		
 		
 		public function createMap(map:Map):void
 		{
@@ -99,6 +101,14 @@ package widgets.Print.element
 			
 			width=width+10;
 			height=height+(height*10/tmpW);
+			if((this.x + width)>this.parent.width){
+				width = this.parent.width - x;
+				height=height-(height*10/tmpW);
+			}
+			if((this.y + height) >this.parent.height){
+				width=width-10;
+				height = this.parent.height - y;
+			}
 		}
 		
 		[Bindable]
@@ -171,5 +181,7 @@ package widgets.Print.element
 				}
 			}
 		}
+		
+		
 	}
 }

@@ -93,8 +93,12 @@ package widgets.ToolBar.Tools.Measure.Element
 			_config=config;
 			
 			//创建polygon符号样式
-			var outLineSym:SimpleLineSymbol=new SimpleLineSymbol("solid",0x0000ff,1,2);
-			var polygonSymbol:SimpleFillSymbol=new SimpleFillSymbol("solid",0x0000ff,0.5,outLineSym);
+			var outLineSym:SimpleLineSymbol=new SimpleLineSymbol("solid",
+				uint(_config.polygonElement.border.@color),1,
+				Number(_config.polygonElement.border.@size));
+			var polygonSymbol:SimpleFillSymbol=new SimpleFillSymbol("solid",
+				uint(_config.polygonElement.fillsymbol.@color),
+				Number(_config.polygonElement.fillsymbol.@alpha),outLineSym);
 			
 			_polygonGraphic=new Graphic(null,polygonSymbol);
 			
@@ -215,12 +219,9 @@ package widgets.ToolBar.Tools.Measure.Element
 		
 		public function clean():void
 		{
-			var g:Graphic = _graphics.pop();
-			while(g!=null)
-			{
-				_graphicsLayer.remove(g);
-				g= _graphics.pop();
-			}
+			_editTool.deactivate();
+			_graphicsLayer.map.removeEventListener(MouseEvent.CLICK,map_clickHandler);
+			_graphicsLayer.clear();
 		}
 		
 		/**

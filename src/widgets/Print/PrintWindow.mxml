@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <customTitleWindow:PopUpWindow xmlns:fx="http://ns.adobe.com/mxml/2009" 
 			   xmlns:s="library://ns.adobe.com/flex/spark" 
-			   xmlns:mx="library://ns.adobe.com/flex/mx" xmlns:supportClasses="com.esri.ags.skins.supportClasses.*" 
-			   title="打印设置" xmlns:SettingPanel="widgets.Print.SettingPanel.*" 
-			   skinClass="widgets.Print.skin.PrintWindowSkin" backgroundColor="0xf7f7f7"
-			   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*" closeButtonVisible="true">
+			   xmlns:mx="library://ns.adobe.com/flex/mx" 
+			   xmlns:supportClasses="com.esri.ags.skins.supportClasses.*"
+			   xmlns:customTitleWindow="com.esri.viewer.components.customTitleWindow.*"
+			   xmlns:SettingPanel="widgets.Print.SettingPanel.*" 
+			   title="打印设置" backgroundColor="0x2B9DBF" color="0x2A9FC2"
+			   contentBackgroundColor="0xf7f7f7"
+			   skinClass="widgets.Print.skin.PrintWindowSkin"
+			   closeButtonVisible="true">
 	<fx:Script>
 		<![CDATA[
 			import com.esri.ags.Map;
@@ -43,6 +47,14 @@
 			private static const SMALL_STEP:int=1;
 			private static const LARGE_STEP:int=5;
 			
+			[Bindable]
+			private var printContentWidth:int = 860;
+			[Bindable]
+			private var printContentHeight:int = 600;
+			
+			private var deltX:Number;
+			private var deltY:Number;
+			
 			/**
 			 * 需要在creationCompelete事件以后调用。设置需要打印的地图
 			 */
@@ -55,6 +67,27 @@
 					_currentMap.createMap(map);
 					eleAddHandler(new AddPrintElementEvent(_currentMap));
 				});
+				printContent.addEventListener(DragEvent.DRAG_ENTER,printContentDragEnterHandler);
+				printContent.addEventListener(DragEvent.DRAG_DROP,printContentDragDropHandler);
+			}
+			private function printContentDragEnterHandler(event:DragEvent):void
+			{
+				deltX = event.localX;
+				deltY = event.localY;
+			}
+			private function printContentDragDropHandler(event:DragEvent):void
+			{
+				_currentElement.x = _currentElement.x+event.localX-deltX;
+				_currentElement.y = _currentElement.y+event.localY-deltY;
+				
+				if(_currentElement.x<0) _currentElement.x = 0;
+				if(_currentElement.y<0) _currentElement.y = 0;
+				if((_currentElement.x + _currentElement.width)>printContent.width){
+					_currentElement.x = printContent.width - _currentElement.width;
+				}
+				if((_currentElement.y + _currentElement.height) >printContent.height){
+					_currentElement.y = printContent.height - _currentElement.height;
+				}
 			}
 			
 			protected function button1_clickHandler(event:MouseEvent):void
@@ -98,7 +131,7 @@
 				setCurrentElement(event.currentTarget);
 			}
 			
-			
+			/*
 			protected function printContent_dragEnterHandler(event:DragEvent):void
 			{
 				DragManager.acceptDragDrop(IUIComponent(event.target));
@@ -111,34 +144,46 @@
 				var ui:IUIComponent=event.dragSource.dataForFormat("ui") as IUIComponent;
 				ui.x=event.localX-dx;
 				ui.y=event.localY-dy;
-			}
+			}//*/
 
 			protected function positionpanel1_positionChangeHandler(event:PositionChangeEvent):void
 			{
 				if(_currentElement==null)
 					return;
-				var step:int=0;
-				if(event.stepType == PositionChangeEvent.STEP_LARGE)
+				var step:int=LARGE_STEP;
+				/*if(event.stepType == PositionChangeEvent.STEP_LARGE)
 				{
 					step=LARGE_STEP;
 				}
 				else
 				{
 					step=SMALL_STEP;
-				}
+				}//*/
 				switch(event.direction)
 				{
 					case PositionChangeEvent.DIRECTION_UP:
 						_currentElement.y=_currentElement.y-step;
+						if(_currentElement.y<0){
+							_currentElement.y=0;
+						}
 						break;
 					case PositionChangeEvent.DIRECTION_DOWN:
 						_currentElement.y=_currentElement.y+step;
+						if((_currentElement.y+_currentElement.height)>printContentHeight){
+							_currentElement.y = printContentHeight-_currentElement.height;
+						}
 						break;
 					case PositionChangeEvent.DIRECTION_RIGHT:
 						_currentElement.x=_currentElement.x+step;
+						if((_currentElement.x+_currentElement.width)>printContentWidth){
+							_currentElement.x = printContentWidth - _currentElement.width;
+						}
 						break;
 					case PositionChangeEvent.DIRECTOIN_LEFT:
 						_currentElement.x=_currentElement.x-step;
+						if(_currentElement.x<0){
+							_currentElement.x=0;
+						}
 						break;
 					case PositionChangeEvent.DIRECTION_VERTICAL_CENTER:
 						_currentElement.centerForVertical();
@@ -187,23 +232,24 @@
 	<fx:Declarations>
 		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
 	</fx:Declarations>
-	<s:Label text="打印设置" color="0x4a535f" fontSize="24" fontFamily="微软雅黑" top="8" left="20"/>
-	<s:Group width="100%" height="100%" top="30" left="20" right="20">
+	<customTitleWindow:layout>
+		<s:VerticalLayout gap="0" paddingLeft="2" paddingRight="2" paddingBottom="2"/>
+	</customTitleWindow:layout>
+	<s:VGroup width="100%" height="35" paddingLeft="20" verticalAlign="middle">
+		<s:Label text="打印设置" fontFamily="宋体" fontSize="16" fontWeight="bold" color="0xFFFFFF"/>
+	</s:VGroup>
+	<s:BorderContainer borderVisible="false" width="100%" height="100%" backgroundColor="0xf7f7f7">
 		<s:layout>
-			<s:HorizontalLayout gap="10"/>
+			<s:HorizontalLayout paddingTop="20" paddingLeft="20" paddingRight="20" paddingBottom="20" gap="10"/>
 		</s:layout>
-		<s:Group height="600" width="860" horizontalCenter="0" >
-			
-			<!--真正打印的区域-->
-			<s:BorderContainer verticalCenter="0" horizontalCenter="0" width="857" height="560" id="printContent" 
-							   borderVisible="false">
-			</s:BorderContainer>
-		</s:Group>
-		<s:BorderContainer height="600" width="200" backgroundColor="#ffffff" borderColor="#e9edf0">
+		<!--真正打印的区域-->
+		<s:BorderContainer id="printContent" verticalCenter="0" horizontalCenter="0" width="{printContentWidth}" height="{printContentHeight}"  
+						   borderVisible="false" backgroundColor="0xFFFFFF"/>
+		<s:BorderContainer height="600" width="200" backgroundColor="0xffffff" borderColor="#e9edf0">
 			<s:layout>
 				<s:BasicLayout/>
 			</s:layout>
-			<s:VGroup width="100%" height="450" horizontalAlign="center">
+			<s:VGroup width="100%" height="440" horizontalAlign="center">
 				<SettingPanel:LabelPanel width="185" currentLabel="{_currentLabel}" 
 										 addPrintElement="eleAddHandler(event)"
 										 printContent="{printContent}"/>
@@ -213,7 +259,6 @@
 				<s:Spacer height="20"/>
 				<SettingPanel:PositionPanel positionChange="positionpanel1_positionChangeHandler(event)"/>
 			</s:VGroup>
-			
 			<s:Line width="185" horizontalCenter="0" bottom="80">
 				<s:stroke>
 					<s:SolidColorStroke color="0xe2e3e4"/>
@@ -225,8 +270,8 @@
 				</s:stroke>
 			</s:Line>
 			<s:Button label="打印" click="button1_clickHandler(event)" 
-					  width="80" height="40" bottom="20" horizontalCenter="0"
+					  width="80" height="40" bottom="10" horizontalCenter="0"
 					  skinClass="widgets.ToolBar.Tools.Screenshot.skin.PrintButtonSkin"/>
 		</s:BorderContainer>
-	</s:Group>
+	</s:BorderContainer>
 </customTitleWindow:PopUpWindow>
