@@ -26,29 +26,108 @@
 			
 			import flash.utils.setTimeout;
 			
+			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
 			import mx.core.UIComponent;
 			import mx.events.FlexEvent;
+			import mx.formatters.DateFormatter;
 			import mx.rpc.AsyncResponder;
 			import mx.rpc.Fault;
 			import mx.rpc.Responder;
 			import mx.rpc.events.FaultEvent;
 			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
+			import mx.rpc.soap.WebService;
 			import mx.utils.OnDemandEventDispatcher;
+			import mx.utils.StringUtil;
 			
-
 			private const ICON_WEATHER:String = "assets/images/weather/weatherIcon/";
 			/**
 			 * 城市的天气信息
 			 * @author 温杨彪
 			 **/
-			private var _cityWeathers:Array = new Array();
-					
+			private var _cityWeathers:Array = new Array();		
 			private var _graphicLayer:GraphicsLayer=null;
-			
 			private var _extent:Extent=null;
+			
+			private var _url:String;
+			private var _nameField:String;
+			private var _codeField:String;
+			private var _expr:String;
 
+			protected function basewidget_widgetConfigLoadedHandler(event:Event):void
+			{
+				if(configXML)
+				{
+					var infoUrl:String = configXML.info;
+					var infoConfig:String = configXML.infoconfig;
+					var data:Object =
+						{
+							id: String(this.widgetId),
+							url: infoUrl,
+							config: infoConfig
+						};
+					AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET,data, weather_infoReady);
+					
+					this._graphicLayer = new GraphicsLayer();
+					map.addLayer(_graphicLayer);
+					
+					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widget_stateChangeHandler);
+					
+					_url = configXML.cityserviceurl;
+					_nameField = configXML.citynamefield;
+					_codeField = configXML.citycodefield;
+					_expr = configXML.expression;
+					
+					getCityGraphics();
+				}
+			}
+			
+			/**
+			 * 获取城市的graphic信息
+			 */
+			private function getCityGraphics():void
+			{
+				var queryTask:QueryTask = new QueryTask(_url);
+				queryTask.useAMF = true;
+				queryTask.concurrency = "last";
+				var query:Query = new Query();
+				query.returnGeometry = true;
+				query.outFields = [_nameField,_codeField];
+				query.where = _expr;
+				queryTask.execute(query, new AsyncResponder(query_resultHandler, query_faultHandler));
+			}
+			
+			private function query_resultHandler(featureSet:FeatureSet, token:Object = null):void
+			{
+				if(!featureSet || featureSet.features.length < 1)
+				{
+					return;
+				}
+				_extent = com.esri.ags.utils.GraphicUtil.getGraphicsExtent(featureSet.features);
+				if(_extent!=null)
+				{
+					_extent = _extent.expand(1.5);
+					map.extent = _extent;
+				}
 				
+				for each(var graphic:Graphic in featureSet.features)
+				{	
+					graphic.symbol = infoS;
+					graphic.addEventListener(MouseEvent.CLICK, graphic_clickHandler);
+					graphic.attributes._infoType = "weather";
+					_graphicLayer.add(graphic);
+					
+					var cityWeather:CityWeather = new CityWeather();
+					cityWeather.name = graphic.attributes[_nameField];
+					cityWeather.cityId = graphic.attributes[_codeField];
+					cityWeather.graphic = graphic;
+					_cityWeathers.push(cityWeather);
+				}
+				
+				getWeatherInfos();
+			}
+			
 			/**
 			 * 调用后台java接口，获取配置文件中配置的各个城市的天气信息
 			 * @author 温杨彪；2011-7-27
@@ -58,7 +137,6 @@
 			 **/
 			private function getWeatherInfos():void
 			{
-								
 				var cityIds:Array = [];
 				for each(var cityWeather:CityWeather in this._cityWeathers)
 				{
@@ -104,93 +182,7 @@
 			{
 				
 			}
-		
-
-
-			protected function basewidget_widgetConfigLoadedHandler(event:Event):void
-			{
-				// TODO Auto-generated method stub
-				
-				if(configXML)
-				{
-					for each(var cityXML:XML in configXML.cities.city)
-					{
-						var cityWeather:CityWeather = new CityWeather();
-						cityWeather.pac = cityXML.@pac;
-						cityWeather.name = cityXML.@name;
-						cityWeather.cityId = cityXML.@cityid;
-						_cityWeathers.push(cityWeather);
-					}
-					var infoUrl:String;
-					var infoConfig:String;
-					infoUrl = configXML.info;
-					infoConfig = configXML.infoConfig;
-					var data:Object =
-						{
-							id: String(this.widgetId),
-							url: infoUrl,
-							config: infoConfig
-						};
-					AppEvent.dispatch(AppEvent.DATA_CREATE_INFOWIDGET,data, weather_infoReady);
-					this._graphicLayer = new GraphicsLayer();
-					map.addLayer(_graphicLayer);
-					AppEvent.addListener(AppEvent.WIDGET_STATE_CHANGED,widget_stateChangeHandler);
-					getCityGraphics();
-				}
-			}
-			/**
-			 * 获取城市的graphic信息
-			 */
-			private function getCityGraphics():void
-			{
-				var queryTask:QueryTask = new QueryTask(configXML.cityServiceUrl);
-				queryTask.useAMF = true;
-				queryTask.concurrency = "last";
-				var query:Query = new Query();
-				query.returnGeometry = true;
-				query.outFields = ['PAC'];
-				var where:String = "";
-				for each(var cityWeather:CityWeather in this._cityWeathers)
-				{
-					where += "'" + cityWeather.pac + "',";
-				}
-				if(where == "")
-				{
-					return;
-				}
-				where = where.substr(0, where.length - 1);
-				where = "pac in (" + where + ")";
-				query.where = where;
-				queryTask.execute(query, new AsyncResponder(query_resultHandler, query_faultHandler));
-			}
-			private function query_resultHandler(featureSet:FeatureSet, token:Object = null):void
-			{
-				if(!featureSet || featureSet.features.length < 1)
-				{
-					return;
-				}
-				_extent = com.esri.ags.utils.GraphicUtil.getGraphicsExtent(featureSet.features);
-				if(_extent!=null)
-				{
-					_extent = _extent.expand(1.5);
-				}
-				for each(var graphic:Graphic in featureSet.features)
-				{
-					for each(var cityWeather:CityWeather in this._cityWeathers)
-					{
-						if(graphic.attributes["PAC"] == cityWeather.pac)
-						{
-							graphic.symbol = infoS;
-							graphic.addEventListener(MouseEvent.CLICK, graphic_clickHandler);
-							_graphicLayer.add(graphic);
-							cityWeather.graphic = graphic;
-							graphic.attributes._infoType = "weather";
-							break;
-						}
-					}
-				}
-				getWeatherInfos();
-			}
+			
 			private function graphic_clickHandler(event:MouseEvent):void
 			{
 				var graphic:Graphic = event.target as Graphic;
@@ -257,13 +249,10 @@
 				infoTemplate.data = event.data.weatherInfo;
 				map.infoWindow.show(event.data.mapPoint as MapPoint);
 			}
-
-
+			
 		]]>
 	</fx:Script>
 	<fx:Declarations>
-		<esri:InfoSymbol id="infoS" infoPlacement="center" infoRenderer="widgets.Weather.WeatherSymbolDataRender">
-		</esri:InfoSymbol>
-		<esri:SimpleMarkerSymbol id="sms" size="10" color="#FF0000"/>
+		<esri:InfoSymbol id="infoS" infoPlacement="center" infoRenderer="widgets.Weather.WeatherSymbolDataRender"/>
 	</fx:Declarations>
 </viewer:BaseWidget>

@@ -40,11 +40,13 @@
 			
 			private function checkChange():void
 			{
-				widgetItem.checked = !widgetItem.checked;
-				
-				if(widgetItem.checked){
-					this.currentState="checked";
-				}//*/
+				if(widgetItem.iconOn){
+					widgetItem.checked = !widgetItem.checked;
+					
+					if(widgetItem.checked){
+						this.currentState="checked";
+					}
+				}
 			}
 			
 			protected function itemrenderer_mouseOutHandler(event:MouseEvent):void
@@ -61,10 +63,11 @@
 			
 			protected function itemrenderer_mouseOverHandler(event:MouseEvent):void
 			{
-				if(!widgetItem.checked)
+				/*if(!widgetItem.checked)
 				{
 					currentState = "over";
-				}
+				}//*/
+				currentState = "over";
 			}
 			
 		]]>

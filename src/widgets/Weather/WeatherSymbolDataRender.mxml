@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
 		 xmlns:s="library://ns.adobe.com/flex/spark" 
-		 xmlns:mx="library://ns.adobe.com/flex/mx" width="154" height="54" left="-80" top="-45"
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="100%" height="54" left="-80" top="-45"
 		 implements="mx.core.IDataRenderer">
 	<fx:Script>
 		<![CDATA[
@@ -11,7 +11,10 @@
 			
 			import mx.controls.Alert;
 			import mx.core.IDataRenderer; //click="group1_clickHandler(event)"
+			
 			private var _data:Object;
+			[Bindable]
+			private var _width:int=154;
 			
 			[Bindable]
 			// implement IDataRenderer
@@ -28,6 +31,12 @@
 					img.source = value.weatherIcon;
 					lblCity.text = value.cityName;
 					tempratureLabel.text = value.temprature;
+					
+					if(value.cityName){
+						if(String(value.cityName).length-2>0){
+							_width += 13*(String(value.cityName).length-2);
+						}
+					}
 				}
 			}
 
@@ -41,7 +50,7 @@
 			<s:BitmapFill source="@Embed('assets/images/weather/infoSymbolBK.png')"/>
 		</s:fill>
 	</s:Rect>
-	<s:Group width="100%" top="0" left="0" height="35">
+	<s:Group id="gp" width="{_width}" top="0" left="0" height="35">
 		<mx:Image width="20" height="20" id="img" top="10" left="13"/>
 		<s:Label id="lblCity" color="#FFFFFF" fontFamily="微软雅黑" top="12" left="40" fontSize="14"/>
 		<s:Label id="tempratureLabel" fontSize="14" color="#FFFFFF" top="12" right="16" fontFamily="微软雅黑"/>

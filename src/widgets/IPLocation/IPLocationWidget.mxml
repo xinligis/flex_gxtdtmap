@@ -20,6 +20,7 @@
 			import com.esri.ags.tasks.QueryTask;
 			import com.esri.ags.tasks.supportClasses.Query;
 			import com.esri.ags.utils.GraphicUtil;
+			import com.esri.ags.utils.JSON;
 			import com.esri.viewer.AppEvent;
 			import com.esri.viewer.remote.RemoteHandler;
 			import com.esri.viewer.remote.RemoteResult;
@@ -33,6 +34,8 @@
 			import mx.rpc.AsyncToken;
 			import mx.rpc.Fault;
 			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.rpc.http.HTTPService;
 			import mx.utils.StringUtil;
 		
 			private const ICON_BASE:String = "assets/images/iplocationwidget/";
@@ -74,9 +77,13 @@
 					{
 						_isDebug = true;
 					}
-					RemoteHandler.invoke(remotefunction,null,
-						new AsyncResponder(getPAC_resultHandler,getPAC_faultHandler));
-					
+					if(Boolean(configXML.locationservice.@used)){
+						searchOnlineIPLocation(configXML.locationservice.@online);
+					}else{
+						RemoteHandler.invoke(remotefunction,null,
+							new AsyncResponder(getPAC_resultHandler,getPAC_faultHandler));
+					}
+
 					AppEvent.addListener(AppEvent.IPLOCATION_CLICK,clickCityHandler);
 					AppEvent.addListener(AppEvent.IPLOCATIONWIDGET_CLOSE,ipLocationCloseHandler);
 				}
@@ -112,6 +119,36 @@
 				trace("get PAC code error");
 				_title="无法获取您的位置信息";
 			}
+			
+			private function searchOnlineIPLocation(online:String):void
+			{
+				//读取工具的配置信息
+				var configService:HTTPService = new HTTPService();
+				configService.url = online;
+				configService.useProxy=false;
+				configService.resultFormat = "text"; //object、array、xml、flashvars、text
+				
+				configService.addEventListener(ResultEvent.RESULT, searchOnlineResult);
+				configService.addEventListener(FaultEvent.FAULT, searchOnlineFault);
+				configService.send();
+			}
+			//调用常用工具
+			private function searchOnlineResult(event:ResultEvent):void
+			{
+				var result:String = String(event.result);
+				result = result.substring(result.indexOf("{"));
+				var resultObj:Object = com.esri.ags.utils.JSON.decode(result);
+				if(resultObj["city"]){
+					var strWhere:String = "SHORTNAME = '"+resultObj["city"]+"'";
+					doQuery(strWhere,[_fullNameField]);
+				}else{
+					_title="无法获取您的位置信息";
+				}
+			}
+			private function searchOnlineFault(event:FaultEvent):void
+			{
+				_title="无法获取您的位置信息";
+			}//*/
 			
 			private function doQueryByPAC():void
 			{

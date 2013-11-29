@@ -1,11 +1,13 @@
 package widgets.Weather
 {
 	[RemoteClass(alias="com.esrichina.portal.flex.pojo.Weather")]
+	
+	import flash.events.EventDispatcher;
 	/**
 	 * 天气预报信息类
 	 * 王红亮，2012-4-20
 	 */
-	public class WeatherInfo
+	public class WeatherInfo extends EventDispatcher
 	{
 		/**
 		 * 穿衣指数
@@ -61,12 +63,12 @@ package widgets.Weather
 		public var cityId:String;
 		public var currentDate:Array; // year,month,day
 		/**
-		 * 今后几天的天气，已编码表示0表示晴，参见weatherNames数组定义
+		 * 今后几天的天气，已编码表示，0表示晴，参见weatherNames数组定义
 		 */
 		public var weathers:Array; 
-		public var maxtempratures:Array;// 今后几天的最高气温,
-		public var mintempratures:Array;// 今后几天的最低气温,
-		public var wind:Array;// 今后几天的风向风力描述
+		public var maxtempratures:Array;// 今后几天的最高气温,数字类型
+		public var mintempratures:Array;// 今后几天的最低气温,数字类型
+		public var wind:Array;// 今后几天的风向风力描述，字符型
 		public var humidity:Array;// 今后几天的湿度百分比 
 		public var ultravioletRays:Array; // 今后几天的紫外线强度；
 		public var dessingIndex:String;// 穿衣指数
